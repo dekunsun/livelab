@@ -32,7 +32,24 @@ current sensors actually support, and what remains unknowable during a physical 
 - **Liquid handling** tests raw physical vision. There, anomalies are visible while the workflow
   runs.
 
-**Status:** Phase 1, design. No model has been run yet. See [docs/design.md](docs/design.md).
+## Running it
+
+```bash
+python3 -m venv .venv && ./.venv/bin/pip install numpy pyyaml pytest matplotlib pillow google-genai
+./.venv/bin/python -m pytest -q                       # everything below works without an API key
+./.venv/bin/python scripts/render_replays.py          # frozen replays + separate truth files
+./.venv/bin/python scripts/score_mocks.py             # validates the metrics on mock observers
+./.venv/bin/python scripts/run_benchmark.py --backend mock:observability_aware --arm C-full
+```
+
+To run Gemini 3.8 Live, copy `.env.example` to `.env` and put your key there. `.env` is gitignored;
+never paste the key anywhere else. Start with a truncated smoke test:
+
+```bash
+./.venv/bin/python scripts/run_benchmark.py --backend gemini --arm A --replays 5787ea699858 --max-events 5
+```
+
+**Status:** Phase 2: simulator, replays, scorer and harness are built; no real model has been run yet. No model has been run yet. See [docs/design.md](docs/design.md).
 
 ## What this project cannot show
 

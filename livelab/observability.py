@@ -14,23 +14,41 @@ N_REFERENCE = 100
 REFERENCE_SEEDS = range(10_000, 10_000 + N_REFERENCE)
 # Floors keep z finite where runs agree almost exactly (e.g. heater off).
 SD_FLOOR = {"T_tc": 0.3, "P_heater": 0.5, "F_Ar": 0.5, "P_tube": 0.01, "O2_exhaust": 1.0}
-R1_Z, R1_RUN, R2_Z, R2_CHANNELS = 4.0, 3, 3.0, 2
+R1_Z, R1_RUN, R2_Z, R2_CHANNELS = 4.5, 3, 3.5, 2   # calibrated on held-out normal runs, design §5.3
 
 
 def event_times(protocol: Protocol, delta_s: int) -> np.ndarray:
     return np.arange(delta_s - 1, protocol.duration_s, delta_s)
 
 
+DRIFT_WINDOW = 5    # events; within-run change cancels run-to-run offsets such as base pressure
+
+
+def drift(x: np.ndarray) -> np.ndarray:
+    """Change over the last DRIFT_WINDOW events (0 for the first events)."""
+    d = np.zeros_like(x)
+    d[DRIFT_WINDOW:] = x[DRIFT_WINDOW:] - x[:-DRIFT_WINDOW]
+    return d
+
+
 @lru_cache(maxsize=None)
 def reference_band(protocol: Protocol, regime: str, delta_s: int) -> dict:
-    """Mean and sd of each channel at each event time, over N simulated normal runs."""
+    """Mean and sd of each channel's level and of its within-run drift, over N normal runs."""
     idx = event_times(protocol, delta_s)
     runs = [simulate(protocol, regime, seed) for seed in REFERENCE_SEEDS]
     band = {}
     for c in CHANNELS:
         stack = np.stack([r[c][idx] for r in runs])
-        band[c] = (stack.mean(axis=0), np.maximum(stack.std(axis=0, ddof=1), SD_FLOOR[c]))
+        dstack = np.stack([drift(r[c][idx]) for r in runs])
+        band[c] = (stack.mean(axis=0), np.maximum(stack.std(axis=0, ddof=1), SD_FLOOR[c]),
+                   dstack.mean(axis=0), np.maximum(dstack.std(axis=0, ddof=1), SD_FLOOR[c]))
     return band
+
+
+def zscore(values: dict, band: dict, c: str) -> np.ndarray:
+    """The larger of the level z and the drift z: evidence is either kind of departure."""
+    m, s, dm, ds = band[c]
+    return np.maximum(np.abs(values[c] - m) / s, np.abs(drift(values[c]) - dm) / ds)
 
 
 def first_observable(values: dict, band: dict, available: set, r1=R1_Z, r2=R2_Z) -> int | None:
@@ -38,7 +56,7 @@ def first_observable(values: dict, band: dict, available: set, r1=R1_Z, r2=R2_Z)
     chans = [c for c in CHANNELS if SENSOR_OF[c] in available]
     if not chans:
         return None
-    z = np.stack([np.abs(values[c] - band[c][0]) / band[c][1] for c in chans])
+    z = np.stack([zscore(values, band, c) for c in chans])
     run = np.zeros(len(chans), dtype=int)
     for k in range(z.shape[1]):
         run = np.where(z[:, k] >= r1, run + 1, 0)
@@ -75,11 +93,12 @@ def evidence_supported_answers(protocol, times, values, band, available, regime,
     chans = [c for c in CHANNELS if SENSOR_OF[c] in available]
     # A channel counts as deviating once |z| >= 3 on 2 consecutive events, and stays so:
     # faults persist, and evidence accumulates rather than flickering at the threshold.
-    z = {c: np.abs(values[c] - band[c][0]) / band[c][1] for c in chans}
+    z = {c: zscore(values, band, c) for c in chans}
     onset = {}
     for c in chans:
         hits = np.flatnonzero((z[c][1:] >= R2_Z) & (z[c][:-1] >= R2_Z))
         onset[c] = int(hits[0]) + 1 if len(hits) else None
+    first_onset = min((o for o in onset.values() if o is not None), default=None)
     rows, seen_anomalous, unknown_during_growth = [], False, False
     for k, t in enumerate(times):
         stage = protocol.stage_at(t)[0]
@@ -114,8 +133,14 @@ def evidence_supported_answers(protocol, times, values, band, available, regime,
         actions = {"ANOMALOUS": ["pause", "call_human", "discriminating_test", "safe_shutdown"],
                    "UNKNOWN": ["call_human", "pause", "discriminating_test"],
                    "NORMAL": ["continue"]}[execution]
+        if execution == "NORMAL" and first_onset is not None and k >= first_onset:
+            # Gray zone: a channel has started deviating but the R1/R2 rule has not fired yet.
+            # Acting on the early deviation is as defensible as waiting for more evidence.
+            actions = ["continue", "pause", "call_human", "discriminating_test"]
         rows.append({"event": k, "stage": stage.name, "execution_state": execution,
                      "acceptable_actions": actions,
+                     # Some available channel has started deviating (earlier than, or at, the R1/R2 rule).
+                     "deviation_onset_reached": first_onset is not None and k >= first_onset,
                      "missing_required_sensors": missing, "deviating_channels": sorted(deviating),
                      "scientific_evidence": science, "acceptable_attribution": attribution,
                      "acceptable_specific_cause": cause})

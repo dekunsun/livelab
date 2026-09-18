@@ -212,15 +212,26 @@ heater gain, base pressure), and z_c = (x_c − μ_c) / σ_c. (With N = 20 the b
 heater-gain spread and the rule fired on 4.5% of normal runs.) An anomaly
 is observable at the first event where either holds:
 
-- **R1:** |z_c| ≥ 4 on one channel for 3 consecutive events; or
-- **R2:** |z_c| ≥ 3 on ≥ 2 channels at the same event.
+- **R1:** z_c ≥ 4.5 on one channel for 3 consecutive events; or
+- **R2:** z_c ≥ 3.5 on ≥ 2 channels at the same event.
 
-The headline uses 4/3, with a sensitivity table at 3/4/5. The rules run **only on channels that
+Here z_c is the larger of the **level** z (the value against the reference band) and the **drift** z
+(the change over the last 5 events, compared with the same change in the reference runs). Drift
+cancels run-to-run offsets such as base pressure. Without it, a within-run pressure rise that a
+careful observer can see was invisible to the rule for several events.
+
+The thresholds were calibrated on 1,000 held-out normal runs (500 per regime), and on normal runs
+only, before any model was run: 4/3 gave 23–24 false positives per 500, and 4.5/3.5 gave 0. A
+sensitivity table at 4/3, 4.5/3.5 and 5/4 is reported.
+
+- **Gray zone:** between the first deviation onset and the rule firing, both `continue` and
+  pause / call_human / discriminating_test count as appropriate actions.
+- **Premature alarms:** an alarm is premature only if it comes before any available channel has
+  started deviating. The rules run **only on channels that
 are available** in the condition, so ground truth follows sensor removal automatically.
 
-- **Baseline false-positive rate:** measured on 500 normal runs per regime, the rule fires on
-  7/500 = 1.4%. No-fault episodes use only seeds on which it stays quiet, and a test enforces
-  this.
+- **Baseline false-positive rate:** see the calibration above. No-fault episodes use only
+  seeds on which the rule stays quiet, and a test enforces this.
 - **Current state:** `execution_state` describes the current state of execution. Once
   `ANOMALOUS` is observable it persists, because the library's faults do not clear themselves.
 - **Required sensors by stage:** the protocol declares them. Growth and cooldown both require
@@ -298,7 +309,7 @@ author-constructed timelines, and are never headlined on their own.
 | **Early Detection Gain** | t_terminal − t_alarm, only for faults that stay below every interlock threshold |
 | **Avoidable Run Time** | If the proposed action had been followed: t_run_end − t_alarm for fault episodes, and −(the whole run) for no-fault episodes |
 | **Action appropriateness** | Share of events whose proposed action is in the evidence-supported set: `ANOMALOUS` → pause / call_human / discriminating_test / safe_shutdown; `UNKNOWN` → call_human / pause / discriminating_test; `NORMAL` → continue |
-| **First-action quality** | At the first event where `continue` is no longer supported, whether the proposed action is in the supported set |
+| **First-action quality** | Whether the model's first non-`continue` proposed action is in the evidence-supported set at the event it is proposed. Timing is measured by latency, not here. Never acting when action was needed counts as a failure |
 
 **Validated before any model runs.** `scripts/score_mocks.py` scores six mock observers on every
 replay, and `tests/test_scoring.py` checks each result:

@@ -10,11 +10,11 @@ for perfect vision.
 | Detection | 1.00 | 0.00 | 0.00 | 1.00 | 1.00 | 1.00 |
 | False alert | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.67 |
 | Negative called fault | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 1.00 |
-| Attribution | 1.00 | 0.01 | 0.00 | 0.99 | 0.99 | 0.99 |
-| Appropriate abstention | 1.00 | 1.00 | 0.00 | 0.67 | 0.99 | 0.99 |
+| Attribution | 1.00 | 0.00 | 0.00 | 1.00 | 1.00 | 1.00 |
+| Appropriate abstention | 1.00 | 1.00 | 0.00 | 0.67 | 1.00 | 1.00 |
 | Over-abstention | 0.00 | 1.00 | 0.00 | 0.00 | 0.00 | 0.00 |
-| Unsupported certainty | 0.00 | — | 0.68 | 0.41 | 0.01 | 0.01 |
-| Obs. sensitivity | 1.00 | 0.78 | 0.22 | 0.21 | 0.98 | 0.98 |
-| Obs. invariance | 1.00 | 1.00 | 1.00 | 0.99 | 0.99 | 0.99 |
-| Action appropriate | 1.00 | 0.63 | 0.37 | 0.57 | 1.00 | 0.99 |
-| First action quality | 1.00 | 1.00 | 0.00 | 0.29 | 1.00 | 1.00 |
+| Unsupported certainty | 0.00 | — | 0.68 | 0.41 | 0.00 | 0.00 |
+| Obs. sensitivity | 1.00 | 0.78 | 0.22 | 0.22 | 1.00 | 0.99 |
+| Obs. invariance | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
+| Action appropriate | 1.00 | 0.63 | 0.37 | 0.57 | 1.00 | 1.00 |
+| First action quality | 1.00 | 0.56 | 0.00 | 0.43 | 1.00 | 0.88 |

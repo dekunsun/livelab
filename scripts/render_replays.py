@@ -39,7 +39,7 @@ def main():
         ref = {"protocol": protocol_id, "regime": regime, "delta_s": DELTA_S, "n_runs": N_REFERENCE,
                "provenance": "author-constructed simulator, normal runs",
                "channels": {c: {"mean": [round(float(x), 3) for x in m], "sd": [round(float(x), 3) for x in s]}
-                            for c, (m, s) in band.items()}}
+                            for c, (m, s, _dm, _ds) in band.items()}}
         (ROOT / "data" / "replays" / f"reference_{protocol_id}_{regime}.json").write_text(json.dumps(ref))
     (ROOT / "data" / "replays" / "INDEX.json").write_text(json.dumps(index, indent=1))
 

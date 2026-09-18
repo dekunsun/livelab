@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from livelab.mock_models import MOCKS  # noqa: E402
-from livelab.scoring import observability_pairs, score_replay, summarize  # noqa: E402
+from livelab.scoring import score_runs  # noqa: E402
 
 ROWS = ["Detection", "False alert", "Negative called fault", "Attribution", "Appropriate abstention",
         "Over-abstention", "Unsupported certainty", "Obs. sensitivity", "Obs. invariance", "Action appropriate", "First action quality"]
@@ -25,18 +25,11 @@ def run_all():
     index = json.load(open(ROOT / "data/replays/INDEX.json"))
     results = {}
     for mock in MOCKS:
-        counts, by_ep = [], {}
-        for rid, meta in index.items():
-            events = load_jsonl(ROOT / f"data/replays/{rid}.jsonl")
+        reports = {}
+        for rid in index:
             truth = load_jsonl(ROOT / f"data/truth/{rid}.jsonl")
-            reports = mock.run(events, truth)
-            counts.append(score_replay(truth, reports))
-            by_ep.setdefault(meta["episode_id"], {})[meta["condition"]] = (truth, reports)
-        for conds in by_ep.values():
-            for cond, (t, r) in conds.items():
-                if cond != "base" and "base" in conds:
-                    counts.append(observability_pairs(*conds["base"], t, r))
-        results[mock.name] = summarize(counts)
+            reports[rid] = mock.run(load_jsonl(ROOT / f"data/replays/{rid}.jsonl"), truth)
+        results[mock.name] = score_runs(reports, index, lambda rid: load_jsonl(ROOT / f"data/truth/{rid}.jsonl"))
     return results
 
 

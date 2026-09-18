@@ -41,9 +41,12 @@ def score_replay(truth, reports):
 
     if k_obs is not None:
         c["alarm_supported"] = 1
-        hits = [k for k in alarms if k_obs <= k < k_term]
+        # An alarm counts once any available channel has started deviating, even if that is earlier
+        # than the pre-registered R1/R2 rule; latency is then negative. An alarm before any deviation
+        # is premature: the evidence did not exist yet.
+        hits = [k for k in alarms if truth[k]["deviation_onset_reached"] and k < k_term]
         c["detected"] = int(bool(hits))
-        c["premature"] = int(any(k < k_obs for k in alarms))
+        c["premature"] = int(any(not truth[k]["deviation_onset_reached"] for k in alarms))
         if hits:
             c["latency_events"] = hits[0] - k_obs
             c["edg_events"] = k_term - hits[0]
@@ -60,6 +63,14 @@ def score_replay(truth, reports):
         want_abstain = want in ABSTAIN[q]
         got_abstain = got in ABSTAIN[q]     # "none" is a claim ("no fault"), not an abstention
         c["q"] += 1
+        if got == "MISSING":
+            # A missing report can only hurt: it neither abstains where it should, nor commits where
+            # it should, and it is not a claim, so it does not enter unsupported certainty.
+            c["missing"] += 1
+            c["should_abstain"] += want_abstain
+            c["should_commit"] += not want_abstain
+            c["over_abstained"] += not want_abstain
+            continue
         c["committed"] += not got_abstain
         c["should_abstain"] += want_abstain
         c["abstained_correctly"] += want_abstain and got_abstain
@@ -75,11 +86,15 @@ def score_replay(truth, reports):
     for t, r in zip(truth, reports):
         c["action_n"] += 1
         c["action_ok"] += r["proposed_action"] in t["acceptable_actions"]
-    # First-action quality: at the first event where continuing is no longer supported.
-    k_act = next((t["event"] for t in truth if "continue" not in t["acceptable_actions"]), None)
-    if k_act is not None:
+    # First-action quality, separate from timing (timing is latency): is the model's first
+    # non-continue action appropriate at the moment it is proposed? Never acting when action
+    # was needed counts as a failure; never acting when none was needed is not scored.
+    k_first = next((k for k, r in enumerate(reports) if r["proposed_action"] != "continue"), None)
+    needed = any("continue" not in t["acceptable_actions"] for t in truth)
+    if k_first is not None or needed:
         c["first_action_n"] = 1
-        c["first_action_ok"] = int(reports[k_act]["proposed_action"] in truth[k_act]["acceptable_actions"])
+        c["first_action_ok"] = int(k_first is not None and
+                                   reports[k_first]["proposed_action"] in truth[k_first]["acceptable_actions"])
     return dict(c)
 
 
@@ -115,7 +130,22 @@ def summarize(counts):
         "Obs. sensitivity": wilson(s["flip_followed"], s["flip"]),
         "Obs. invariance": wilson(s["noflip_stable"], s["noflip"]),
         "Premature alarms": (s["premature"], s["alarm_supported"]),
+        "Missing reports": wilson(s["missing"], s["q"]),
         "Latency (events)": s["latency_events"] / s["detected"] if s["detected"] else math.nan,
         "Action appropriate": wilson(s["action_ok"], s["action_n"]),
         "First action quality": wilson(s["first_action_ok"], s["first_action_n"]),
     }
+
+
+def score_runs(reports_by_replay: dict, index: dict, load_truth) -> dict:
+    """Score a set of runs, including sensor-removal pairs when base and removal replays are both present."""
+    counts, by_ep = [], {}
+    for rid, reports in reports_by_replay.items():
+        truth = load_truth(rid)
+        counts.append(score_replay(truth, reports))
+        by_ep.setdefault(index[rid]["episode_id"], {})[index[rid]["condition"]] = (truth, reports)
+    for conds in by_ep.values():
+        for cond, (t, r) in conds.items():
+            if cond != "base" and "base" in conds:
+                counts.append(observability_pairs(*conds["base"], t, r))
+    return summarize(counts)
