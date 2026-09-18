@@ -1,8 +1,9 @@
 # Image sources
 
 This is a source-level registry. Per-image rows go into `data/images/manifest.csv` only after the
-figure has been viewed, its caption checked for "reproduced from" credits (third-party panels are
-not covered by the article license), and its outcome class labeled by a person.
+figure has been viewed and its caption checked for "reproduced from" credits (third-party panels
+are not covered by the article license). An outcome label counts as final only after a person has
+reviewed it; until then the row says `pending human review`.
 
 **License checked by** says where each license was confirmed.
 
@@ -30,6 +31,7 @@ Outcome classes:
 - d: small domains / dense nucleation
 - e: oxide or residue
 - f: parameter sweep
+- g: dendritic / decomposed (added after viewing s02 Fig 2i)
 
 | # | Source | DOI | License | Checked by | Figures → classes | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -66,6 +68,22 @@ PeerJ CS 2024, 10.7717/peerj-cs.1885.
 **Excluded by license (NC-ND, although the science is a strong fit):** ACS Omega
 10.1021/acsomega.2c07408, 10.1021/acsomega.2c03108, 10.1021/acsomega.4c10312. Also excluded:
 arXiv papers under the non-exclusive license.
+
+## Fetch status (2026-09-18)
+
+Fetched from PMC with `scripts/fetch_figures.py`, and panels cut with `scripts/make_crops.py`:
+24 panels from sources 1, 2, 4, 8, 9 and 10 (source 5 was fetched, but none of its figures is usable). They are listed in `data/images/manifest.csv`.
+Outcome labels are Claude's, from the image and caption, and are **pending human review**.
+
+- **Not usable as characterization images:** s05 Fig 2 (false-color fluorescence / dark-field),
+  s05 Figs 3–4 (Raman plots only), s08 Fig 2 (SEM). The testbed's characterization step is an
+  optical microscope.
+- **Dropped:** s02 Fig 2h, which carries the authors' red annotation arrows that cannot be
+  cropped out.
+- **Blocked:** sources 3 and 7. PMC answered with a reCAPTCHA page. It was not bypassed, and the
+  retry is pending.
+- **Not attempted yet:** source 6 (*Crystals*, not in PMC) and the PeerJ supplementary dataset.
+- **Caveat:** panels are small (about 125–300 px wide), because PMC serves web-resolution figures.
 
 ## Liquid handling and lab operations (cross-domain control)
 
