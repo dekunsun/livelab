@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-PROMPT_VERSION = "v2"   # v2 (2026-09-18): defines the scientific_evidence values; see docs/design.md §3.2
+PROMPT_VERSION = "v2"   # v2 (2026-09-18): defines the scientific_evidence values; see docs/design.md §3.1
 
 SYSTEM_INSTRUCTION = """You are the observer for a chemical vapor deposition (CVD) run in a single-zone tube furnace.
 The run is being replayed to you one observation event at a time, at fixed intervals of simulated time.

@@ -113,7 +113,7 @@ In the benchmark, `proposed_action` is recorded but never executed.
 An **episode** is a fixed, pre-rendered stream of **observation events**. Each event contains:
 
 - a telemetry update;
-- the device manifest (§3.1);
+- the device manifest (§3.2);
 - protocol state: the current step and the expected value of every channel;
 - any image that becomes available at that time.
 
@@ -146,7 +146,7 @@ observation contains. The harness never hand-picks the frame where the anomaly i
   There are **no load/unload photos**, because no licensed source exists.
 - **Liquid-handling images:** a pre-step and a post-step frame at every step, most of them normal.
 
-### 3.2 Prompt versions
+### 3.1 Prompt versions
 
 The system instruction states the task and the output contract. It never hints at faults or at
 sensor removal. Any change is versioned and logged with every run.
@@ -159,7 +159,7 @@ sensor removal. Any change is versioned and logged with every run.
 - **v2:** adds the definitions of all four values, taken verbatim from §2. Defining the contract is
   not a hint. If the behavior persists under v2, it is a finding.
 
-### 3.1 Device manifest
+### 3.2 Device manifest
 
 Every event carries a device manifest listing each sensor's status and each protocol stage's
 required sensors:
@@ -399,7 +399,7 @@ It is scored in two cases:
 
 ### 7.3 Sensor removal: does the agent reason about observability?
 
-This is C-full with one or more sensors marked `unavailable` in the device manifest (§3.1). The
+This is C-full with one or more sensors marked `unavailable` in the device manifest (§3.2). The
 prompt carries **no extra warning**. The evidence-supported answers are recomputed under §5.1 and
 §5.3.
 
