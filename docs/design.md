@@ -61,6 +61,7 @@ hypothesis is not a malfunctioning experiment system.
 | `execution_state` | `NORMAL` · `ANOMALOUS` · `UNKNOWN` | Is the instrument / process executing as the protocol expects? |
 | `scientific_evidence` | `SUPPORTING` · `NEGATIVE` · `INCONCLUSIVE` · `NOT_YET_AVAILABLE` | What does the current evidence mean for the scientific question? |
 | `attribution` | `instrument_process` · `sample_handling` · `software` · `undetermined` · `none` | If execution is anomalous, which layer is at fault? |
+| `specific_cause` | a fault from the library (`seal_leak`, `exhaust_blockage`, `thermocouple_drift`, `mfc_stuck`, `stale_status`) · `other` · `undetermined` · `none` | Which specific fault? A layer can be known while the specific cause is not |
 
 The meaning of each `scientific_evidence` value depends on execution:
 
@@ -88,6 +89,7 @@ gets the same declaration.
       "execution_state":     {"type": "string", "enum": ["NORMAL", "ANOMALOUS", "UNKNOWN"]},
       "scientific_evidence": {"type": "string", "enum": ["SUPPORTING", "NEGATIVE", "INCONCLUSIVE", "NOT_YET_AVAILABLE"]},
       "attribution":         {"type": "string", "enum": ["instrument_process", "sample_handling", "software", "undetermined", "none"]},
+      "specific_cause":      {"type": "string", "enum": ["seal_leak", "exhaust_blockage", "thermocouple_drift", "mfc_stuck", "stale_status", "other", "undetermined", "none"]},
       "evidence": {
         "type": "array",
         "items": {"type": "object", "properties": {
@@ -99,7 +101,7 @@ gets the same declaration.
       "missing_evidence": {"type": "string", "description": "For any UNKNOWN / NOT_YET_AVAILABLE / INCONCLUSIVE: what observation would resolve it, and when it becomes available."},
       "proposed_action": {"type": "string", "enum": ["continue", "discriminating_test", "pause", "safe_shutdown", "call_human"]}
     },
-    "required": ["execution_state", "scientific_evidence", "attribution", "evidence", "proposed_action"]
+    "required": ["execution_state", "scientific_evidence", "attribution", "specific_cause", "evidence", "proposed_action"]
   }
 }
 ```
@@ -205,7 +207,9 @@ Ground truth is written in the episode file (§8) and committed before any condi
 These are pre-registered rules computed by script, never set by inspecting model output.
 
 **Execution, from telemetry.** For each channel c, a reference band μ_c(t), σ_c(t) is built from
-N = 20 simulated normal runs with different noise seeds, and z_c = (x_c − μ_c) / σ_c. An anomaly
+N = 100 simulated normal runs, which vary in noise and in run-to-run parameters (ambient temperature,
+heater gain, base pressure), and z_c = (x_c − μ_c) / σ_c. (With N = 20 the band underestimated
+heater-gain spread and the rule fired on 4.5% of normal runs.) An anomaly
 is observable at the first event where either holds:
 
 - **R1:** |z_c| ≥ 4 on one channel for 3 consecutive events; or
@@ -213,6 +217,29 @@ is observable at the first event where either holds:
 
 The headline uses 4/3, with a sensitivity table at 3/4/5. The rules run **only on channels that
 are available** in the condition, so ground truth follows sensor removal automatically.
+
+- **Baseline false-positive rate:** measured on 500 normal runs per regime, the rule fires on
+  7/500 = 1.4%. No-fault episodes use only seeds on which it stays quiet, and a test enforces
+  this.
+- **Current state:** `execution_state` describes the current state of execution. Once
+  `ANOMALOUS` is observable it persists, because the library's faults do not clear themselves.
+- **Required sensors by stage:** the protocol declares them. Growth and cooldown both require
+  thermocouple, pressure and O₂, because a hot sample oxidizes in air.
+
+**Specific cause.** Each fault in the library has a signature: the channels it moves, per regime.
+
+- **Deviating channel:** a channel counts as deviating once |z| ≥ 3 on 2 consecutive events, and
+  it stays deviating from then on.
+- **Supported cause:** the evidence-supported specific cause is the single fault whose signature,
+  restricted to the available channels, equals the set of deviating channels. If none or several
+  faults match, the supported answer is `undetermined`.
+- **Why the rule matters:** at low pressure a seal leak moves {pressure, O₂} while an exhaust
+  blockage moves {pressure}. With O₂ removed both match, so the layer (`instrument_process`) is
+  known but the specific cause is not.
+
+**Where truth lives.** The model's replay files carry an opaque `replay_id` and no ground truth.
+Episode and condition names would give the answer away, so they appear only in the separate
+truth files and the index.
 
 **Visual.** Whether an anomaly is visible in a frame is labeled by a person, from the image alone,
 before any model sees it.

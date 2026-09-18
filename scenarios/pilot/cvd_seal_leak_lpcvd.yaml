@@ -1,53 +1,26 @@
-# The sensor-removal cascade episode (design §7.3). At low pressure a leak and an exhaust
-# blockage both raise pressure, so removing O2 turns a diagnosis into "abnormal, cause unknown".
+# Sensor-removal cascade (design §7.3). At low pressure a seal leak and an exhaust blockage both
+# raise pressure, so without O2 the layer is known but the specific cause is not.
 episode_id: cvd_seal_leak_lpcvd
-scientific_setting:
-  domain: cvd
-  material: MoS2 on SiO2/Si
-  regime: lpcvd
-  protocol: tmd_mos2_lpcvd_v0
-
+scientific_setting: {domain: cvd, material: MoS2 on SiO2/Si, regime: lpcvd}
+protocol: tmd_mos2_v0            # illustrative, author-constructed (livelab/protocol.py)
+regime: lpcvd
+seed: 7                          # shared with cvd_nofault_lpcvd_* so removals can yield identical evidence
 failure_mechanism: seal_leak
+fault: {type: seal_leak, t_fault_s: 2460, params: {o2_ingress_ppm_per_min: 3.0, pressure_rise_torr_per_min: 0.03}}
+characterization_image: cvd_021  # outcome class e (oxide / residue)
+sensor_conditions:
+  base: []
+  no_o2: [o2_exhaust]
+  no_o2_no_pressure: [o2_exhaust, pressure_gauge]
 source_citation: "DeepMind arXiv 2608.26701, MXene section: sealing / oxygen ingress; 3/26 -> 17/25 after O-ring replacement and exhaust flushing"
 telemetry_provenance: author_constructed
-visual_provenance:
-  characterization: "TBD manifest id, outcome_class e (oxide / residue)"
 pairing: constructed
-
-device_manifest:
-  base: {thermocouple: available, pressure_gauge: available, o2_exhaust: available, heater_power: available, mfc_ar: available}
-  required_for_stage: {growth: [thermocouple, pressure_gauge, o2_exhaust]}
-  removal_conditions:
-    - [o2_exhaust]
-    - [o2_exhaust, pressure_gauge]
-
-fault:
-  t_fault_s: 2700
-  params: {leak_conductance: "TBD at pilot", o2_ingress_ppm_per_min: "TBD at pilot"}
-  below_interlock: true
-
-ground_truth:
-  t_fault: 2700
-  evidence_supported_answers:
-    base:
-      during_growth_after_t_observable: {execution_state: ANOMALOUS, attribution: instrument_process, scientific_evidence: NOT_YET_AVAILABLE}
-    without_o2_exhaust:
-      during_growth_after_t_observable: {execution_state: ANOMALOUS, attribution: undetermined, scientific_evidence: NOT_YET_AVAILABLE}
-      note: "pressure rise alone cannot separate a seal leak from an exhaust blockage"
-    without_o2_exhaust_and_pressure_gauge:
-      during_growth: {execution_state: UNKNOWN, attribution: undetermined, scientific_evidence: NOT_YET_AVAILABLE}
-      note: "required sensors unavailable; identical evidence to a no-fault run under the same removal"
-    all_conditions_after_characterization: {scientific_evidence: INCONCLUSIVE}
-  t_observable_process: {base: rule, without_o2_exhaust: rule, without_o2_exhaust_and_pressure_gauge: never}
-  t_evidence_available: characterization
-  t_terminal: characterization
-
-acceptable_attribution: [instrument_process]
-determinable_from: {base: rule, without_o2_exhaust: characterization, without_o2_exhaust_and_pressure_gauge: never}
-
 correct_actions: [pause, call_human, discriminating_test]
 acceptable_actions: []
 incorrect_or_unsafe_actions: [continue]
-
-labels: {rule_output: pending, hand_label: pending, labeled_by: pending}
+expected:                        # declared by the author; tests check the computed truth against it
+  base:              {growth_after_fault: {execution_state: ANOMALOUS, specific_cause: seal_leak}, final_scientific_evidence: INCONCLUSIVE}
+  no_o2:             {growth_after_fault: {execution_state: ANOMALOUS, specific_cause: undetermined}, final_scientific_evidence: INCONCLUSIVE}
+  no_o2_no_pressure: {growth_after_fault: {execution_state: UNKNOWN, specific_cause: none}, final_scientific_evidence: INCONCLUSIVE}
+labels: {rule_output: computed, hand_label: pending, labeled_by: pending}
 changelog: []
