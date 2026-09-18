@@ -146,6 +146,19 @@ observation contains. The harness never hand-picks the frame where the anomaly i
   There are **no load/unload photos**, because no licensed source exists.
 - **Liquid-handling images:** a pre-step and a post-step frame at every step, most of them normal.
 
+### 3.2 Prompt versions
+
+The system instruction states the task and the output contract. It never hints at faults or at
+sensor removal. Any change is versioned and logged with every run.
+
+- **v1** (smoke test, 2026-09-18): named the `scientific_evidence` values without defining them.
+  In the first full replay (telemetry-only, LPCVD seal leak), Gemini 3.8 Live reported
+  `NEGATIVE` from mid-growth onward, before any characterization existed. Because v1 had not
+  defined `NEGATIVE`, this may reflect an underspecified contract rather than the model. The log is
+  kept in `docs/pilot/`.
+- **v2:** adds the definitions of all four values, taken verbatim from §2. Defining the contract is
+  not a hint. If the behavior persists under v2, it is a finding.
+
 ### 3.1 Device manifest
 
 Every event carries a device manifest listing each sensor's status and each protocol stage's
