@@ -19,17 +19,17 @@ from it, so the two cannot drift apart.
 | `telemetry_provenance` | Always `author_constructed`. Curve shapes are never attributed to a real run |
 | `visual_provenance` | Per image: `real`, manifest id, source DOI + figure/panel, license |
 | `pairing` | Always `constructed`. Images and timeline do not come from the same run |
-| `sensors_by_time` | Which channels exist at each time, including announced removals |
+| `device_manifest` | Sensor availability per condition, and `required_for_stage` per protocol stage |
 | `ground_truth.execution_state` | `NORMAL` / `ANOMALOUS` over time |
-| `ground_truth.observable_sample_state` | When the outcome becomes observable, and from which evidence |
-| `ground_truth.scientific_outcome` | `POSITIVE` / `NEGATIVE` / `INCONCLUSIVE` (final) |
+| `ground_truth.evidence_supported_answers` | The evidence-supported answer per stage and per sensor condition (same evidence → same answer) |
+| `ground_truth.scientific_evidence` | `SUPPORTING` / `NEGATIVE` / `INCONCLUSIVE` once characterization arrives |
 | `t_fault` | Fault onset (s), or `null` |
-| `t_observable_process` | From the §4.2 rule, computed by script. May be `never` for some sensor sets |
-| `t_observable_sample` | When characterization arrives |
+| `t_observable_process` | From the design §5.3 rule, computed by script. May be `never` for some sensor sets |
+| `t_evidence_available` | When characterization arrives |
 | `t_terminal` | When the lab would find out without an observer |
 | `acceptable_attribution` | A list, because cross-layer faults may have several valid layers |
 | `determinable_from` | When attribution becomes scoreable |
-| `correct_actions` | Actions that are right at detection |
+| `correct_actions` | Proposed actions that are right at detection (never executed in the benchmark) |
 | `acceptable_actions` | Defensible but not preferred |
 | `incorrect_or_unsafe_actions` | e.g. `continue` through an oxygen leak; retrying without a discriminating test |
 | `labels` | Who labeled what, and the rule output vs the hand label where they differ |

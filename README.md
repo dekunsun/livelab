@@ -12,6 +12,26 @@ current sensors actually support, and what remains unknowable during a physical 
 > current experiment is going wrong, distinguish physical failure from scientific evidence, and
 > know when the available sensors are insufficient to tell.
 
+> More modalities do not always mean more observability. In some stages of a physical
+> experiment, the scientifically relevant state is simply not observable yet.
+
+## Two parts
+
+- **Research benchmark.** A frozen evidence replay: every condition receives the identical evidence
+  stream at identical times, and after each event the model must call `report_assessment()`, which
+  returns an execution state, the state of the scientific evidence, an attribution, what evidence
+  is missing, and a proposed action. The goal is fairness and reproducibility.
+- **Active Live demo.** Gemini 3.8 Live in a closed loop with voice, images, telemetry and tools
+  (`pause_run`, `request_diagnostic`, `ask_human`). It shows what an observability-aware lab
+  workstation feels like. No results are reported from it.
+
+## Two testbeds
+
+- **2D-materials CVD** tests observability and abstention. The sample is invisible during growth,
+  and the visual evidence arrives only at post-growth characterization.
+- **Liquid handling** tests raw physical vision. There, anomalies are visible while the workflow
+  runs.
+
 **Status:** Phase 1, design. No model has been run yet. See [docs/design.md](docs/design.md).
 
 ## What this project cannot show

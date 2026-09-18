@@ -4,63 +4,90 @@
 distinguish what is wrong, what the current sensors actually support, and what remains unknowable
 during a physical experiment.
 
-At every point in an episode the agent is asked four things, in this order:
+> More modalities do not always mean more observability. In some stages of a physical experiment,
+> the scientifically relevant state is simply not observable yet.
+
+At every observation event the agent answers four questions, in this order:
 
 1. **Did something go wrong?**
 2. **What kind of thing went wrong?**
 3. **Do I actually have enough evidence to know?**
 4. **What should I do next?**
 
-The claim is **multimodal failure assessment in simulated live lab episodes**. It is *not*
-real-time failure detection in a real lab. Telemetry is author-constructed, images are real but
-come from published sources, and their pairing is constructed (§7).
+The claim is **multimodal failure assessment in simulated live lab episodes**. It is *not* real-time
+failure detection in a real lab. Telemetry is author-constructed, images are real but taken from
+published sources, and their pairing is constructed (§8).
 
 This document is the Phase 1 specification. It fixes the output contract, the ground-truth rules
 and the metrics **before** any model is run, so that results cannot shape the definitions. Items
-marked **TBD** are listed in §11.
+marked **TBD** are listed in §13.
 
 ---
 
-## 1. Output contract: two orthogonal fields
+## 0. Two parts that never mix
 
-Execution and scientific outcome are separate questions. An experiment that did not support the
+| | **Research benchmark** | **Active Live demo** |
+| --- | --- | --- |
+| Goal | Fairness and reproducibility | Show what an AI-native lab workstation feels like |
+| Evidence | **Frozen replay**: every condition receives the identical evidence stream at identical times | Closed loop: the agent's actions change what happens next |
+| Agent can | Call `report_assessment()`, which includes a *proposed* action. Nothing it does changes later evidence | Call `pause_run()`, `request_diagnostic()`, `ask_human()`; talk by voice; see images and telemetry |
+| Voice | Not an input; spoken output is logged but not scored | The main interface |
+| Output | The metrics in §5 | A recorded demo; **no metrics are reported from it** |
+
+The separation matters. If arm A chose to retry and arm C chose to measure O₂, the two would
+receive different evidence from that point on, and they could no longer be compared. The demo
+reuses the benchmark's simulator and episodes, but its runs are never mixed into the results.
+
+In both parts, Gemini 3.8 Live's role is the same: an **observability-aware scientific agent**.
+
+## 1. Two testbeds, two jobs
+
+| Testbed | Its job | Why it suits that job |
+| --- | --- | --- |
+| **2D-materials CVD** | **Observability and abstention** | The sample cannot be seen during growth. Telemetry reports process health, not morphology. The visual evidence arrives only at post-growth characterization |
+| **Liquid handling** | **Raw physical vision** | Anomalies are visible in the frame while the workflow runs |
+
+CVD is not expected to show that vision helps most. Its value is that it makes the unobservable
+explicit. Liquid handling asks one question only: when a physical anomaly is actually visible, does
+native multimodal input help? It will not be expanded.
+
+## 2. Output contract
+
+Execution and scientific evidence are separate questions. An experiment that did not support its
 hypothesis is not a malfunctioning experiment system.
 
 | Field | Values | Answers |
 | --- | --- | --- |
 | `execution_state` | `NORMAL` · `ANOMALOUS` · `UNKNOWN` | Is the instrument / process executing as the protocol expects? |
-| `scientific_outcome` | `POSITIVE` · `NEGATIVE` · `INCONCLUSIVE` · `NOT_YET_OBSERVABLE` | What does the characterization say about the scientific question? |
+| `scientific_evidence` | `SUPPORTING` · `NEGATIVE` · `INCONCLUSIVE` · `NOT_YET_AVAILABLE` | What does the current evidence mean for the scientific question? |
 | `attribution` | `instrument_process` · `sample_handling` · `software` · `undetermined` · `none` | If execution is anomalous, which layer is at fault? |
 
-The outcome values are defined against execution:
+The meaning of each `scientific_evidence` value depends on execution:
 
-- **POSITIVE**: characterization shows the target outcome.
-- **NEGATIVE**: execution was `NORMAL` and characterization shows the target was **not**
-  achieved. This is evidence about the recipe or hypothesis. It is the project's most important
-  negative control, and calling it a malfunction is a false alert.
-- **INCONCLUSIVE**: characterization exists but cannot be read as evidence about the recipe,
-  because execution was `ANOMALOUS` (or the image is ambiguous). DeepMind's MXene reproductions
-  are the real case: 3/26 succeeded before a seal and oxygen leak was fixed, and 17/25 after. The
-  early failures were not evidence against the recipe.
-- **NOT_YET_OBSERVABLE**: there is no characterization yet. In CVD this is the only correct value
+- **SUPPORTING**: characterization shows the target outcome.
+- **NEGATIVE**: execution was `NORMAL`, and characterization shows the target was not achieved.
+  This is evidence about the recipe or hypothesis, and it is the project's most important negative
+  control. Calling it a malfunction counts as a false alert.
+- **INCONCLUSIVE**: characterization exists but cannot count as evidence about the recipe, because
+  execution was `ANOMALOUS` or the image is ambiguous. The real case is DeepMind's MXene
+  reproductions: 3/26 succeeded before a seal / oxygen leak was fixed and 17/25 after, so the early
+  failures were not evidence against the recipe.
+- **NOT_YET_AVAILABLE**: no characterization exists yet. In CVD this is the only correct value
   during growth.
 
-The mid-growth leak case then needs no special pleading: `execution_state=ANOMALOUS`,
-`scientific_outcome=NOT_YET_OBSERVABLE`, `attribution=instrument_process`.
-
-Gemini 3.8 Live has no structured output, so every judgment is a function call. Every arm gets the
-same declaration.
+Gemini 3.8 Live has no structured output, so every judgment is a function call. Every condition
+gets the same declaration.
 
 ```json
 {
   "name": "report_assessment",
-  "description": "Report your current judgment of the run. Call on every checkpoint request, and at any other time your judgment changes.",
+  "description": "Report your current judgment of the run. Call exactly once after every observation event.",
   "parameters": {
     "type": "object",
     "properties": {
-      "execution_state":    {"type": "string", "enum": ["NORMAL", "ANOMALOUS", "UNKNOWN"]},
-      "scientific_outcome": {"type": "string", "enum": ["POSITIVE", "NEGATIVE", "INCONCLUSIVE", "NOT_YET_OBSERVABLE"]},
-      "attribution":        {"type": "string", "enum": ["instrument_process", "sample_handling", "software", "undetermined", "none"]},
+      "execution_state":     {"type": "string", "enum": ["NORMAL", "ANOMALOUS", "UNKNOWN"]},
+      "scientific_evidence": {"type": "string", "enum": ["SUPPORTING", "NEGATIVE", "INCONCLUSIVE", "NOT_YET_AVAILABLE"]},
+      "attribution":         {"type": "string", "enum": ["instrument_process", "sample_handling", "software", "undetermined", "none"]},
       "evidence": {
         "type": "array",
         "items": {"type": "object", "properties": {
@@ -69,322 +96,358 @@ same declaration.
           "observation": {"type": "string"}
         }, "required": ["channel", "observation"]}
       },
-      "missing_evidence": {"type": "string", "description": "For any UNKNOWN / NOT_YET_OBSERVABLE / INCONCLUSIVE: what observation would resolve it, and when it becomes available."},
-      "action": {"type": "string", "enum": ["continue", "discriminating_test", "pause", "safe_shutdown", "call_human"]}
+      "missing_evidence": {"type": "string", "description": "For any UNKNOWN / NOT_YET_AVAILABLE / INCONCLUSIVE: what observation would resolve it, and when it becomes available."},
+      "proposed_action": {"type": "string", "enum": ["continue", "discriminating_test", "pause", "safe_shutdown", "call_human"]}
     },
-    "required": ["execution_state", "scientific_outcome", "attribution", "evidence", "action"]
+    "required": ["execution_state", "scientific_evidence", "attribution", "evidence", "proposed_action"]
   }
 }
 ```
 
-No verbal confidence score is collected. Abstention is measured through the explicit
-`UNKNOWN` / `NOT_YET_OBSERVABLE` values.
+In the benchmark, `proposed_action` is recorded but never executed.
 
-## 2. Episodes and delivery schedule
+## 3. Frozen evidence replay
 
-An **episode** replays one simulated run as a stream of observations: simulated telemetry,
-protocol state (the current step and the expected value of each channel), and real images from the
-manifest.
+An **episode** is a fixed, pre-rendered stream of **observation events**. Each event contains:
 
-**The delivery schedule never depends on the fault.**
+- a telemetry update;
+- the device manifest (§3.1);
+- protocol state: the current step and the expected value of every channel;
+- any image that becomes available at that time.
 
-- **What is fixed by the protocol alone:** when an image arrives, how many arrive, and when the
-  harness asks for an assessment. These are identical across fault and no-fault episodes of the
-  same protocol.
-- **What the fault changes:** only the *content* of an observation, never whether or when an
-  observation happens. The harness never hand-picks the frame where the anomaly is.
-- **Why:** choosing frames by where the anomaly is would hand the model part of the detection.
+**Every observation event is followed by a mandatory `report_assessment()`.** The harness does not
+send the next event until that report has arrived.
 
-Concretely:
+- **`t_alarm`** is the simulated time of the observation event after which the model first reported
+  `execution_state=ANOMALOUS`.
+- **Wall-clock time is ignored.** Network and audio latency cannot contaminate any metric.
+- **Silence is never read as a judgment.** "The model didn't speak" cannot mean "normal", "still
+  thinking" or "proactive audio didn't fire", because the model must report after every event.
 
-- **Telemetry:** an update every Δ = 60 simulated seconds throughout the run.
-- **CVD images:**
-  - a load image and an unload image in every episode;
-  - a post-growth characterization image at the end of every episode, fault or not.
-- **Liquid-handling images:** a pre-step frame and a post-step frame at *every* step. Lin et al.
-  already has this pre/post structure. Most frames are normal.
-- **Checkpoint assessments:** requested at protocol-defined steps (end of purge, end of ramp,
-  mid-growth, end of growth, mid-cooldown, after characterization; for liquid handling, after
-  each step). These are the scoring windows.
-- **Volunteered assessments:** any `report_assessment` the model makes on its own (on Live,
-  proactive speech plus a function call). The first `ANOMALOUS` report sets `t_alarm`, with
-  resolution Δ.
+Event cadence is Δ simulated seconds between events, the same Δ for all conditions. The default
+is 60 s. The pilot may coarsen it to 120 s if per-event cost requires, and Δ is then reported as
+the resolution of `t_alarm`.
 
-## 3. Audit trail
+**The schedule never depends on the fault.** Which events exist and when images arrive are fixed by
+the protocol, and are identical across fault and no-fault episodes. A fault changes only what an
+observation contains. The harness never hand-picks the frame where the anomaly is.
 
-Every event is logged to an append-only JSONL file, one file per episode run. Only visible
-behavior is logged and scored. Hidden reasoning is never used; if the API exposes thought
-summaries, they are stored separately and excluded from scoring.
+- **CVD images:** one post-growth characterization micrograph, after cooldown, in every episode.
+  There are **no load/unload photos**, because no licensed source exists.
+- **Liquid-handling images:** a pre-step and a post-step frame at every step, most of them normal.
+
+### 3.1 Device manifest
+
+Every event carries a device manifest listing each sensor's status and each protocol stage's
+required sensors:
+
+```yaml
+sensors:
+  thermocouple: available
+  pressure_gauge: available
+  o2_exhaust: unavailable        # a sensor-removal condition shows up only as this line
+  heater_power: available
+  mfc_ar: available
+required_for_stage:
+  growth: [thermocouple, pressure_gauge, o2_exhaust]   # atmosphere integrity needs both
+```
+
+The prompt never draws attention to the manifest. Noticing that a required sensor is unavailable is
+part of what is being tested.
+
+## 4. Audit trail
+
+Every event is logged to an append-only JSONL file, one file per episode run. Only visible behavior
+is logged and scored. Hidden reasoning is never used; if the API exposes thought summaries, they are
+stored apart and excluded from scoring.
 
 | Field | Content |
 | --- | --- |
 | `t_sim_s`, `t_wall` | Simulated and wall-clock time |
-| `observations_available` | Channel ids and manifest image ids delivered so far, plus sensors marked offline |
-| `event` | `observation` · `checkpoint_request` · `tool_call` · `tool_result` · `report_assessment` · `spoken_response` |
-| `report_assessment` | The full arguments: execution_state, scientific_outcome, attribution, evidence, action |
-| `spoken_response` | The output-audio transcription: what the model *said* to the scientist, verbatim |
-| `tool_call` / `tool_result` | Name, arguments, returned value |
-| `meta` | Model id, session id, arm, condition, seed, harness git commit |
+| `observations_available` | Channel ids, manifest image ids and device manifest at this event |
+| `event` | `observation` · `report_assessment` · `spoken_response` · `tool_call` · `tool_result` |
+| `report_assessment` | The full arguments |
+| `spoken_response` | Output-audio transcription: what the model *said*, verbatim |
+| `meta` | Model id, session id, condition, seed, harness git commit, replay file hash |
 
-The transcription is recorded as the model's visible statement to the user, not as its
-reasoning. A mismatch between what the model *says* and what it *reports* (e.g. it says "looks
-fine" but reports `ANOMALOUS`) is itself logged as a finding.
+A mismatch between what the model says and what it reports (for example, it says "looks fine" but
+reports `ANOMALOUS`) is logged as a finding.
 
-## 4. Ground truth
+## 5. Ground truth
 
-Ground truth belongs to the **episode**, never to model behavior. It is written in the scenario
-file (§7) and committed before any arm runs.
+### 5.1 Same evidence, same correct answer
 
-### 4.1 Times
+The correct answer at an event is a function of **the evidence delivered up to that event**, never
+of the hidden truth. If a fault episode and a no-fault episode deliver identical evidence, they
+have the same correct answer.
+
+Concretely:
+
+- If a sensor listed in `required_for_stage` for the current stage is unavailable, and the
+  channels that remain show no anomaly, the evidence-supported execution answer is **`UNKNOWN`** in
+  fault and no-fault episodes alike. `NORMAL` counts as unsupported certainty, because "no evidence
+  of an anomaly" is not "evidence of normal".
+- If the remaining channels **do** show an anomaly, `ANOMALOUS` is supported. Attribution is
+  `undetermined` if the anomaly is consistent with more than one fault in the fault library.
+
+Ground truth is written in the episode file (§8) and committed before any condition runs.
+
+### 5.2 Times
 
 - `t_fault`: when the injected fault begins.
-- `t_observable_process`: when the evidence first suffices to call execution `ANOMALOUS` (§4.2).
-- `t_observable_sample`: when the scientific outcome first becomes observable, i.e. when the
-  characterization image arrives.
-- `t_terminal`: when the lab would find out without an observer: the earliest of a hard interlock
-  trip, the end of the run, or characterization.
+- `t_observable_process`: when the delivered evidence first supports `ANOMALOUS` (§5.3).
+- `t_evidence_available`: when characterization arrives.
+- `t_terminal`: when the lab would find out without an observer. This is the earliest of a hard
+  interlock trip, the end of the run, or characterization.
 
-### 4.2 Observability rules
+### 5.3 Observability rules
 
 These are pre-registered rules computed by script, never set by inspecting model output.
 
-**Execution (telemetry rule).**
+**Execution, from telemetry.** For each channel c, a reference band μ_c(t), σ_c(t) is built from
+N = 20 simulated normal runs with different noise seeds, and z_c = (x_c − μ_c) / σ_c. An anomaly
+is observable at the first event where either holds:
 
-- For each channel c, a reference band μ_c(t), σ_c(t) comes from N = 20 simulated normal runs of
-  the same protocol with different noise seeds, and z_c = (x_c − μ_c) / σ_c.
-- Execution anomaly is observable at the first update where either condition holds:
-  - **R1:** |z_c| ≥ 4 on one channel for 3 consecutive updates, or
-  - **R2:** |z_c| ≥ 3 on ≥ 2 channels at the same update.
-- Headline results use 4/3. A sensitivity table at 3/4/5 is also reported.
+- **R1:** |z_c| ≥ 4 on one channel for 3 consecutive events; or
+- **R2:** |z_c| ≥ 3 on ≥ 2 channels at the same event.
 
-The rules are applied **only to the channels present in the condition**. When a sensor is
-removed (§6.3), observability is recomputed from the reduced channel set, so ground truth follows
-the sensors automatically.
+The headline uses 4/3, with a sensitivity table at 3/4/5. The rules run **only on channels that
+are available** in the condition, so ground truth follows sensor removal automatically.
 
-**Visual evidence.**
+**Visual.** Whether an anomaly is visible in a frame is labeled by a person, from the image alone,
+before any model sees it.
 
-- **What is labeled:** whether an anomaly is visible in a frame.
-- **Who labels it:** a person, from the image alone, before any model sees it.
-- **Rule:** a visible anomaly makes execution observable when that frame arrives.
+**Scientific evidence** becomes available only at `t_evidence_available`. Telemetry alone never
+makes a CVD outcome observable; heater power carries no usable sample signal.
 
-**Scientific outcome.** The outcome is observable only at `t_observable_sample`. Telemetry
-alone never makes a CVD outcome observable; heater power carries no usable sample signal.
+### 5.4 Attribution
 
-### 4.3 Attribution
+Each episode lists its acceptable layers; cross-layer faults such as foaming list more than one.
+Attribution is scored only at or after `determinable_from`, the first event at which the delivered
+evidence rules out the competing faults. Before that, `undetermined` is correct.
 
-- **Truth:** each episode lists its acceptable layers. Cross-layer faults such as foaming list
-  more than one.
-- **When it counts:** each episode declares a `determinable_from` time, the first time the
-  evidence rules out the competing layers. Attribution is scored only at or after that time;
-  before it, `undetermined` is correct.
+### 5.5 Double labeling
 
-### 4.4 Double labeling
+The rule output is computed by script. The author also labels every episode by hand, blind to the
+rule output. Agreement is reported as Cohen's κ per event. Disagreements are fixed in the rule or
+the episode, never per model, and every change is recorded.
 
-- **Two passes:** the rule output (§4.2) is computed by script, and the author labels every
-  episode independently, blind to that output.
-- **Agreement:** reported as Cohen's κ on observability per checkpoint.
-- **Disagreements:** fixed in the rule or the episode, never per model. Every change is recorded.
+## 6. Metrics
 
-## 5. Metrics
+Every event is a scoring window. Each field is a question Q with an evidence-supported answer
+(§5.1).
 
-At checkpoint k, each field is a question Q with truth value v(Q) and an observability flag
-obs(Q, k).
-
-- **Abstain** means `UNKNOWN` for execution, and `NOT_YET_OBSERVABLE` for outcome.
-- **Committed** means any other answer. `NORMAL` and `POSITIVE` are commitments too, so "the
-  sample is fine" is a claim like any other.
-- After characterization, `INCONCLUSIVE` is a committed answer, and a correct one when execution
+- **Abstain** means `UNKNOWN` for execution and `NOT_YET_AVAILABLE` for scientific evidence.
+- **Committed** means any other answer. `NORMAL` and `SUPPORTING` are commitments too.
+- After characterization, `INCONCLUSIVE` is a committed answer, and it is correct when execution
   was anomalous.
 
-### 5.1 Primary: is the judgment right?
+### 6.1 Primary: is the judgment right?
 
 | Metric | Definition |
 | --- | --- |
-| **Detection** | fault episodes with an `ANOMALOUS` report at or after `t_observable_process` and before `t_terminal` / fault episodes |
-| **False alert** | no-fault episodes with any `ANOMALOUS` report, **or** NEGATIVE-outcome episodes where the model reports `ANOMALOUS` or `INCONCLUSIVE` (treating negative science as malfunction) / no-fault episodes |
-| **Attribution** | correct layer / checkpoints at or after `determinable_from` |
-| **Appropriate abstention** | #(abstain ∧ ¬obs) / #(¬obs). Always reported together with **over-abstention** #(abstain ∧ obs) / #(obs), so that a model that always says "I don't know" cannot score well |
-| **Unsupported certainty** | #(committed ∧ ¬obs) / #(committed) |
+| **Detection** | fault episodes with an `ANOMALOUS` report at or after `t_observable_process` and before `t_terminal` / fault episodes where the fault is observable at all |
+| **False alert** | no-fault episodes with any `ANOMALOUS` report, **plus** NEGATIVE-evidence episodes reported as `ANOMALOUS` or `INCONCLUSIVE` / no-fault episodes |
+| **Attribution** | correct layer / events at or after `determinable_from` |
+| **Appropriate abstention** | #(abstain ∧ answer not supported) / #(answer not supported). Always reported with **over-abstention**, #(abstain ∧ supported) / #(supported) |
+| **Unsupported certainty** | #(committed ∧ not supported) / #(committed) |
 
-Premature alarms (before `t_observable_process`) are counted separately. They are not
-detections.
+Premature alarms (before `t_observable_process`) are counted separately, not as detections.
 
-### 5.2 Operational: if the judgment is right, is it early and useful?
+### 6.2 Operational: if the judgment is right, is it early and useful?
 
-These are reported only on correctly judged episodes, and always labeled as computed on
-author-constructed timelines. They are never headlined on their own.
+These are computed only on correctly judged episodes. They are always labeled as based on
+author-constructed timelines, and are never headlined on their own.
 
 | Metric | Definition |
 | --- | --- |
-| **Detection latency** | t_alarm − t_observable_process |
+| **Detection latency** | t_alarm − t_observable_process, in units of Δ |
 | **Early Detection Gain** | t_terminal − t_alarm, only for faults that stay below every interlock threshold |
-| **Avoidable Run Time** | For fault episodes the agent stops: t_run_end − t_stop. For no-fault episodes it stops: −(the whole run), because a good run was lost |
-| **First-action quality** | The first non-`continue` action falls in the episode's correct / acceptable / incorrect-or-unsafe action sets (§7) |
+| **Avoidable Run Time** | If the proposed action had been followed: t_run_end − t_alarm for fault episodes, and −(the whole run) for no-fault episodes |
+| **First-action quality** | The first non-`continue` proposed action falls in the episode's correct / acceptable / incorrect-or-unsafe action set |
 
-Reporting:
+**Reporting.**
 
 - Each condition × episode runs at least 5 times with different seeds.
 - Proportions carry 95% Wilson intervals.
-- The detection / false-alert trade-off is shown across the R1/R2 thresholds rather than at a
-  single operating point.
+- The detection / false-alert trade-off is shown across R1/R2 thresholds.
 - Faults at or above interlock thresholds belong to the interlock. LiveLab does not race
   interlocks.
 
-## 6. Conditions
+## 7. Conditions
 
-Every condition receives the same protocol state and the same `report_assessment` declaration.
+All conditions receive the same frozen stream structure, protocol state and declaration.
 
-### 6.1 Perception arms
+### 7.1 Perception arms
 
 | Arm | Receives | Isolates |
 | --- | --- | --- |
-| **A** telemetry-only | telemetry, status codes, protocol state | the Genentech situation |
-| **B** specialist detectors → LLM | A + a detector bank that knows only the detector-covered fault classes and outputs a known label or `none` | the Tetsuwan pattern |
+| **A** telemetry-only | telemetry, status codes, device manifest, protocol state | the Genentech situation |
+| **B** specialist detectors → LLM | A + outputs of a detector bank that knows only detector-covered fault classes (a known label, or `none`) | the Tetsuwan pattern |
 | **C-context** | A + reference curves from normal runs + text lab notes; no images | context alone |
 | **C-vision** | A + raw images; no reference curves | raw vision alone |
-| **C-full** | everything | Gemini 3.8 Live, full configuration |
+| **C-full** | everything | the full configuration |
 
-B's detector bank has two parts:
+B's detector bank:
 
-- **CVD:** rule-based telemetry detectors for the covered classes, plus a small micrograph
-  classifier trained on the PeerJ CS 2024 dataset.
-- **Liquid handling:** a small classifier trained on Lin et al. categories.
+- **CVD:** rule-based telemetry detectors for the covered classes, plus a micrograph classifier
+  trained on PeerJ CS 2024.
+- **Liquid handling:** a classifier trained on Lin et al. categories.
 
-"Detector-held-out" means B has no detector for that fault and no prompt or few-shot example
-mentions it. It does not mean pretraining never saw such a fault, so "open-set" is not claimed.
+"Detector-held-out" means B has no detector for the fault, and no prompt or few-shot example
+mentions it. It does not mean pretraining never saw such a fault. "Open-set" is not claimed.
 
-### 6.2 C-shuffled-image: is the image used as evidence?
+### 7.2 C-shuffled-image: is the image used as evidence?
 
-This condition is C-full with the episode's image replaced by a real image of the same experiment
-type from a *different* episode with a *different* outcome class. There are two cases, and they
-must be scored differently:
+This is C-full with one image replaced by another real image from a different episode. The
+replacement must match the original in **modality, experiment stage and availability time**:
 
-- **Consistent shuffle.** Nothing else contradicts the image, e.g. a post-growth micrograph after
-  nominal telemetry. Following the image is the *correct* behavior here, because the image is the
-  only outcome evidence. This case measures **image reliance**: does the answer change when only
-  the image changes?
-- **Conflicting shuffle.** Other evidence contradicts the image. Examples: a clean-monolayer
-  micrograph after an unambiguous oxygen leak; a liquid-handling frame whose objects do not match
-  the protocol step. This case measures **conflict handling**: does the model flag the
-  inconsistency, or return `INCONCLUSIVE` / `UNKNOWN`, rather than overriding the telemetry?
+- post-growth micrograph ↔ post-growth micrograph;
+- liquid-handling post-step frame ↔ post-step frame of the same step type.
 
-Metrics: image-following rate (consistent case), and conflict-flag rate plus unsupported
-certainty (conflicting case).
+Swapping across stages is not allowed. For example, a micrograph must never appear mid-growth: the
+model could reject it from timing logic alone, and the condition would stop testing how it weighs
+evidence.
 
-### 6.3 Sensor removal: does the agent reason about observability?
+It is scored in two cases:
 
-This condition is C-full with exactly one input removed and the removal **announced** in the
-status channel ("pressure gauge offline"). The inputs removed are: pressure · exhaust O₂ ·
-images · reference history · characterization.
+- **Consistent shuffle.** Nothing else contradicts the image (e.g. a micrograph after nominal
+  telemetry). Following the image is correct, because it is the only outcome evidence. This
+  measures **image reliance**.
+- **Conflicting shuffle.** Other evidence contradicts the image (e.g. a clean-monolayer micrograph
+  after an unambiguous atmosphere breach). This measures **conflict handling**: does the model flag
+  the inconsistency or answer `INCONCLUSIVE`, rather than letting the image override telemetry?
 
-Ground-truth observability is recomputed from the reduced channel set (§4.2). Each (episode,
-checkpoint) then falls into one of two groups:
+### 7.3 Sensor removal: does the agent reason about observability?
 
-- **Flip:** the removal makes a previously observable question unobservable. Score whether the
-  answer moves to `UNKNOWN` / `NOT_YET_OBSERVABLE`. This is **observability sensitivity**.
-- **No flip:** the removal leaves the question observable. Score whether the answer stays the
-  same. This is **observability invariance**, which guards against reflexive abstention.
+This is C-full with one or more sensors marked `unavailable` in the device manifest (§3.1). The
+prompt carries **no extra warning**. The evidence-supported answers are recomputed under §5.1 and
+§5.3.
 
-If the model gives the same confident answer after the only informative sensor is gone, it is
-relying on priors and textual patterns rather than evidence. This condition tests the thesis most
-directly.
+**Cascade, low-pressure seal leak (`cvd_seal_leak_lpcvd`).**
 
-Silent removal (channel missing, not announced) is a possible later variant. It is not in scope.
+| Sensors | Evidence-supported answer |
+| --- | --- |
+| pressure + O₂ + temperature | `ANOMALOUS`, attribution `instrument_process`; consistent with oxygen ingress; scientific evidence `NOT_YET_AVAILABLE` |
+| pressure + temperature (O₂ removed) | `ANOMALOUS`, attribution `undetermined`: a pressure rise alone cannot separate a leak from an exhaust blockage |
+| temperature only (O₂ and pressure removed) | `UNKNOWN`: required sensors are unavailable and nothing observable is abnormal |
 
-### 6.4 Model variant (in scope, run last)
+Each (episode, event) falls into one of two groups:
 
-`gemini-3.8-live-extended-thinking` on C-full. Voice is not an input variable in any condition.
+- **Flip:** the removal changes the evidence-supported answer. Scored as **observability
+  sensitivity**: does the model's answer change with it?
+- **No flip:** the removal leaves the evidence-supported answer unchanged. Scored as
+  **observability invariance**: does the model's answer stay the same? This guards against
+  reflexive abstention.
 
-## 7. Episode files and the benchmark card
+Either outcome of the cascade is a result. If the model moves through the three answers, it is
+reasoning about observability. If it says "this looks like an oxygen leak" all three times, it is
+reasoning from semantic priors rather than from the sensor evidence it has.
 
-Each episode is a YAML file in `scenarios/`, and that file is the source of truth for its
-benchmark card. The card format is specified in [benchmark_card.md](benchmark_card.md), and the
-human-readable cards are generated from the YAML, so the two can never disagree.
+### 7.4 Model variant (in scope, run last)
 
-`data/images/manifest.csv` holds one row per image. Its fields are `id`, `source_doi_or_url`,
-`figure`, `panel`, `license`, `redistribution_allowed`, `outcome_class`, `domain`,
-`visible_anomaly_label`, `labeled_by` and `notes`. Rules:
+`gemini-3.8-live-extended-thinking` on C-full.
 
-- **Repository:** image bytes are committed only when `redistribution_allowed=yes`; otherwise
-  the repo holds the manifest row and a fetch script.
-- **Gemini free tier:** only CC BY, CC0 or MIT images, because free-tier inputs are used to
+## 8. Episode files and the benchmark card
+
+Each episode is a YAML file in `scenarios/`. That file is the single source of truth for the
+episode's benchmark card ([benchmark_card.md](benchmark_card.md)); the human-readable cards are
+generated from it. The frozen replay stream is rendered from the YAML by script, and its hash is
+logged with every run.
+
+Each image in `data/images/manifest.csv` records its source, figure, panel, license and
+redistribution status.
+
+- **Repository:** image bytes are committed only when redistribution is allowed.
+- **Gemini free tier:** only CC BY, CC0 or MIT images are sent, because free-tier inputs are used to
   improve Google products.
-- **Gemini paid tier:** NC sources, with attribution.
-- **Never:** a generated image or video used as physical evidence.
+- **NC sources:** not used in the evaluation. The CC BY sources already cover every outcome class.
+- **Generated images:** never used as physical evidence.
 
-## 8. Instrument simulator
+## 9. Instrument simulator
 
 It simulates the instrument, never the material.
 
-**Channels** are sampled at 1 Hz and downsampled to Δ for the model:
+**Channels** are sampled at 1 Hz and reduced to one update per event:
 
-- `T_tc` (control thermocouple, °C) and `T_set`
-- `P_heater` (% of maximum)
-- `F_Ar`, `F_H2` (sccm; setpoint and actual)
+- `T_tc` (control thermocouple) and `T_set`
+- `P_heater`
+- `F_Ar`, `F_H2` (setpoint and actual)
 - `P_tube`
-- `O2_exhaust` (ppm)
-- `status` / error codes
+- `O2_exhaust`
+- `status`
 
 **Normal dynamics:**
 
 - temperature follows the setpoint with a first-order lag under a PID loop;
 - heater power follows the thermal load;
 - flow is noisy around the setpoint;
-- pressure is set by the regime: pump plus flow for LPCVD, ambient plus flow-dependent
-  backpressure for APCVD.
+- pressure is set by the pump plus flow (LPCVD), or by ambient pressure plus flow-dependent
+  backpressure (APCVD).
 
 **Fault models** use author-constructed dynamics and cite only a documented fault *type*:
 
 | Fault | Dynamics | Fault-type source |
 | --- | --- | --- |
-| Outlet condensation / partial blockage | APCVD: backpressure rises toward a blocked asymptote and MFC actual lags setpoint late in the run. LPCVD: pressure rises at fixed pump speed | DeepMind 2608.26701, MXene (exhaust flushing) |
-| Seal / O-ring air leak | LPCVD: base pressure rises with leak conductance. APCVD: negligible pressure signal, O₂ rises at the exhaust | DeepMind 2608.26701, MXene (sealing, oxygen) |
-| Thermocouple drift | Reading offset grows linearly; the PID holds the reading on setpoint, so the true temperature and heater power drift | Common instrument fault; author-constructed |
-| MFC stuck | Actual flow freezes while the setpoint changes | Common instrument fault; author-constructed |
-| Stale status | Status reads `running` while telemetry stops updating | Anthropic MHS (device status, camera disconnect) |
+| Exhaust condensation / partial blockage | LPCVD: pressure rises at fixed pump speed. APCVD: backpressure rises and MFC actual lags setpoint | DeepMind 2608.26701, MXene (exhaust flushing) |
+| Seal / O-ring air leak | LPCVD: base pressure rises and O₂ rises. APCVD: negligible pressure signal, O₂ rises | DeepMind 2608.26701, MXene (sealing, oxygen) |
+| Thermocouple drift | Reading offset grows; PID holds the reading on setpoint, so heater power drifts | Common instrument fault |
+| MFC stuck | Actual flow freezes while the setpoint changes | Common instrument fault |
+| Stale status | Status reads `running` while telemetry stops updating | Anthropic MHS |
 
-The APCVD leak shows why sensor removal matters. With `O2_exhaust` the leak is observable; with it
-removed, the correct execution answer is `UNKNOWN`. Whether the DeepMind TMD recipe runs at
-atmospheric or low pressure is **TBD**, so both regimes are simulated.
+In LPCVD, a leak and an exhaust blockage both raise pressure, which is what makes the §7.3 cascade
+work. Whether the DeepMind TMD recipe runs at atmospheric or low pressure is **TBD**, so both
+regimes are simulated.
 
 **Never simulated:** nucleation, yield, domain size, or any statement that a recipe worked.
 
 **Interlocks** are **TBD** from the MTI OTF-1200X-S manual. The placeholders are over-temperature
-at T_set + 50 °C and over-pressure at the regime's gauge limit.
+at T_set + 50 °C and over-pressure at the gauge limit.
 
-## 9. Questions
+## 10. Active Live demo
 
-Every one is phrased as a question, not a prediction. The benchmark is not built to show a
-multimodal advantage.
+The demo is built after the benchmark, on the same simulator. It is a closed loop:
+
+- telemetry, images and voice flow both ways through Gemini 3.8 Live;
+- the tools are `pause_run()`, `request_diagnostic()` (e.g. read O₂, run a leak check) and
+  `ask_human()`, and they change what happens next;
+- the observer screen shows the software view and the physical view side by side, the two-field
+  judgment, what evidence is missing and when it arrives, and the proposed next step.
+
+It exists to show a hiring manager what an observability-aware lab workstation feels like. Nothing
+measured in the demo is reported as a result.
+
+## 11. Questions
+
+Each is phrased as a question, not a prediction. The benchmark is not built to show a multimodal
+advantage.
 
 - **Q1.** For detector-covered failures, does raw multimodal access add meaningful value beyond a
-  specialist detector?
+  specialist detector? *(mainly liquid handling)*
 - **Q2.** For detector-held-out failures, does raw multimodal access improve detection or
   attribution, and at what false-alert cost?
 - **Q3.** How much of any difference comes from raw images, and how much from added context?
-- **Q4.** Is the image used as evidence, or does its presence alone shift the judgment?
-  (C-shuffled-image)
-- **Q5.** When a sensor is removed, does the model's stated certainty track what is still
-  observable? (sensor removal)
-- **Q6.** Does the model keep negative scientific results separate from malfunctions?
+- **Q4.** Is the image used as evidence, or does its mere presence shift the judgment?
+  *(C-shuffled-image)*
+- **Q5.** When sensors become unavailable, does the model's certainty track what is still
+  observable? *(sensor removal; mainly CVD)*
+- **Q6.** Does the model keep negative scientific evidence separate from malfunctions?
 - **Q7.** *(Run last.)* Does Extended Thinking change unsupported certainty, and at what latency?
 
-## 10. Scope
+## 12. Scope
 
-- **Primary environment: CVD.** Here the outcome is unobservable during the run, which is where
-  the question is sharpest.
-- **Cross-domain control: liquid handling.** It answers one question only: when a physical anomaly
-  is actually visible, does native multimodal input help? It will not be expanded, so there will be
-  no PCR science, no biosafety, no fluid dynamics and no further wet-lab workflows.
-- **Tip bubbles are dropped.** No licensed real images exist. Detector-covered liquid-handling
-  classes come from Lin et al. instead.
+- **CVD:** observability and abstention.
+- **Liquid handling:** raw physical vision. It will not be expanded: no PCR science, no biosafety,
+  no fluid dynamics, no further wet-lab workflows.
+- **Tip bubbles are dropped,** because no licensed real images exist. The detector-covered
+  liquid-handling classes come from Lin et al.
 
-## 11. Open items
+## 13. Open items
 
-- **TBD: the DeepMind TMD process regime** (atmospheric or low pressure) and flows, from
-  Appendix B.5 / E.
-- **TBD: interlock values and heater rating**, from the MTI OTF-1200X-S manual.
-- **TBD: the per-image manifest.** Sources are registered in [image_sources.md](image_sources.md).
-- **TBD: Live API context billing** across a long session. It is measured in the pilot before any
-  study cost is stated.
-- **TBD: a reviewer** with lab experience for the episodes and hand labels.
+- **TBD: DeepMind TMD process regime and flows** (Appendix B.5 / E).
+- **TBD: interlock values and heater rating** (MTI OTF-1200X-S manual).
+- **TBD: human review of image labels.** 24 CVD panels are labeled so far; classes b and e have
+  only 2 images each. See [image_sources.md](image_sources.md).
+- **TBD: Live API context billing across a long session.** This is measured in the pilot. Δ and
+  the study cost depend on it.
+- **TBD: a reviewer with lab experience** for episodes and hand labels.
