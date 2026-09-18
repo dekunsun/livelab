@@ -101,5 +101,5 @@ def test_harness_writes_a_complete_audit_log(tmp_path):
     assert len(rows) == 1 + len(events) == 1 + len(reports)
     delivered = [json.loads(r["delivered"]) for r in rows[1:]]
     assert "device_manifest" in delivered[0] and all("device_manifest" not in d for d in delivered[1:])
-    assert all("reference_normal_runs" in d for d in delivered)          # C-full gets context
+    assert all("ref" in d for d in delivered)                            # C-full gets context
     assert sum(r["images_delivered"] for r in rows[1:]) == 1               # one micrograph, at the end

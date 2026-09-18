@@ -13,6 +13,14 @@ from .simulator import CHANNELS, SENSOR_OF, Fault, simulate
 
 ROOT = Path(__file__).resolve().parent.parent
 ALL_SENSORS = sorted(set(SENSOR_OF.values()))
+DECIMALS = {"T_tc": 1, "P_heater": 1, "F_Ar": 1, "O2_exhaust": 1}   # P_tube: 4 significant figures
+
+
+def to_resolution(channel, x):
+    """Round readings to sensor resolution, far below the noise, so they cost fewer tokens."""
+    if channel in DECIMALS:
+        return np.round(x, DECIMALS[channel])
+    return np.array([float(f"{v:.4g}") for v in x])
 
 
 def load(path) -> dict:
@@ -22,7 +30,7 @@ def load(path) -> dict:
     return ep
 
 
-def render(ep: dict, condition: str, delta_s: int = 60) -> tuple[list, list]:
+def render(ep: dict, condition: str, delta_s: int = 120) -> tuple[list, list]:
     """Return (replay events shown to the model, ground-truth rows kept apart)."""
     protocol = PROTOCOLS[ep["protocol"]]
     removed = set(ep["sensor_conditions"][condition])
@@ -31,7 +39,7 @@ def render(ep: dict, condition: str, delta_s: int = 60) -> tuple[list, list]:
     fault = Fault(f["type"], f["t_fault_s"], f.get("params") or {}) if f else None
     trace = simulate(protocol, ep["regime"], ep["seed"], fault)
     times = event_times(protocol, delta_s)
-    values = {c: trace[c][times] for c in CHANNELS}
+    values = {c: to_resolution(c, trace[c][times]) for c in CHANNELS}
     band = reference_band(protocol, ep["regime"], delta_s)
     k_obs = first_observable(values, band, available)
     char_event = next(k for k, t in enumerate(times) if protocol.stage_at(t)[0].name == "characterization")
@@ -44,7 +52,7 @@ def render(ep: dict, condition: str, delta_s: int = 60) -> tuple[list, list]:
     events = []
     for k, t in enumerate(times):
         stage = protocol.stage_at(t)[0].name
-        telemetry = {c: (None if SENSOR_OF[c] in removed else round(float(values[c][k]), 3)) for c in CHANNELS}
+        telemetry = {c: (None if SENSOR_OF[c] in removed else float(values[c][k])) for c in CHANNELS}
         telemetry["status"] = str(trace["status"][t])
         t_set = trace["T_set"][t]
         events.append({

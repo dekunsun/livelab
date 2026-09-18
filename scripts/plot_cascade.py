@@ -20,15 +20,15 @@ COLORS = {"NORMAL": "#9bc59d", "ANOMALOUS": "#d9534f", "UNKNOWN": "#c8c8c8"}
 def main():
     ep = load(ROOT / "scenarios/pilot/cvd_seal_leak_lpcvd.yaml")
     protocol = PROTOCOLS[ep["protocol"]]
-    times = event_times(protocol, 60) / 60
-    band = reference_band(protocol, ep["regime"], 60)
+    times = event_times(protocol, 120) / 60
+    band = reference_band(protocol, ep["regime"], 120)
     events, _ = render(ep, "base")
     conds = list(ep["sensor_conditions"])
     truths = {c: render(ep, c)[1] for c in conds}
 
     fig, axes = plt.subplots(3, 1, figsize=(9, 7), sharex=True, gridspec_kw={"height_ratios": [2, 2, 1.4]})
     for ax, ch, unit in ((axes[0], "O2_exhaust", "ppm"), (axes[1], "P_tube", "Torr")):
-        m, s = band[ch]
+        m, s = band[ch][:2]
         ax.fill_between(times, m - 4 * s, m + 4 * s, color="#dbe7f3", label="reference ±4σ (100 normal runs)")
         ax.plot(times, [e["telemetry"][ch] for e in events], color="#1f4e79", lw=1.2, label="this run")
         ax.set_ylabel(f"{ch} ({unit})")

@@ -74,8 +74,8 @@ def test_nofault_pilots_are_quiet_under_the_rule():
 
 
 def test_rule_false_positive_rate_on_normal_runs():
-    times = event_times(TMD_MOS2_V0, 60)
-    band = reference_band(TMD_MOS2_V0, "lpcvd", 60)
+    times = event_times(TMD_MOS2_V0, 120)
+    band = reference_band(TMD_MOS2_V0, "lpcvd", 120)
     sensors = set(SENSOR_OF.values())
     hits = sum(first_observable({c: simulate(TMD_MOS2_V0, "lpcvd", s)[c][times] for c in band}, band, sensors)
                is not None for s in range(200))

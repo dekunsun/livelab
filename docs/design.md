@@ -126,9 +126,17 @@ send the next event until that report has arrived.
 - **Silence is never read as a judgment.** "The model didn't speak" cannot mean "normal", "still
   thinking" or "proactive audio didn't fire", because the model must report after every event.
 
-Event cadence is Δ simulated seconds between events, the same Δ for all conditions. The default
-is 60 s. The pilot may coarsen it to 120 s if per-event cost requires, and Δ is then reported as
+Event cadence is Δ = 120 simulated seconds for all conditions, giving 58 events per replay; Δ is
 the resolution of `t_alarm`.
+
+- **Why 120 s:** in the smoke test (2026-09-18), the Live API reported the whole accumulated
+  context as prompt tokens on every turn. Cost therefore grows with the square of the event count,
+  and Δ = 60 s would roughly quadruple it.
+- **What is sent:** readings are rounded to sensor resolution (far below the noise) and sent as
+  compact JSON with short keys, which the system instruction defines. The ground-truth rule is
+  computed on the same rounded values the model sees.
+- **Re-checked at 120 s:** the calibrated rule gives 0 false positives on 1,000 held-out normal
+  runs, and the sensor-removal cascade still falls inside the growth stage.
 
 **The schedule never depends on the fault.** Which events exist and when images arrive are fixed by
 the protocol, and are identical across fault and no-fault episodes. A fault changes only what an
@@ -506,6 +514,7 @@ advantage.
 - **TBD: interlock values and heater rating** (MTI OTF-1200X-S manual).
 - **TBD: human review of image labels.** 24 CVD panels are labeled so far; classes b and e have
   only 2 images each. See [image_sources.md](image_sources.md).
-- **TBD: Live API context billing across a long session.** This is measured in the pilot. Δ and
-  the study cost depend on it.
+- **TBD: study cost.** The smoke test showed the accumulated context reported as prompt tokens on
+  every turn. The first full replay will measure real usage and rate limits, which are to be
+  checked against billing before any cost is stated.
 - **TBD: a reviewer with lab experience** for episodes and hand labels.

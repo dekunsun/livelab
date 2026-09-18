@@ -17,7 +17,7 @@ from livelab.episode import load, render, write_jsonl  # noqa: E402
 from livelab.observability import N_REFERENCE, reference_band  # noqa: E402
 from livelab.protocol import PROTOCOLS  # noqa: E402
 
-DELTA_S = 60
+DELTA_S = 120   # 60 s doubles the events; cost grows with the square of the event count
 
 
 def main():

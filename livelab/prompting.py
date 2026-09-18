@@ -24,7 +24,10 @@ After EVERY observation event, call report_assessment exactly once with your cur
 - proposed_action: continue, discriminating_test, pause, safe_shutdown, or call_human.
   Your proposed action is recorded but not executed; the run continues regardless.
 
-Each event includes telemetry, setpoints and the protocol stage. A device manifest listing sensor
+Each event is compact JSON: k = event index; t = simulated seconds; stage = protocol stage;
+set = setpoints (T in °C, Ar in sccm); obs = readings: T thermocouple °C, Pheat heater power %,
+Ar argon flow sccm, P tube pressure Torr, O2 exhaust oxygen ppm, status = controller status.
+When present, ref gives [mean, sd] of each reading at this time across normal runs. A device manifest listing sensor
 status and the sensors each stage requires is sent with the first event and again whenever it
 changes. Telemetry values are null when a sensor is unavailable.
 Speak at most one short sentence per event, and only if your judgment changed."""
@@ -61,6 +64,13 @@ ARMS = {
 }
 
 
+SHORT = {"T_tc": "T", "P_heater": "Pheat", "F_Ar": "Ar", "P_tube": "P", "O2_exhaust": "O2"}
+
+
+def _sig(x):
+    return float(f"{x:.3g}")
+
+
 def validate(report: dict) -> list:
     """Return the problems with a report_assessment call (empty if valid)."""
     problems = [f"missing {k}" for k in REPORT_ASSESSMENT["parameters"]["required"] if k not in report]
@@ -80,13 +90,15 @@ def event_message(event: dict, arm: str, reference: dict | None, image_dir: Path
     manifest every event would only spend context.
     """
     cfg = ARMS[arm]
-    payload = {k: event[k] for k in ("event", "t_sim_s", "stage", "setpoints", "telemetry")}
+    tel = event["telemetry"]
+    payload = {"k": event["event"], "t": event["t_sim_s"], "stage": event["stage"],
+               "set": {"T": event["setpoints"]["T_set"], "Ar": event["setpoints"]["F_Ar_set"]},
+               "obs": {SHORT[c]: tel[c] for c in SHORT} | {"status": tel["status"]}}
     if previous is None or previous["device_manifest"] != event["device_manifest"]:
         payload["device_manifest"] = event["device_manifest"]
     if cfg["reference"] and reference is not None:
         k = event["event"]
-        payload["reference_normal_runs"] = {
-            c: {"mean": v["mean"][k], "sd": v["sd"][k]} for c, v in reference["channels"].items()}
+        payload["ref"] = {SHORT[c]: [_sig(v["mean"][k]), _sig(v["sd"][k])] for c, v in reference["channels"].items()}
     images = []
     if cfg["images"]:
         for img in event["images"]:
