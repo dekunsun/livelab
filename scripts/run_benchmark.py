@@ -23,6 +23,9 @@ from livelab.prompting import ARMS  # noqa: E402
 from livelab.scoring import score_runs  # noqa: E402
 
 
+RETRIES, RETRY_WAIT_S = 2, 60
+
+
 def load_jsonl(path):
     return [json.loads(line) for line in open(path)]
 
@@ -52,7 +55,23 @@ async def main():
                 model = {"gemini": "gemini-3.8-live", "gemini-extended": "gemini-3.8-live-extended-thinking"}[args.backend]
                 backend = GeminiLiveBackend(model)
             out_dir = Path(args.out) / backend.model_id.replace(":", "_") / args.arm
-            reports, log = await run_replay(backend, rid, args.arm, seed, out_dir, max_events=args.max_events)
+            # Free tier: quota and rate limits are the risk. A failed replay restarts from the first
+            # event after a pause, so every scored run saw the complete, identical evidence stream.
+            for attempt in range(RETRIES + 1):
+                try:
+                    reports, log = await run_replay(backend, rid, args.arm, seed, out_dir, max_events=args.max_events)
+                    break
+                except Exception as exc:  # noqa: BLE001 - report any API failure and retry
+                    print(f"{rid} seed={seed} attempt {attempt + 1} failed: {type(exc).__name__}: {str(exc)[:200]}")
+                    if attempt == RETRIES:
+                        reports = None
+                        break
+                    await asyncio.sleep(RETRY_WAIT_S * (attempt + 1))
+                    if not args.backend.startswith("mock:"):
+                        backend = GeminiLiveBackend(backend.model_id)
+            if reports is None:
+                print(f"{rid} seed={seed} INCOMPLETE: not scored")
+                continue
             print(f"{rid} seed={seed} -> {log.relative_to(ROOT) if log.is_relative_to(ROOT) else log}")
             if args.max_events is None and seed == args.seeds[0]:
                 all_reports[rid] = reports      # scores use the first seed; repeats are for variance

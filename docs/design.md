@@ -527,7 +527,12 @@ advantage.
 - **TBD: interlock values and heater rating** (MTI OTF-1200X-S manual).
 - **TBD: human review of image labels.** 24 CVD panels are labeled so far; classes b and e have
   only 2 images each. See [image_sources.md](image_sources.md).
-- **TBD: study cost.** The smoke test showed the accumulated context reported as prompt tokens on
-  every turn. The first full replay will measure real usage and rate limits, which are to be
-  checked against billing before any cost is stated.
+- **Decided (2026-09-18): the whole study runs on the Gemini API free tier, at no cost.** This is
+  compatible with the data policy: free-tier inputs are used to improve Google products, and every
+  input here is either simulated telemetry or a CC BY / MIT image. NC-licensed images are not used
+  (§8). The risk is quota and rate limits, not money. The harness retries a failed replay from the
+  start after a pause (a Live session cannot resume mid-replay without changing what the model
+  saw), and runs are recorded as incomplete if retries run out.
+- **Measured usage (prompt v2, telemetry-only, one LPCVD replay, 58 events):** about 0.39M
+  cumulative prompt tokens, 5k response tokens and 4k thought tokens, in 60 s wall time.
 - **TBD: a reviewer with lab experience** for episodes and hand labels.
