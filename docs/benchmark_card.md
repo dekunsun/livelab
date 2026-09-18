@@ -29,9 +29,7 @@ from it, so the two cannot drift apart.
 | `t_terminal` | When the lab would find out without an observer |
 | `acceptable_attribution` | A list, because cross-layer faults may have several valid layers |
 | `determinable_from` | When attribution becomes scoreable |
-| `correct_actions` | Proposed actions that are right at detection (never executed in the benchmark) |
-| `acceptable_actions` | Defensible but not preferred |
-| `incorrect_or_unsafe_actions` | e.g. `continue` through an oxygen leak; retrying without a discriminating test |
+| `acceptable_actions` (per event, in the truth file) | Derived from the evidence state, never from the hidden fault: `ANOMALOUS` → pause / call_human / discriminating_test / safe_shutdown; `UNKNOWN` → call_human / pause / discriminating_test; `NORMAL` → continue. Proposed actions are never executed in the benchmark |
 | `labels` | Who labeled what, and the rule output vs the hand label where they differ |
 
 ## Rules

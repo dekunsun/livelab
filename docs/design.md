@@ -268,6 +268,12 @@ Every event is a scoring window. Each field is a question Q with an evidence-sup
 - **Committed** means any other answer. `NORMAL` and `SUPPORTING` are commitments too.
 - After characterization, `INCONCLUSIVE` is a committed answer, and it is correct when execution
   was anomalous.
+- For `specific_cause`, only `undetermined` is an abstention. `none` is a claim ("no fault"). The
+  cause question is scored only at events where an anomaly is supported.
+- **Replays are split by evidence, not by injected fault.** Detection is scored on replays whose
+  evidence supports an alarm at some point. False alert is scored on replays whose evidence never
+  does. A fault that no available sensor can see is therefore not a miss; its replay is
+  evidence-identical to a clean run.
 
 ### 6.1 Primary: is the judgment right?
 
@@ -291,7 +297,21 @@ author-constructed timelines, and are never headlined on their own.
 | **Detection latency** | t_alarm − t_observable_process, in units of Δ |
 | **Early Detection Gain** | t_terminal − t_alarm, only for faults that stay below every interlock threshold |
 | **Avoidable Run Time** | If the proposed action had been followed: t_run_end − t_alarm for fault episodes, and −(the whole run) for no-fault episodes |
-| **First-action quality** | The first non-`continue` proposed action falls in the episode's correct / acceptable / incorrect-or-unsafe action set |
+| **Action appropriateness** | Share of events whose proposed action is in the evidence-supported set: `ANOMALOUS` → pause / call_human / discriminating_test / safe_shutdown; `UNKNOWN` → call_human / pause / discriminating_test; `NORMAL` → continue |
+| **First-action quality** | At the first event where `continue` is no longer supported, whether the proposed action is in the supported set |
+
+**Validated before any model runs.** `scripts/score_mocks.py` scores six mock observers on every
+replay, and `tests/test_scoring.py` checks each result:
+
+- an oracle that copies the truth scores perfectly;
+- `always_unknown` is caught by over-abstention;
+- `always_normal` is caught by unsupported certainty;
+- `prior_matcher`, which detects anomalies but ignores which sensors exist, is caught by
+  observability sensitivity;
+- `failure_blamer`, which blames the instrument for any unsuccessful outcome, is caught by the
+  negative control.
+
+The table is written to `docs/results/mock_scorecard.md`.
 
 **Reporting.**
 

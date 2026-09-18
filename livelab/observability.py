@@ -110,7 +110,12 @@ def evidence_supported_answers(protocol, times, values, band, available, regime,
         else:
             deviating, cause = set(), ["none"]
             attribution = ["none", "undetermined"] if execution == "UNKNOWN" else ["none"]
+        # Proposed actions supported by the evidence state (never by the hidden fault).
+        actions = {"ANOMALOUS": ["pause", "call_human", "discriminating_test", "safe_shutdown"],
+                   "UNKNOWN": ["call_human", "pause", "discriminating_test"],
+                   "NORMAL": ["continue"]}[execution]
         rows.append({"event": k, "stage": stage.name, "execution_state": execution,
+                     "acceptable_actions": actions,
                      "missing_required_sensors": missing, "deviating_channels": sorted(deviating),
                      "scientific_evidence": science, "acceptable_attribution": attribution,
                      "acceptable_specific_cause": cause})
