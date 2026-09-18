@@ -7,14 +7,14 @@ for perfect vision.
 
 | Metric | `oracle` | `always_unknown` | `always_normal` | `prior_matcher` | `observability_aware` | `failure_blamer` |
 | --- | --- | --- | --- | --- | --- | --- |
-| Detection | 1.00 | 0.00 | 0.00 | 1.00 | 1.00 | 1.00 |
+| Detection | 1.00 | 0.00 | 0.00 | 0.50 | 0.50 | 0.50 |
 | False alert | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.67 |
 | Negative called fault | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 1.00 |
-| Attribution | 1.00 | 0.01 | 0.00 | 0.97 | 0.97 | 0.97 |
-| Appropriate abstention | 1.00 | 1.00 | 0.00 | 0.67 | 1.00 | 0.99 |
-| Over-abstention | 0.00 | 1.00 | 0.00 | 0.00 | 0.01 | 0.01 |
-| Unsupported certainty | 0.00 | — | 0.67 | 0.40 | 0.01 | 0.01 |
-| Obs. sensitivity | 1.00 | 0.78 | 0.22 | 0.22 | 0.99 | 0.98 |
-| Obs. invariance | 1.00 | 1.00 | 1.00 | 0.99 | 0.99 | 0.99 |
-| Action appropriate | 1.00 | 0.63 | 0.38 | 0.57 | 1.00 | 0.99 |
-| First action quality | 1.00 | 0.56 | 0.00 | 0.43 | 1.00 | 0.88 |
+| Attribution | 1.00 | 0.02 | 0.00 | 0.51 | 0.51 | 0.52 |
+| Appropriate abstention | 1.00 | 1.00 | 0.00 | 0.71 | 0.98 | 0.97 |
+| Over-abstention | 0.00 | 1.00 | 0.00 | 0.00 | 0.04 | 0.03 |
+| Unsupported certainty | 0.00 | — | 0.60 | 0.30 | 0.04 | 0.04 |
+| Obs. sensitivity | 1.00 | 0.78 | 0.22 | 0.22 | 0.94 | 0.93 |
+| Obs. invariance | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
+| Action appropriate | 1.00 | 0.60 | 0.40 | 0.55 | 0.86 | 0.85 |
+| First action quality | 1.00 | 0.42 | 0.00 | 0.31 | 0.69 | 0.91 |

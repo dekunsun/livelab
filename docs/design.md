@@ -245,6 +245,15 @@ The thresholds were calibrated on 1,000 held-out normal runs (500 per regime), a
 only, before any model was run: 4/3 gave 23–24 false positives per 500, and 4.5/3.5 gave 0. A
 sensitivity table at 4/3, 4.5/3.5 and 5/4 is reported.
 
+- **R3 (added with the fault library):** z_c ≥ 4.0 on one channel for 4 consecutive events. This
+  catches sustained moderate departures, such as the heater-power shift of a drifting thermocouple
+  (3.6–6.1σ for five events), which R1 missed whenever one event dipped under 4.5. With R3 the
+  rule still gives 0 false positives on 1,000 held-out normal runs; R3 at 3.5σ gave 6.
+- **Frozen data:** stale data is its own evidence. If at least 3 of {thermocouple, flow, pressure,
+  O₂} repeat exactly the same value for 3 events, that counts as an anomaly with specific cause
+  `stale_status` (layer `software`), since real sensors are noisy. Heater power is excluded
+  because it sits at exactly 0 whenever the heater is off. 0 false positives on the same 1,000
+  runs.
 - **Gray zone:** between the first deviation onset and the rule firing, both `continue` and
   pause / call_human / discriminating_test count as appropriate actions.
 - **Premature alarms:** an alarm is premature only if it comes before any available channel has

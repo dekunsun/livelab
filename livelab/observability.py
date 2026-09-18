@@ -15,6 +15,7 @@ REFERENCE_SEEDS = range(10_000, 10_000 + N_REFERENCE)
 # Floors keep z finite where runs agree almost exactly (e.g. heater off).
 SD_FLOOR = {"T_tc": 0.3, "P_heater": 0.5, "F_Ar": 0.5, "P_tube": 0.01, "O2_exhaust": 1.0}
 R1_Z, R1_RUN, R2_Z, R2_CHANNELS = 4.5, 3, 3.5, 2   # calibrated on held-out normal runs, design §5.3
+R3_Z, R3_RUN = 4.0, 4    # sustained moderate departure on one channel (added for thermocouple drift)
 
 
 def event_times(protocol: Protocol, delta_s: int) -> np.ndarray:
@@ -57,23 +58,46 @@ def first_observable(values: dict, band: dict, available: set, r1=R1_Z, r2=R2_Z)
     if not chans:
         return None
     z = np.stack([zscore(values, band, c) for c in chans])
+    k_frozen = frozen_onset(values, available)
     run = np.zeros(len(chans), dtype=int)
+    run3 = np.zeros(len(chans), dtype=int)
     for k in range(z.shape[1]):
         run = np.where(z[:, k] >= r1, run + 1, 0)
-        if (run >= R1_RUN).any() or (z[:, k] >= r2).sum() >= R2_CHANNELS:
+        run3 = np.where(z[:, k] >= R3_Z, run3 + 1, 0)
+        if ((run >= R1_RUN).any() or (z[:, k] >= r2).sum() >= R2_CHANNELS
+                or (run3 >= R3_RUN).any() or k == k_frozen):
             return k
     return None
 
 
 # Which channels each fault moves, per regime (author-constructed fault library, design §9).
+# A drifting thermocouple shifts heater power while the loop holds the reading, then the reading
+# itself once the heater is off. A stuck MFC at low pressure also shifts pressure.
 SIGNATURES = {
     "lpcvd": {"seal_leak": {"P_tube", "O2_exhaust"}, "exhaust_blockage": {"P_tube"},
-              "thermocouple_drift": {"P_heater"}, "mfc_stuck": {"F_Ar"}},
+              "thermocouple_drift": {"P_heater", "T_tc"}, "mfc_stuck": {"F_Ar", "P_tube"}},
     "apcvd": {"seal_leak": {"O2_exhaust"}, "exhaust_blockage": {"P_tube"},
-              "thermocouple_drift": {"P_heater"}, "mfc_stuck": {"F_Ar"}},
+              "thermocouple_drift": {"P_heater", "T_tc"}, "mfc_stuck": {"F_Ar"}},
 }
 LAYER = {"seal_leak": "instrument_process", "exhaust_blockage": "instrument_process",
-         "thermocouple_drift": "instrument_process", "mfc_stuck": "instrument_process"}
+         "thermocouple_drift": "instrument_process", "mfc_stuck": "instrument_process",
+         "stale_status": "software"}
+# Stale data: real sensors are noisy, so identical readings repeated on several channels are
+# evidence in themselves. Heater power is excluded: it sits at exactly 0 whenever the heater is off.
+FROZEN_CHANNELS, FROZEN_MIN_CHANNELS, FROZEN_RUN = ("T_tc", "F_Ar", "P_tube", "O2_exhaust"), 3, 3
+
+
+def frozen_onset(values: dict, available: set) -> int | None:
+    """First event at which >= 3 available channels have repeated the same value for 3 events."""
+    chans = [c for c in FROZEN_CHANNELS if SENSOR_OF[c] in available]
+    if len(chans) < FROZEN_MIN_CHANNELS:
+        return None
+    n = len(values[chans[0]])
+    for k in range(FROZEN_RUN - 1, n):
+        same = sum(len({float(values[c][j]) for j in range(k - FROZEN_RUN + 1, k + 1)}) == 1 for c in chans)
+        if same >= FROZEN_MIN_CHANNELS:
+            return k
+    return None
 
 
 def consistent_causes(deviating: set, available: set, regime: str) -> list:
@@ -98,7 +122,8 @@ def evidence_supported_answers(protocol, times, values, band, available, regime,
     for c in chans:
         hits = np.flatnonzero((z[c][1:] >= R2_Z) & (z[c][:-1] >= R2_Z))
         onset[c] = int(hits[0]) + 1 if len(hits) else None
-    first_onset = min((o for o in onset.values() if o is not None), default=None)
+    k_frozen = frozen_onset(values, available)
+    first_onset = min((o for o in list(onset.values()) + [k_frozen] if o is not None), default=None)
     rows, seen_anomalous, unknown_during_growth = [], False, False
     for k, t in enumerate(times):
         stage = protocol.stage_at(t)[0]
@@ -122,7 +147,8 @@ def evidence_supported_answers(protocol, times, values, band, available, regime,
 
         if execution == "ANOMALOUS":
             deviating = {c for c in chans if onset[c] is not None and onset[c] <= k}
-            causes = consistent_causes(deviating, available, regime)
+            causes = (["stale_status"] if k_frozen is not None and k >= k_frozen
+                      else consistent_causes(deviating, available, regime))
             cause = causes if len(causes) == 1 else ["undetermined"]
             layers = sorted({LAYER[c] for c in causes}) if causes else ["undetermined"]
             attribution = layers if len(layers) == 1 else ["undetermined"]

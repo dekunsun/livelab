@@ -32,7 +32,7 @@ def test_always_normal_is_caught_by_unsupported_certainty(card):
 
 def test_prior_matcher_is_caught_by_observability_sensitivity(card):
     p, a = card["prior_matcher"], card["observability_aware"]
-    assert p["Detection"] == 1                            # it does see the anomalies...
+    assert p["Detection"] == a["Detection"] > 0          # same detectors, so it sees what the aware mock sees...
     assert p["Obs. sensitivity"] < 0.5 < a["Obs. sensitivity"]   # ...but ignores which sensors exist
     assert p["Unsupported certainty"] > a["Unsupported certainty"]
 

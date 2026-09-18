@@ -1,4 +1,5 @@
 import glob
+import json
 
 import pytest
 
@@ -7,7 +8,7 @@ from livelab.observability import event_times, first_observable, reference_band
 from livelab.protocol import TMD_MOS2_V0
 from livelab.simulator import SENSOR_OF, simulate
 
-PILOTS = sorted(glob.glob("scenarios/pilot/*.yaml"))
+PILOTS = sorted(glob.glob("scenarios/*/*.yaml"))
 TRUTH_KEYS = {"execution_state", "scientific_evidence", "acceptable_attribution",
               "acceptable_specific_cause", "deviating_channels", "missing_required_sensors"}
 
@@ -24,6 +25,11 @@ def test_computed_truth_matches_declared_expectation(ep, cond):
     _, truth = render(ep, cond)
     want = ep["expected"][cond]
     growth = [r for r in truth if r["stage"] == "growth"]
+    cooldown = [r for r in truth if r["stage"] == "cooldown"]
+    for key, rows in (("end_of_growth", growth), ("end_of_cooldown", cooldown)):
+        if key in want:
+            assert rows[-1]["execution_state"] == want[key]["execution_state"], key
+            assert rows[-1]["acceptable_specific_cause"] == [want[key]["specific_cause"]], key
     if "growth_after_fault" in want:
         last = growth[-1]
         assert last["execution_state"] == want["growth_after_fault"]["execution_state"]
@@ -80,3 +86,21 @@ def test_rule_false_positive_rate_on_normal_runs():
     hits = sum(first_observable({c: simulate(TMD_MOS2_V0, "lpcvd", s)[c][times] for c in band}, band, sensors)
                is not None for s in range(200))
     assert hits / 200 <= 0.03
+
+
+def test_identical_evidence_always_gets_identical_answers():
+    """Across every replay: wherever the events delivered so far are identical, so is the truth."""
+    seen = {}
+    for path in PILOTS:
+        ep = load(path)
+        for cond in ep["sensor_conditions"]:
+            events, truth = render(ep, cond)
+            history = []
+            for e, t in zip(events, truth):
+                if e["images"]:
+                    break
+                history.append(json.dumps({k: e[k] for k in ("stage", "setpoints", "telemetry", "device_manifest")},
+                                          sort_keys=True))
+                key = hash(tuple(history))
+                answer = (t["execution_state"], tuple(t["acceptable_specific_cause"]), tuple(t["acceptable_actions"]))
+                assert seen.setdefault(key, answer) == answer, (ep["episode_id"], cond, e["event"])
