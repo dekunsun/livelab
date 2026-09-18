@@ -330,6 +330,7 @@ author-constructed timelines, and are never headlined on their own.
 | **Early Detection Gain** | t_terminal − t_alarm, only for faults that stay below every interlock threshold |
 | **Avoidable Run Time** | If the proposed action had been followed: t_run_end − t_alarm for fault episodes, and −(the whole run) for no-fault episodes |
 | **Action appropriateness** | Share of events whose proposed action is in the evidence-supported set: `ANOMALOUS` → pause / call_human / discriminating_test / safe_shutdown; `UNKNOWN` → call_human / pause / discriminating_test; `NORMAL` → continue |
+| **Action latency** | Events from `t_observable_process` to the first proposed action (other than `continue`) that the evidence supports; a run that never acts scores the remaining events. Added after pilot runs in which the model recognized the anomaly but recommended `continue` for 37 events |
 | **First-action quality** | Whether the model's first non-`continue` proposed action is in the evidence-supported set at the event it is proposed. Timing is measured by latency, not here. Never acting when action was needed counts as a failure |
 
 **Validated before any model runs.** `scripts/score_mocks.py` scores six mock observers on every
@@ -347,7 +348,11 @@ The table is written to `docs/results/mock_scorecard.md`.
 
 **Reporting.**
 
-- Each condition × episode runs at least 5 times with different seeds.
+- **Variance comes from the evidence, not from model seeds.** In the pilot, two runs with
+  different `seed` values gave identical structured reports on 57 of 58 events. Repeating a replay
+  mostly re-samples the same answer. Each condition therefore runs **once per replay**, and
+  variance is measured across episode variants (different simulator seeds and fault onsets). A 10%
+  subset is rerun to report run-to-run agreement.
 - Proportions carry 95% Wilson intervals.
 - The detection / false-alert trade-off is shown across R1/R2 thresholds.
 - Faults at or above interlock thresholds belong to the interlock. LiveLab does not race
@@ -426,6 +431,20 @@ reasoning from semantic priors rather than from the sensor evidence it has.
 ### 7.4 Model variant (in scope, run last)
 
 `gemini-3.8-live-extended-thinking` on C-full.
+
+## 7.5 Core matrix (free tier, pre-registered)
+
+| Block | Replays | Conditions | Runs |
+| --- | --- | --- | --- |
+| CVD faults | 5 fault types (seal leak APCVD / LPCVD, exhaust blockage, thermocouple drift, MFC stuck, stale status) × 2 simulator variants, plus their sensor-removal replays | A, C-full | about 2 × 26 |
+| CVD no-fault | success and negative-result episodes × 3 variants, with and without the removal that hides the atmosphere | A, C-full | about 2 × 12 |
+| Ablations | a subset of 8 CVD replays | C-context, C-vision, C-shuffled-image | about 24 |
+| Liquid handling | Lin et al. / LabPics frames, detector-covered and held-out | A (status only), B, C-full | built later |
+| Model variant | 8 CVD replays | Extended Thinking on C-full | 8 |
+| Agreement check | 10% of the above, rerun | as original | about 12 |
+
+That is roughly 120 CVD runs of about 0.4M cumulative prompt tokens each, all on the free tier.
+The per-replay token count is taken from the pilot and is re-measured as the matrix runs.
 
 ## 8. Episode files and the benchmark card
 

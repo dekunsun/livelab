@@ -50,6 +50,12 @@ def score_replay(truth, reports):
         if hits:
             c["latency_events"] = hits[0] - k_obs
             c["edg_events"] = k_term - hits[0]
+        # Action latency: from the rule firing to the first proposed action that the anomalous
+        # evidence supports. Recognizing an anomaly while recommending "continue" does not count.
+        acts = [k for k in range(k_obs, len(truth)) if reports[k]["proposed_action"] != "continue"
+                and reports[k]["proposed_action"] in truth[k]["acceptable_actions"]]
+        c["action_latency_n"] = 1
+        c["action_latency_events"] = (acts[0] - k_obs) if acts else (len(truth) - k_obs)
     else:
         c["alarm_unsupported"] = 1
         c["false_alert"] = int(bool(alarms))
@@ -132,6 +138,8 @@ def summarize(counts):
         "Premature alarms": (s["premature"], s["alarm_supported"]),
         "Missing reports": wilson(s["missing"], s["q"]),
         "Latency (events)": s["latency_events"] / s["detected"] if s["detected"] else math.nan,
+        "Action latency (events)": (s["action_latency_events"] / s["action_latency_n"]
+                                    if s["action_latency_n"] else math.nan),
         "Action appropriate": wilson(s["action_ok"], s["action_n"]),
         "First action quality": wilson(s["first_action_ok"], s["first_action_n"]),
     }
