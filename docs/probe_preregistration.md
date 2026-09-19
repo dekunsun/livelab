@@ -113,7 +113,7 @@ With these sample sizes, differences of fewer than about 3 items are not interpr
 
 | # | Prediction | Supports |
 | --- | --- | --- |
-| **Pr1** | P1 detectability accuracy ≥ 80%: the model has the domain knowledge | against K |
+| **Pr1** | P1 detectability **balanced** accuracy ≥ 80%: the model has the domain knowledge (see deviation 2) | against K |
 | **Pr2** | B0 abstention on U ≤ 10%, reproducing the benchmark | sanity check |
 | **Pr3** | In B1, the model marks atmosphere `cannot_verify` on ≥ half of U items, and on most of those still reports `NORMAL` (conflation rate ≥ 40%) | R |
 | **Pr4** | B2 raises abstention on U to ≥ 50%, while over-abstention on N stays ≤ 20% and detection on A stays ≥ 80% | C |
@@ -142,4 +142,14 @@ The probes explain it; they do not replace it.
 
 ## Deviations log
 
-(none yet)
+Both deviations below were made on 2026-09-19, while generating the items and before any probe
+ran.
+
+1. **P1 wording: "during growth" became "at any point in the run (growth or cooldown)".** The
+   fault library's signatures, which are P1's truth, describe the whole run. For example, a
+   drifting thermocouple without a heater-power meter shows only once the heater is off, during
+   cooldown. Asking about growth alone would make the registered truth wrong for such items.
+2. **Pr1 is judged by balanced accuracy.** The generated detectability items are 40 "yes" and
+   8 "no", so a model that always answers "yes" would score 83% and pass a plain 80% bar.
+   Balanced accuracy (the mean of accuracy on "yes" items and on "no" items) is used instead;
+   always-"yes" scores 50%. Plain accuracy is also reported.
