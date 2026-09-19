@@ -49,6 +49,9 @@ never paste the key anywhere else. Start with a truncated smoke test:
 ./.venv/bin/python scripts/run_benchmark.py --backend gemini --arm A --replays 5787ea699858 --max-events 5
 ```
 
+If the connection drops or the quota runs out, rerun the same command with `--resume`: finished
+replays are skipped and the scorecard covers all of them.
+
 **Status:** Phase 2: simulator, replays, scorer and harness are built; no real model has been run yet. No model has been run yet. See [docs/design.md](docs/design.md).
 
 ## What this project cannot show

@@ -42,7 +42,8 @@ async def run_replay(backend, replay_id, arm, seed, out_dir, image_override=None
             "replay_sha256": index["sha256"], "harness_commit": git_commit(),
             "image_override": image_override, "started": dt.datetime.now(dt.timezone.utc).isoformat()}
     reports = []
-    with open(out, "w") as log:
+    partial = out.with_suffix(".partial")      # renamed only when every event has been answered
+    with open(partial, "w") as log:
         log.write(json.dumps({"event": "meta", **meta}) + "\n")
         await backend.start(seed)
         try:
@@ -64,4 +65,17 @@ async def run_replay(backend, replay_id, arm, seed, out_dir, image_override=None
                 log.flush()
         finally:
             await backend.close()
+    partial.replace(out)
     return reports, out
+
+
+def completed_reports(out_dir, replay_id, arm, seed, n_events):
+    """Reports from a finished log with the current prompt version, or None."""
+    path = Path(out_dir) / f"{replay_id}__{arm}__s{seed}.jsonl"
+    if not path.exists():
+        return None
+    rows = [json.loads(line) for line in open(path)]
+    if rows[0].get("prompt_version") != PROMPT_VERSION:
+        return None
+    reports = [r["report_assessment"] for r in rows[1:] if r["event"] == "report"]
+    return reports if len(reports) == n_events else None

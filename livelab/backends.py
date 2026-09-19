@@ -11,6 +11,7 @@ from .prompting import REPORT_ASSESSMENT, SYSTEM_INSTRUCTION, validate
 
 ROOT = Path(__file__).resolve().parent.parent
 MAX_REMINDERS = 2
+EVENT_TIMEOUT_S = 120   # a silently stalled connection raises instead of hanging
 
 
 def load_dotenv(path=ROOT / ".env"):
@@ -85,6 +86,10 @@ class GeminiLiveBackend:
         await self._open()
 
     async def observe(self, text, images):
+        import asyncio
+        return await asyncio.wait_for(self._observe(text, images), EVENT_TIMEOUT_S)
+
+    async def _observe(self, text, images):
         from google.genai import types
         parts = [{"text": text}] + [{"inline_data": {"mime_type": m, "data": b}} for m, b in images]
         await self._session.send_client_content(turns={"role": "user", "parts": parts}, turn_complete=True)

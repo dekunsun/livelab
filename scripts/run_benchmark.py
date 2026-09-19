@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from livelab.backends import GeminiLiveBackend, MockBackend  # noqa: E402
-from livelab.harness import run_replay  # noqa: E402
+from livelab.harness import completed_reports, run_replay  # noqa: E402
 from livelab.mock_models import MOCKS  # noqa: E402
 from livelab.prompting import ARMS  # noqa: E402
 from livelab.scoring import score_runs  # noqa: E402
@@ -38,6 +38,7 @@ async def main():
     ap.add_argument("--seeds", type=int, nargs="*", default=[0])
     ap.add_argument("--max-events", type=int, help="truncate each replay (smoke tests only; not scored)")
     ap.add_argument("--out", default=str(ROOT / "runs"))
+    ap.add_argument("--resume", action="store_true", help="skip replays that already have a complete log")
     args = ap.parse_args()
 
     index = json.load(open(ROOT / "data/replays/INDEX.json"))
@@ -55,6 +56,12 @@ async def main():
                 model = {"gemini": "gemini-3.8-live", "gemini-extended": "gemini-3.8-live-extended-thinking"}[args.backend]
                 backend = GeminiLiveBackend(model)
             out_dir = Path(args.out) / backend.model_id.replace(":", "_") / args.arm
+            done = completed_reports(out_dir, rid, args.arm, seed, len(events)) if args.resume else None
+            if done is not None and args.max_events is None:
+                print(f"{rid} seed={seed} already complete, skipped")
+                if seed == args.seeds[0]:
+                    all_reports[rid] = done
+                continue
             # Free tier: quota and rate limits are the risk. A failed replay restarts from the first
             # event after a pause, so every scored run saw the complete, identical evidence stream.
             for attempt in range(RETRIES + 1):
