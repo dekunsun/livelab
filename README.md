@@ -129,6 +129,15 @@ On the free tier, one replay takes about a minute and roughly 0.4M cumulative pr
 Live API counts the whole accumulated context on every turn, so events are 120 s apart and sent as
 compact JSON.
 
+## Licensing
+
+- **Code and documentation:** MIT (see `LICENSE`).
+- **Images in `data/images/cvd/`:** panels cropped from CC BY 4.0 articles. Each image's source,
+  figure, panel and licence are in `data/images/manifest.csv`, with per-source attribution in
+  `data/images/ATTRIBUTION.md`. Reuse them under CC BY 4.0, citing the original papers.
+- **Telemetry and episodes:** author-constructed simulation, covered by the MIT licence above, and
+  not data from any real run.
+
 ## Status
 
 **Done:**
