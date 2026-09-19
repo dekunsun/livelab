@@ -7,7 +7,7 @@ import json
 import os
 from pathlib import Path
 
-from .prompting import REPORT_ASSESSMENT, SYSTEM_INSTRUCTION, validate
+from .prompting import REPORT_ASSESSMENT, SYSTEM_INSTRUCTION, async_only, tools_for, validate
 
 ROOT = Path(__file__).resolve().parent.parent
 MAX_REMINDERS = 2
@@ -57,7 +57,7 @@ class GeminiLiveBackend:
         return types.LiveConnectConfig(
             response_modalities=["AUDIO"],
             system_instruction=SYSTEM_INSTRUCTION,
-            tools=[{"function_declarations": [REPORT_ASSESSMENT]}],
+            tools=[{"function_declarations": tools_for(self.model_id, [REPORT_ASSESSMENT])}],
             output_audio_transcription={},
             # No context window compression: it would silently drop earlier evidence.
             session_resumption=types.SessionResumptionConfig(handle=self._handle),
@@ -95,6 +95,7 @@ class GeminiLiveBackend:
         await self._session.send_client_content(turns={"role": "user", "parts": parts}, turn_complete=True)
         result = {"report": None, "spoken": "", "tool_calls": 0, "reminders": 0, "problems": [], "usage": None}
         reconnect = False
+        busy = False
         while True:
             async for msg in self._session.receive():
                 if getattr(msg, "session_resumption_update", None) and msg.session_resumption_update.new_handle:
@@ -104,6 +105,9 @@ class GeminiLiveBackend:
                 if getattr(msg, "usage_metadata", None) is not None:
                     result["usage"] = msg.usage_metadata.model_dump(exclude_none=True)
                 sc = getattr(msg, "server_content", None)
+                if sc is not None and getattr(sc, "interaction_status", None) is not None:
+                    # With asynchronous reasoning, turn_complete does not mean idle (Live API docs).
+                    busy = str(sc.interaction_status).endswith("IN_PROGRESS")
                 if sc is not None and getattr(sc, "output_transcription", None) and sc.output_transcription.text:
                     result["spoken"] += sc.output_transcription.text
                 if getattr(msg, "tool_call", None):
@@ -116,13 +120,17 @@ class GeminiLiveBackend:
                             result["report"] = args
                         result["problems"] += problems
                         responses.append(types.FunctionResponse(
-                            id=fc.id, name=fc.name, scheduling="SILENT",
+                            id=fc.id, name=fc.name,
+                            # Extended Thinking does not support function scheduling.
+                            **({} if async_only(self.model_id) else {"scheduling": "SILENT"}),
                             response={"result": "recorded" if not problems else "rejected: " + "; ".join(problems)}))
                     await self._session.send_tool_response(function_responses=responses)
                 if sc is not None and getattr(sc, "turn_complete", False):
                     break
             if result["report"] is not None or result["reminders"] >= MAX_REMINDERS:
                 break
+            if busy:
+                continue            # still reasoning in the background: keep listening, no reminder
             result["reminders"] += 1
             await self._session.send_client_content(
                 turns={"role": "user", "parts": [{"text": "Call report_assessment for this event now."}]},

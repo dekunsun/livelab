@@ -104,3 +104,30 @@ def test_harness_writes_a_complete_audit_log(tmp_path):
     assert set(delivered[0]["device_manifest"]) == {"sensors"}           # stage requirements stay hidden
     assert all("ref" in d for d in delivered)                            # C-full gets context
     assert sum(r["images_delivered"] for r in rows[1:]) == 1               # one micrograph, at the end
+
+
+def test_extended_thinking_uses_async_calls_without_scheduling():
+    session = FakeSession([[msg(tool=VALID), msg(done=True)]])
+    connect = FakeConnect(session)
+    backend = GeminiLiveBackend("gemini-3.8-live-extended-thinking", connect=connect)
+
+    async def go():
+        await backend.start(seed=0)
+        return await backend.observe("{}", [])
+    res = asyncio.run(go())
+    decl = connect.configs[0].tools[0].function_declarations[0]
+    assert str(decl.behavior).endswith("NON_BLOCKING") and res["report"] == VALID
+    assert session.tool_responses[0].scheduling is None
+
+
+def test_turn_complete_while_still_reasoning_is_not_a_missing_report():
+    busy = NS(tool_call=None, go_away=None, session_resumption_update=None, usage_metadata=None,
+              server_content=NS(turn_complete=True, output_transcription=None, interaction_status="InteractionStatus.IN_PROGRESS"))
+    session = FakeSession([[busy], [msg(tool=VALID), msg(done=True)]])
+    backend = GeminiLiveBackend("gemini-3.8-live-extended-thinking", connect=FakeConnect(session))
+
+    async def go():
+        await backend.start(seed=0)
+        return await backend.observe("{}", [])
+    res = asyncio.run(go())
+    assert res["report"] == VALID and res["reminders"] == 0 and len(session.sent) == 1

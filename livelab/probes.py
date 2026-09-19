@@ -5,7 +5,7 @@ import json
 import os
 from pathlib import Path
 
-from .prompting import REPORT_ASSESSMENT, SYSTEM_INSTRUCTION, event_message
+from .prompting import REPORT_ASSESSMENT, SYSTEM_INSTRUCTION, async_only, event_message, tools_for
 
 ROOT = Path(__file__).resolve().parent.parent
 PROBE_VERSION = "p1"
@@ -96,12 +96,13 @@ def p1_setup(item):
     return P1_INSTRUCTION, [tool], [tool["name"]]
 
 
-async def run_single_turn(connect, instruction, tools, required, text, seed=0, max_reminders=2):
+async def run_single_turn(connect, instruction, tools, required, text, seed=0, max_reminders=2, model_id="gemini-3.8-live"):
     """One Live session, one user turn; returns every function call made, what was said, and usage."""
     from google.genai import types
     config = types.LiveConnectConfig(response_modalities=["AUDIO"], system_instruction=instruction,
-                                     tools=[{"function_declarations": tools}], output_audio_transcription={}, seed=seed)
-    calls, spoken, usage, reminders = [], "", None, 0
+                                     tools=[{"function_declarations": tools_for(model_id, tools)}],
+                                     output_audio_transcription={}, seed=seed)
+    calls, spoken, usage, reminders, busy = [], "", None, 0, False
     cm = connect(config)
     session = await cm.__aenter__()
     try:
@@ -111,20 +112,25 @@ async def run_single_turn(connect, instruction, tools, required, text, seed=0, m
                 if getattr(msg, "usage_metadata", None) is not None:
                     usage = msg.usage_metadata.model_dump(exclude_none=True)
                 sc = getattr(msg, "server_content", None)
+                if sc is not None and getattr(sc, "interaction_status", None) is not None:
+                    busy = str(sc.interaction_status).endswith("IN_PROGRESS")
                 if sc is not None and getattr(sc, "output_transcription", None) and sc.output_transcription.text:
                     spoken += sc.output_transcription.text
                 if getattr(msg, "tool_call", None):
                     responses = []
                     for fc in msg.tool_call.function_calls:
                         calls.append({"name": fc.name, "args": dict(fc.args or {})})
-                        responses.append(types.FunctionResponse(id=fc.id, name=fc.name, scheduling="SILENT",
-                                                                response={"result": "recorded"}))
+                        responses.append(types.FunctionResponse(
+                            id=fc.id, name=fc.name, response={"result": "recorded"},
+                            **({} if async_only(model_id) else {"scheduling": "SILENT"})))
                     await session.send_tool_response(function_responses=responses)
                 if sc is not None and getattr(sc, "turn_complete", False):
                     break
             missing = [r for r in required if r not in {c["name"] for c in calls}]
             if not missing or reminders >= max_reminders:
                 break
+            if busy:
+                continue
             reminders += 1
             await session.send_client_content(
                 turns={"role": "user", "parts": [{"text": f"Call {missing[0]} now."}]}, turn_complete=True)

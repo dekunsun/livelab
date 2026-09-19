@@ -11,7 +11,7 @@ from pathlib import Path
 
 import yaml
 
-from .prompting import PROMPT_VERSION, event_message, load_reference
+from .prompting import PROMPT_VERSION, async_only, event_message, load_reference
 
 ROOT = Path(__file__).resolve().parent.parent
 MISSING = {"execution_state": "MISSING", "scientific_evidence": "MISSING", "attribution": "MISSING",
@@ -39,6 +39,7 @@ async def run_replay(backend, replay_id, arm, seed, out_dir, image_override=None
     out = Path(out_dir) / f"{replay_id}__{arm}__s{seed}.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
     meta = {"model": backend.model_id, "prompt_version": PROMPT_VERSION, "arm": arm, "seed": seed, "replay_id": replay_id,
+            "function_calling": "non_blocking" if async_only(backend.model_id) else "blocking+silent",
             "replay_sha256": index["sha256"], "harness_commit": git_commit(),
             "image_override": image_override, "started": dt.datetime.now(dt.timezone.utc).isoformat()}
     reports = []

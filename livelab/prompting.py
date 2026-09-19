@@ -79,6 +79,18 @@ def _sig(x):
     return float(f"{x:.3g}")
 
 
+def tools_for(model_id: str, tools: list) -> list:
+    """Extended Thinking supports only NON_BLOCKING function calls (Live API docs, 2026-09); the
+    standard Live model keeps BLOCKING. This is an API constraint, recorded with every run."""
+    if "extended-thinking" not in model_id:
+        return tools
+    return [dict(t, behavior="NON_BLOCKING") for t in tools]
+
+
+def async_only(model_id: str) -> bool:
+    return "extended-thinking" in model_id
+
+
 def validate(report: dict) -> list:
     """Return the problems with a report_assessment call (empty if valid)."""
     problems = [f"missing {k}" for k in REPORT_ASSESSMENT["parameters"]["required"] if k not in report]

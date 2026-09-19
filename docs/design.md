@@ -461,7 +461,16 @@ reasoning from semantic priors rather than from the sensor evidence it has.
 
 ### 7.4 Model variant (in scope, run last)
 
-`gemini-3.8-live-extended-thinking` on C-full.
+`gemini-3.8-live-extended-thinking`, run on C-context and in the probe study.
+
+- **Function calling differs, by API constraint.** Extended Thinking supports only NON_BLOCKING
+  function calls and no function scheduling (Live API docs, 2026-09). Its runs therefore use
+  asynchronous calls with plain acknowledgements, where the standard model uses BLOCKING calls
+  with SILENT acknowledgements. Each run's meta records this (`function_calling`).
+- **Waiting for the report.** With asynchronous reasoning, `turn_complete` does not mean the model
+  is idle. The harness keeps listening while `interaction_status` is IN_PROGRESS instead of
+  sending a reminder.
+- **Thinking level** is left at the API default.
 
 ## 7.5 Core matrix (free tier, pre-registered)
 
