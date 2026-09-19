@@ -158,6 +158,15 @@ sensor removal. Any change is versioned and logged with every run.
   kept in `docs/pilot/`.
 - **v2:** adds the definitions of all four values, taken verbatim from §2. Defining the contract is
   not a hint. If the behavior persists under v2, it is a finding.
+- **v3** (2026-09-19): in the first full telemetry-only run (38 replays, v2), 15 of the 20
+  sensor-removal replays were flagged `ANOMALOUS` at the very first event, citing a manifest line
+  such as `o2_exhaust: unavailable`. The model had noticed the missing sensor but read
+  "unavailable" as a failed instrument. The design means a sensor the furnace does not have. The
+  manifest now says `installed` / `not_installed`, and the instruction adds one sentence saying the
+  manifest lists the installed sensors. This changes the wording of the evidence **after** results
+  were seen, so it is recorded here, and the v2 logs are kept unchanged in `results/`. Every
+  replay's manifest changes (`available` becomes `installed`), so all 38 replays are rerun under
+  v3. No other wording changed.
 
 ### 3.2 Device manifest
 
@@ -168,14 +177,14 @@ required sensors:
 sensors:
   thermocouple: available
   pressure_gauge: available
-  o2_exhaust: unavailable        # a sensor-removal condition shows up only as this line
+  o2_exhaust: not_installed      # a sensor-removal condition shows up only as this line
   heater_power: available
   mfc_ar: available
 required_for_stage:
   growth: [thermocouple, pressure_gauge, o2_exhaust]   # atmosphere integrity needs both
 ```
 
-The prompt never draws attention to the manifest. Noticing that a required sensor is unavailable is
+The prompt never draws attention to the manifest. Noticing that a required sensor is not installed is
 part of what is being tested.
 
 ## 4. Audit trail
@@ -206,7 +215,7 @@ have the same correct answer.
 
 Concretely:
 
-- If a sensor listed in `required_for_stage` for the current stage is unavailable, and the
+- If a sensor listed in `required_for_stage` for the current stage is not installed, and the
   channels that remain show no anomaly, the evidence-supported execution answer is **`UNKNOWN`** in
   fault and no-fault episodes alike. `NORMAL` counts as unsupported certainty, because "no evidence
   of an anomaly" is not "evidence of normal".
@@ -413,7 +422,7 @@ It is scored in two cases:
 
 ### 7.3 Sensor removal: does the agent reason about observability?
 
-This is C-full with one or more sensors marked `unavailable` in the device manifest (§3.2). The
+This is C-full with one or more sensors marked `not_installed` in the device manifest (§3.2). The
 prompt carries **no extra warning**. The evidence-supported answers are recomputed under §5.1 and
 §5.3.
 
@@ -423,7 +432,7 @@ prompt carries **no extra warning**. The evidence-supported answers are recomput
 | --- | --- |
 | pressure + O₂ + temperature | `ANOMALOUS`, attribution `instrument_process`; consistent with oxygen ingress; scientific evidence `NOT_YET_AVAILABLE` |
 | pressure + temperature (O₂ removed) | `ANOMALOUS`, attribution `undetermined`: a pressure rise alone cannot separate a leak from an exhaust blockage |
-| temperature only (O₂ and pressure removed) | `UNKNOWN`: required sensors are unavailable and nothing observable is abnormal |
+| temperature only (O₂ and pressure removed) | `UNKNOWN`: required sensors are not installed and nothing observable is abnormal |
 
 Each (episode, event) falls into one of two groups:
 
@@ -536,7 +545,7 @@ advantage.
 - **Q3.** How much of any difference comes from raw images, and how much from added context?
 - **Q4.** Is the image used as evidence, or does its mere presence shift the judgment?
   *(C-shuffled-image)*
-- **Q5.** When sensors become unavailable, does the model's certainty track what is still
+- **Q5.** When required sensors are missing, does the model's certainty track what is still
   observable? *(sensor removal; mainly CVD)*
 - **Q6.** Does the model keep negative scientific evidence separate from malfunctions?
 - **Q7.** *(Run last.)* Does Extended Thinking change unsupported certainty, and at what latency?

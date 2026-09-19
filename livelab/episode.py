@@ -45,7 +45,7 @@ def render(ep: dict, condition: str, delta_s: int = 120) -> tuple[list, list]:
     char_event = next(k for k, t in enumerate(times) if protocol.stage_at(t)[0].name == "characterization")
 
     required = {s.name: list(s.required_sensors) for s in protocol.stages}
-    manifest = {"sensors": {s: ("unavailable" if s in removed else "available") for s in ALL_SENSORS},
+    manifest = {"sensors": {s: ("not_installed" if s in removed else "installed") for s in ALL_SENSORS},
                 "required_for_stage": required}
     # The model sees only an opaque id: episode and condition names would give the answer away.
     replay_id = hashlib.sha256(f"{ep['episode_id']}/{condition}".encode()).hexdigest()[:12]

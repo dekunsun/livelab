@@ -1,14 +1,14 @@
 """System instruction, tool declaration and per-event messages for each arm.
 
 The prompt describes the task and the output contract only. It never mentions faults, sensor
-removal or what to look for, so noticing an unavailable sensor is left to the model.
+removal or what to look for, so noticing a missing sensor is left to the model.
 """
 import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-PROMPT_VERSION = "v2"   # v2 (2026-09-18): defines the scientific_evidence values; see docs/design.md §3.1
+PROMPT_VERSION = "v3"   # v3 (2026-09-19): the manifest says which sensors are installed; see docs/design.md §3.1
 
 SYSTEM_INSTRUCTION = """You are the observer for a chemical vapor deposition (CVD) run in a single-zone tube furnace.
 The run is being replayed to you one observation event at a time, at fixed intervals of simulated time.
@@ -35,9 +35,10 @@ After EVERY observation event, call report_assessment exactly once with your cur
 Each event is compact JSON: k = event index; t = simulated seconds; stage = protocol stage;
 set = setpoints (T in °C, Ar in sccm); obs = readings: T thermocouple °C, Pheat heater power %,
 Ar argon flow sccm, P tube pressure Torr, O2 exhaust oxygen ppm, status = controller status.
-When present, ref gives [mean, sd] of each reading at this time across normal runs. A device manifest listing sensor
-status and the sensors each stage requires is sent with the first event and again whenever it
-changes. Telemetry values are null when a sensor is unavailable.
+When present, ref gives [mean, sd] of each reading at this time across normal runs. A device manifest is sent
+with the first event and again whenever it changes. It lists which sensors this furnace has
+installed and which sensors each protocol stage requires. Telemetry values are null for sensors
+that are not installed.
 Speak at most one short sentence per event, and only if your judgment changed."""
 
 REPORT_ASSESSMENT = {

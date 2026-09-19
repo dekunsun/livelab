@@ -81,12 +81,12 @@ class ObservabilityAware(_Heuristic):
             flagged |= self.flags(events, k)
             sensors = e["device_manifest"]["sensors"]
             required = e["device_manifest"]["required_for_stage"][e["stage"]]
-            missing = [s for s in required if sensors[s] == "unavailable"]
+            missing = [s for s in required if sensors[s] == "not_installed"]
             lpcvd = (e["telemetry"]["P_tube"] or 0) < 100 if e["telemetry"]["P_tube"] is not None else None
             if flagged:
                 execution = "ANOMALOUS"
-                o2_ok = sensors["o2_exhaust"] == "available"
-                p_ok = sensors["pressure_gauge"] == "available"
+                o2_ok = sensors["o2_exhaust"] == "installed"
+                p_ok = sensors["pressure_gauge"] == "installed"
                 leak_sig = {"O2_exhaust", "P_tube"} if lpcvd else {"O2_exhaust"}
                 visible = {c for c, ok in (("O2_exhaust", o2_ok), ("P_tube", p_ok)) if ok}
                 cause = "seal_leak" if flagged == (leak_sig & visible) and "O2_exhaust" in flagged else "undetermined"
