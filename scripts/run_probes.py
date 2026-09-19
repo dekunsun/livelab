@@ -32,7 +32,7 @@ def real_connect(model):
     return lambda cfg: client.aio.live.connect(model=model, config=cfg)
 
 
-def jobs(items, only):
+def jobs(items, only, sets=None):
     for v in VARIANTS:
         if only and v not in only:
             continue
@@ -41,6 +41,8 @@ def jobs(items, only):
                 yield v, it["item_id"], (*p1_setup(it), p1_message(it))
         else:
             for it in items["in_context"]:
+                if sets and it["set"] not in sets:
+                    continue
                 yield v, it["item_id"], (*variant_setup(v), prefix_message(it["replay_id"], it["k"]))
 
 
@@ -49,13 +51,14 @@ async def main(connect=None, out_root=None, argv=None):
     ap.add_argument("--only", nargs="*", choices=VARIANTS)
     ap.add_argument("--limit", type=int, help="at most this many items per variant (smoke test)")
     ap.add_argument("--backend", default="gemini", choices=sorted(MODELS))
+    ap.add_argument("--sets", nargs="*", choices=["U", "N", "A"], help="in-context item sets to run (default: all)")
     args = ap.parse_args(argv)
     model = MODELS[args.backend]
     out_root = out_root or ROOT / "results" / "probes" / model
     items = json.load(open(ROOT / "data/probes/items.json"))
     connect = connect or real_connect(model)
     per_variant, failures = {}, 0
-    for v, item_id, (instruction, tools, required, text) in jobs(items, args.only):
+    for v, item_id, (instruction, tools, required, text) in jobs(items, args.only, args.sets):
         if args.limit and per_variant.get(v, 0) >= args.limit:
             continue
         per_variant[v] = per_variant.get(v, 0) + 1

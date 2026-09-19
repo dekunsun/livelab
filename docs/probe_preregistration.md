@@ -170,3 +170,13 @@ ran.
    declining to answer. The item is saved with `no_answer: true` and what the model said, and it
    is scored as not correct: a non-answer counts neither as abstention on U nor as correct in P1.
    Transient API errors are still retried and never saved.
+6. **Staged Extended Thinking run (2026-09-19, decided before any Extended Thinking in-context item
+   ran):** at HIGH thinking, items take minutes each, so 212 items would take 4–14 hours. The
+   Extended Thinking study therefore runs in stages:
+   - **Stage 1:** B0, B1 and B2 on the 14 U items. This answers Q7 directly: does more thinking
+     produce `UNKNOWN`?
+   - **Stage 2**, only if Stage 1 shows any abstention on U: the N and A controls for those
+     variants, which check that the abstention is not reflexive.
+   - **Not run for Extended Thinking:** P1 and B3. The standard model already answered those
+     questions, and they do not bear on Q7. The 5 P1 items already answered are kept, but P1 is
+     not scored for Extended Thinking.
