@@ -66,6 +66,8 @@ async def main(connect=None, out_root=None, argv=None):
             try:
                 res = await asyncio.wait_for(run_single_turn(connect, instruction, tools, required, text, model_id=model,
                                                              thinking_level="HIGH" if "extended" in model else None), 600)
+                if [r for r in required if r not in {c["name"] for c in res["calls"]}]:
+                    raise RuntimeError("required call missing after reminders")   # retried, never saved as an answer
                 break
             except Exception as exc:  # noqa: BLE001 - free-tier transient errors; retry the whole item
                 print(f"{v} {item_id} attempt {attempt + 1} failed: {type(exc).__name__}: {str(exc)[:120]}")

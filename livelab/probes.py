@@ -113,7 +113,14 @@ async def run_single_turn(connect, instruction, tools, required, text, seed=0, m
     try:
         await session.send_client_content(turns={"role": "user", "parts": [{"text": text}]}, turn_complete=True)
         while True:
-            async for msg in session.receive():
+            stream = session.receive().__aiter__()
+            while True:
+                try:
+                    left = started + 240 - asyncio.get_running_loop().time()
+                    wait = (left if left > 1 else 120.0) if async_only(model_id) else None
+                    msg = await asyncio.wait_for(stream.__anext__(), wait)
+                except (StopAsyncIteration, asyncio.TimeoutError):
+                    break
                 if getattr(msg, "usage_metadata", None) is not None:
                     usage = msg.usage_metadata.model_dump(exclude_none=True)
                 sc = getattr(msg, "server_content", None)
@@ -136,8 +143,8 @@ async def run_single_turn(connect, instruction, tools, required, text, seed=0, m
             missing = [r for r in required if r not in {c["name"] for c in calls}]
             if not missing or reminders >= max_reminders:
                 break
-            if busy or (async_only(model_id) and asyncio.get_running_loop().time() - started < 90):
-                continue            # async model may still be reasoning: keep listening, no reminder
+            if busy or (async_only(model_id) and asyncio.get_running_loop().time() - started < 240):
+                continue            # async model may still be reasoning: keep listening, never interrupt
             reminders += 1
             await session.send_client_content(
                 turns={"role": "user", "parts": [{"text": f"Call {missing[0]} now."}]}, turn_complete=True)

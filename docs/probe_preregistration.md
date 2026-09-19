@@ -159,3 +159,9 @@ ran.
    report_assessment now."), and the model makes the second call. This applies uniformly to every
    B1 item, and reminders are recorded per item. The 4 smoke-test answers came from the final code
    and are kept as part of the run.
+4. **Extended Thinking run (2026-09-19):** the harness's reminders interrupted the model's
+   background reasoning. The Live API says a new client message interrupts generation. As a
+   result one P1 item (`P1det__lpcvd__full__mfc_stuck`) was saved with no answer. For async
+   models the harness now sends no reminder for 240 s. An item missing a required call is retried
+   and never saved as an answer. The harness-caused empty record was deleted and rerun. No
+   answered item was changed.
