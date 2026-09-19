@@ -153,3 +153,9 @@ ran.
    8 "no", so a model that always answers "yes" would score 83% and pass a plain 80% bar.
    Balanced accuracy (the mean of accuracy on "yes" items and on "no" items) is used instead;
    always-"yes" scores 50%. Plain accuracy is also reported.
+3. **Implementation note (smoke test, 2026-09-19, 4 items; content not analysed):** in B1 the
+   model stops after `report_verifiability`, because tool responses are acknowledged with SILENT
+   scheduling. The runner then sends the same neutral reminder it uses everywhere ("Call
+   report_assessment now."), and the model makes the second call. This applies uniformly to every
+   B1 item, and reminders are recorded per item. The 4 smoke-test answers came from the final code
+   and are kept as part of the run.
