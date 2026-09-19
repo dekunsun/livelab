@@ -125,3 +125,16 @@ def test_single_turn_ends_once_required_calls_are_in():
             await asyncio.sleep(3600)          # no turn_complete
     res = asyncio.run(asyncio.wait_for(run_single_turn(connect_to(Hanging([])), "x", [], ["answer_detectability"], "q"), 5))
     assert [c["name"] for c in res["calls"]] == ["answer_detectability"]
+
+
+def test_three_non_answers_are_saved_as_no_answer(tmp_path):
+    import scripts.run_probes as rp
+    rp.RETRY_WAIT_S = 0
+
+    class Silent:
+        def __call__(self, cfg):
+            return connect_to(FakeSession([[msg(done=True)]] * 3))(cfg)
+    asyncio.run(rp.main(connect=Silent(), out_root=tmp_path, argv=["--only", "P1", "--limit", "1"]))
+    [f] = list(tmp_path.glob("P1/*.json"))
+    d = json.loads(f.read_text())
+    assert d["no_answer"] is True and d["calls"] == [] and len(d["attempts_spoken"]) == 3

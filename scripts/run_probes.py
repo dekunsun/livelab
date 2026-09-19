@@ -62,17 +62,25 @@ async def main(connect=None, out_root=None, argv=None):
         out = Path(out_root) / v / f"{item_id}.json"
         if out.exists():
             continue
+        res, unanswered = None, []
         for attempt in range(3):
             try:
-                res = await asyncio.wait_for(run_single_turn(connect, instruction, tools, required, text, model_id=model,
+                got = await asyncio.wait_for(run_single_turn(connect, instruction, tools, required, text, model_id=model,
                                                              thinking_level="HIGH" if "extended" in model else None), 600)
-                if [r for r in required if r not in {c["name"] for c in res["calls"]}]:
-                    raise RuntimeError("required call missing after reminders")   # retried, never saved as an answer
-                break
             except Exception as exc:  # noqa: BLE001 - free-tier transient errors; retry the whole item
                 print(f"{v} {item_id} attempt {attempt + 1} failed: {type(exc).__name__}: {str(exc)[:120]}")
-                res = None
                 await asyncio.sleep(RETRY_WAIT_S * (attempt + 1))
+                continue
+            if [r for r in required if r not in {c["name"] for c in got["calls"]}]:
+                unanswered.append(got)                  # the model answered nothing this time
+                print(f"{v} {item_id} attempt {attempt + 1}: required call missing after reminders")
+                continue
+            res = got
+            break
+        if res is None and len(unanswered) == 3:
+            # The model declined to answer on every attempt: that is its behaviour, so it is saved and
+            # scored as a non-answer (never as correct), with what it said.
+            res = dict(unanswered[-1], no_answer=True, attempts_spoken=[u["spoken"] for u in unanswered])
         if res is None:
             failures += 1
             continue
@@ -81,7 +89,7 @@ async def main(connect=None, out_root=None, argv=None):
                                    "thinking_level": "HIGH" if "extended" in model else None, "variant": v,
                                    "item_id": item_id, **res}, indent=1))
         names = [c["name"] for c in res["calls"]]
-        print(f"{v} {item_id}: {names} reminders={res['reminders']}")
+        print(f"{v} {item_id}: {names} reminders={res['reminders']}" + ("  (no answer on 3 attempts)" if res.get("no_answer") else ""))
     print(f"done; {failures} item(s) failed and can be retried by rerunning the same command")
 
 

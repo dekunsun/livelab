@@ -165,3 +165,8 @@ ran.
    models the harness now sends no reminder for 240 s. An item missing a required call is retried
    and never saved as an answer. The harness-caused empty record was deleted and rerun. No
    answered item was changed.
+5. **Persistent non-answers (2026-09-19, before scoring):** if an item gets no required call on 3
+   separate attempts (each with the 240 s no-interruption window), the model is treated as
+   declining to answer. The item is saved with `no_answer: true` and what the model said, and it
+   is scored as not correct: a non-answer counts neither as abstention on U nor as correct in P1.
+   Transient API errors are still retried and never saved.

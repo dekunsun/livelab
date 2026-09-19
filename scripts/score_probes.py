@@ -63,6 +63,11 @@ def main():
         for kind, m in s["P1"].items():
             lines.append(f"P1 {kind}: accuracy {frac(m['accuracy'])}, balanced {m['balanced_accuracy']:.0%}, "
                          f"by truth {m['by_truth']}.")
+    loaded = load()
+    no_answer = {v: sum(1 for d in loaded.get(v, {}).values() if d.get("no_answer")) for v in loaded}
+    if any(no_answer.values()):
+        lines += ["", "Items the model declined to answer on 3 attempts (scored as not correct): " +
+                  ", ".join(f"{v} {n}" for v, n in sorted(no_answer.items()) if n) + "."]
     lines += ["", "| # | Registered prediction | Observed | Met |", "| --- | --- | --- | --- |"]
     lines += [f"| {a} | {b} | {c} | {'yes' if d else 'no'} |" for a, b, c, d in verdicts(s)]
     out = ROOT / "docs/results" / ("probe_results.md" if MODEL == "gemini-3.8-live" else f"probe_results_{MODEL}.md")
