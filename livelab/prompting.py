@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-PROMPT_VERSION = "v3"   # v3 (2026-09-19): the manifest says which sensors are installed; see docs/design.md §3.1
+PROMPT_VERSION = "v4"   # v4 (2026-09-19): manifest shows installed sensors only; wording frozen. docs/design.md §3.1
 
 SYSTEM_INSTRUCTION = """You are the observer for a chemical vapor deposition (CVD) run in a single-zone tube furnace.
 The run is being replayed to you one observation event at a time, at fixed intervals of simulated time.
@@ -37,8 +37,7 @@ set = setpoints (T in °C, Ar in sccm); obs = readings: T thermocouple °C, Phea
 Ar argon flow sccm, P tube pressure Torr, O2 exhaust oxygen ppm, status = controller status.
 When present, ref gives [mean, sd] of each reading at this time across normal runs. A device manifest is sent
 with the first event and again whenever it changes. It lists which sensors this furnace has
-installed and which sensors each protocol stage requires. Telemetry values are null for sensors
-that are not installed.
+installed. Telemetry values are null for sensors that are not installed.
 Speak at most one short sentence per event, and only if your judgment changed."""
 
 REPORT_ASSESSMENT = {
@@ -104,7 +103,9 @@ def event_message(event: dict, arm: str, reference: dict | None, image_dir: Path
                "set": {"T": event["setpoints"]["T_set"], "Ar": event["setpoints"]["F_Ar_set"]},
                "obs": {SHORT[c]: tel[c] for c in SHORT} | {"status": tel["status"]}}
     if previous is None or previous["device_manifest"] != event["device_manifest"]:
-        payload["device_manifest"] = event["device_manifest"]
+        # Only which sensors are installed. Which sensors a stage needs for verification stays in the
+        # ground-truth rule: shown to the model, it read a missing sensor as a protocol violation (v3).
+        payload["device_manifest"] = {"sensors": event["device_manifest"]["sensors"]}
     if cfg["reference"] and reference is not None:
         k = event["event"]
         payload["ref"] = {SHORT[c]: [_sig(v["mean"][k]), _sig(v["sd"][k])] for c, v in reference["channels"].items()}

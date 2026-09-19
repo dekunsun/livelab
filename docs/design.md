@@ -167,6 +167,17 @@ sensor removal. Any change is versioned and logged with every run.
   were seen, so it is recorded here, and the v2 logs are kept unchanged in `results/`. Every
   replay's manifest changes (`available` becomes `installed`), so all 38 replays are rerun under
   v3. No other wording changed.
+- **v4** (2026-09-19, **final: wording is frozen from here on, whatever the results**): under v3,
+  16 of 20 removal replays were still flagged `ANOMALOUS` at event 0. The logs show why. The model
+  cited e.g. "o2_exhaust required for purge stage but not installed" and proposed
+  `safe_shutdown`. Because the manifest also listed `required_for_stage`, a missing sensor read
+  as a protocol violation, which is a defensible reading of the contract. The design means
+  something else: the furnace lacks a sensor, so part of the process cannot be verified. v4 shows
+  the model only which sensors are installed. Which sensors a stage needs for verification stays
+  in the ground-truth rule, and the model has to reason that out itself; this also removes a hint.
+  A finding that holds under v2 and v3 regardless of wording: in 140 growth-stage reports under
+  sensor removal, the model never answered `UNKNOWN`, even when its own `missing_evidence` said
+  the required sensors were missing.
 
 ### 3.2 Device manifest
 
@@ -184,7 +195,9 @@ required_for_stage:
   growth: [thermocouple, pressure_gauge, o2_exhaust]   # atmosphere integrity needs both
 ```
 
-The prompt never draws attention to the manifest. Noticing that a required sensor is not installed is
+Only the `sensors` part of this manifest is shown to the model (from prompt v4). The
+`required_for_stage` part belongs to the ground-truth rule (§5.1), not to the evidence. The prompt
+never draws attention to the manifest. Noticing that a required sensor is not installed is
 part of what is being tested.
 
 ## 4. Audit trail
