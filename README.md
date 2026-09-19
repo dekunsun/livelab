@@ -102,6 +102,10 @@ with its reason in [docs/design.md §3.1](docs/design.md), and every version's l
 
 Wording has been **frozen at v4**. The `UNKNOWN` result held under every version.
 
+What went wrong along the way, and what it taught (evaluation design, contract ambiguity,
+pre-registration, porting the harness between models, cost structure):
+[docs/lessons_learned.md](docs/lessons_learned.md).
+
 ## Running it
 
 ```bash
