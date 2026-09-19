@@ -11,6 +11,7 @@ from .prompting import REPORT_ASSESSMENT, SYSTEM_INSTRUCTION, async_only, tools_
 
 ROOT = Path(__file__).resolve().parent.parent
 MAX_REMINDERS = 2
+ASYNC_PATIENCE_S = 90   # async (Extended Thinking) reports can arrive long after turn_complete
 EVENT_TIMEOUT_S = 300   # a silently stalled connection raises instead of hanging (HIGH thinking can be slow)
 
 
@@ -93,12 +94,15 @@ class GeminiLiveBackend:
         return await asyncio.wait_for(self._observe(text, images), EVENT_TIMEOUT_S)
 
     async def _observe(self, text, images):
+        import asyncio
         from google.genai import types
         parts = [{"text": text}] + [{"inline_data": {"mime_type": m, "data": b}} for m, b in images]
         await self._session.send_client_content(turns={"role": "user", "parts": parts}, turn_complete=True)
         result = {"report": None, "spoken": "", "tool_calls": 0, "reminders": 0, "problems": [], "usage": None}
         reconnect = False
         busy = False
+        started = asyncio.get_running_loop().time()
+        asynchronous = async_only(self.model_id)
         while True:
             async for msg in self._session.receive():
                 if getattr(msg, "session_resumption_update", None) and msg.session_resumption_update.new_handle:
@@ -128,12 +132,14 @@ class GeminiLiveBackend:
                             **({} if async_only(self.model_id) else {"scheduling": "SILENT"}),
                             response={"result": "recorded" if not problems else "rejected: " + "; ".join(problems)}))
                     await self._session.send_tool_response(function_responses=responses)
+                # The turn is drained to turn_complete even after a report, so a second call made in
+                # this turn cannot leak into the next event. The first valid report is the one kept.
                 if sc is not None and getattr(sc, "turn_complete", False):
                     break
             if result["report"] is not None or result["reminders"] >= MAX_REMINDERS:
                 break
-            if busy:
-                continue            # still reasoning in the background: keep listening, no reminder
+            if busy or (asynchronous and asyncio.get_running_loop().time() - started < ASYNC_PATIENCE_S):
+                continue            # may still be reasoning in the background: keep listening, no reminder
             result["reminders"] += 1
             await self._session.send_client_content(
                 turns={"role": "user", "parts": [{"text": "Call report_assessment for this event now."}]},

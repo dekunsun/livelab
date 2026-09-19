@@ -105,7 +105,9 @@ async def run_single_turn(connect, instruction, tools, required, text, seed=0, m
                                      output_audio_transcription={}, seed=seed,
                                      **({"thinking_config": types.ThinkingConfig(thinking_level=thinking_level)}
                                         if thinking_level else {}))
+    import asyncio
     calls, spoken, usage, reminders, busy = [], "", None, 0, False
+    started = asyncio.get_running_loop().time()
     cm = connect(config)
     session = await cm.__aenter__()
     try:
@@ -132,8 +134,8 @@ async def run_single_turn(connect, instruction, tools, required, text, seed=0, m
             missing = [r for r in required if r not in {c["name"] for c in calls}]
             if not missing or reminders >= max_reminders:
                 break
-            if busy:
-                continue
+            if busy or (async_only(model_id) and asyncio.get_running_loop().time() - started < 90):
+                continue            # async model may still be reasoning: keep listening, no reminder
             reminders += 1
             await session.send_client_content(
                 turns={"role": "user", "parts": [{"text": f"Call {missing[0]} now."}]}, turn_complete=True)

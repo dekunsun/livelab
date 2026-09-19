@@ -145,3 +145,19 @@ def test_extended_thinking_sends_a_thinking_level():
     assert str(connect.configs[0].thinking_config.thinking_level).endswith("HIGH")
     standard = GeminiLiveBackend(connect=FakeConnect(FakeSession([])))
     assert standard.thinking_level is None
+
+
+def test_async_model_is_given_time_before_any_reminder():
+    """Extended Thinking may finish a turn and only later deliver the report: no reminder, no mix-up."""
+    quiet_done = NS(tool_call=None, go_away=None, session_resumption_update=None, usage_metadata=None,
+                    server_content=NS(turn_complete=True, output_transcription=None))
+    session = FakeSession([[quiet_done], [quiet_done],
+                           [msg(tool=VALID), msg(tool=dict(VALID, execution_state="ANOMALOUS")), msg(done=True)]])
+    backend = GeminiLiveBackend("gemini-3.8-live-extended-thinking", connect=FakeConnect(session))
+
+    async def go():
+        await backend.start(seed=0)
+        return await backend.observe("{}", [])
+    res = asyncio.run(go())
+    assert res["report"] == VALID and res["reminders"] == 0 and len(session.sent) == 1
+    assert len(session.turns) == 0 and res["tool_calls"] == 2   # turn drained; the first report is kept

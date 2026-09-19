@@ -468,8 +468,11 @@ reasoning from semantic priors rather than from the sensor evidence it has.
   asynchronous calls with plain acknowledgements, where the standard model uses BLOCKING calls
   with SILENT acknowledgements. Each run's meta records this (`function_calling`).
 - **Waiting for the report.** With asynchronous reasoning, `turn_complete` does not mean the model
-  is idle. The harness keeps listening while `interaction_status` is IN_PROGRESS instead of
-  sending a reminder.
+  is idle. The first smoke test showed the model reasoning about 40 s on event 0 and delivering
+  that report during event 1. For async models the harness now keeps listening, with no reminder,
+  while `interaction_status` is IN_PROGRESS or for up to 90 s. It drains each turn to
+  `turn_complete` and sends the next event only after the current event's report. If several
+  reports arrive in one event, the first valid one is kept and all are logged.
 - **Thinking level: HIGH.** The API requires one for this model (error 1007 without it). HIGH is
   used because it gives the largest contrast for Q7: if the most thinking does not change the
   answer, that is the most informative null. The level is recorded in every run's meta.
