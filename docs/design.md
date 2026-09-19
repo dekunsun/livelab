@@ -470,7 +470,9 @@ reasoning from semantic priors rather than from the sensor evidence it has.
 - **Waiting for the report.** With asynchronous reasoning, `turn_complete` does not mean the model
   is idle. The harness keeps listening while `interaction_status` is IN_PROGRESS instead of
   sending a reminder.
-- **Thinking level** is left at the API default.
+- **Thinking level: HIGH.** The API requires one for this model (error 1007 without it). HIGH is
+  used because it gives the largest contrast for Q7: if the most thinking does not change the
+  answer, that is the most informative null. The level is recorded in every run's meta.
 
 ## 7.5 Core matrix (free tier, pre-registered)
 

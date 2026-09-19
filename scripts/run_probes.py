@@ -64,7 +64,8 @@ async def main(connect=None, out_root=None, argv=None):
             continue
         for attempt in range(3):
             try:
-                res = await asyncio.wait_for(run_single_turn(connect, instruction, tools, required, text, model_id=model), 300)
+                res = await asyncio.wait_for(run_single_turn(connect, instruction, tools, required, text, model_id=model,
+                                                             thinking_level="HIGH" if "extended" in model else None), 600)
                 break
             except Exception as exc:  # noqa: BLE001 - free-tier transient errors; retry the whole item
                 print(f"{v} {item_id} attempt {attempt + 1} failed: {type(exc).__name__}: {str(exc)[:120]}")
@@ -74,7 +75,8 @@ async def main(connect=None, out_root=None, argv=None):
             failures += 1
             continue
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps({"probe_version": PROBE_VERSION, "model": model, "variant": v,
+        out.write_text(json.dumps({"probe_version": PROBE_VERSION, "model": model,
+                                   "thinking_level": "HIGH" if "extended" in model else None, "variant": v,
                                    "item_id": item_id, **res}, indent=1))
         names = [c["name"] for c in res["calls"]]
         print(f"{v} {item_id}: {names} reminders={res['reminders']}")

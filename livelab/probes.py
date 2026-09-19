@@ -96,12 +96,15 @@ def p1_setup(item):
     return P1_INSTRUCTION, [tool], [tool["name"]]
 
 
-async def run_single_turn(connect, instruction, tools, required, text, seed=0, max_reminders=2, model_id="gemini-3.8-live"):
+async def run_single_turn(connect, instruction, tools, required, text, seed=0, max_reminders=2, model_id="gemini-3.8-live",
+                          thinking_level=None):
     """One Live session, one user turn; returns every function call made, what was said, and usage."""
     from google.genai import types
     config = types.LiveConnectConfig(response_modalities=["AUDIO"], system_instruction=instruction,
                                      tools=[{"function_declarations": tools_for(model_id, tools)}],
-                                     output_audio_transcription={}, seed=seed)
+                                     output_audio_transcription={}, seed=seed,
+                                     **({"thinking_config": types.ThinkingConfig(thinking_level=thinking_level)}
+                                        if thinking_level else {}))
     calls, spoken, usage, reminders, busy = [], "", None, 0, False
     cm = connect(config)
     session = await cm.__aenter__()

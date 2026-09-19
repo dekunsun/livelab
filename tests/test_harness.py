@@ -131,3 +131,17 @@ def test_turn_complete_while_still_reasoning_is_not_a_missing_report():
         return await backend.observe("{}", [])
     res = asyncio.run(go())
     assert res["report"] == VALID and res["reminders"] == 0 and len(session.sent) == 1
+
+
+def test_extended_thinking_sends_a_thinking_level():
+    session = FakeSession([[msg(tool=VALID), msg(done=True)]])
+    connect = FakeConnect(session)
+    backend = GeminiLiveBackend("gemini-3.8-live-extended-thinking", connect=connect)
+
+    async def go():
+        await backend.start(seed=0)
+        return await backend.observe("{}", [])
+    asyncio.run(go())
+    assert str(connect.configs[0].thinking_config.thinking_level).endswith("HIGH")
+    standard = GeminiLiveBackend(connect=FakeConnect(FakeSession([])))
+    assert standard.thinking_level is None

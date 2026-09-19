@@ -40,6 +40,7 @@ async def run_replay(backend, replay_id, arm, seed, out_dir, image_override=None
     out.parent.mkdir(parents=True, exist_ok=True)
     meta = {"model": backend.model_id, "prompt_version": PROMPT_VERSION, "arm": arm, "seed": seed, "replay_id": replay_id,
             "function_calling": "non_blocking" if async_only(backend.model_id) else "blocking+silent",
+            "thinking_level": getattr(backend, "thinking_level", None),
             "replay_sha256": index["sha256"], "harness_commit": git_commit(),
             "image_override": image_override, "started": dt.datetime.now(dt.timezone.utc).isoformat()}
     reports = []

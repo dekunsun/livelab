@@ -11,7 +11,7 @@ from .prompting import REPORT_ASSESSMENT, SYSTEM_INSTRUCTION, async_only, tools_
 
 ROOT = Path(__file__).resolve().parent.parent
 MAX_REMINDERS = 2
-EVENT_TIMEOUT_S = 120   # a silently stalled connection raises instead of hanging
+EVENT_TIMEOUT_S = 300   # a silently stalled connection raises instead of hanging (HIGH thinking can be slow)
 
 
 def load_dotenv(path=ROOT / ".env"):
@@ -44,9 +44,11 @@ class MockBackend:
 class GeminiLiveBackend:
     """One Live session per replay; a report_assessment is required after every event."""
 
-    def __init__(self, model_id="gemini-3.8-live", temperature=None, connect=None):
+    def __init__(self, model_id="gemini-3.8-live", temperature=None, connect=None, thinking_level=None):
         self.model_id = model_id
         self.temperature = temperature
+        # Extended Thinking requires a thinking level (API error 1007 otherwise); the standard model takes none.
+        self.thinking_level = thinking_level or ("HIGH" if async_only(model_id) else None)
         self._connect = connect          # injectable for tests; defaults to the real SDK
         self._session = self._cm = None
         self._handle = None
@@ -63,6 +65,7 @@ class GeminiLiveBackend:
             session_resumption=types.SessionResumptionConfig(handle=self._handle),
             seed=self.seed,
             temperature=self.temperature,
+            **({"thinking_config": types.ThinkingConfig(thinking_level=self.thinking_level)} if self.thinking_level else {}),
         )
 
     async def _open(self):
