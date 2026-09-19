@@ -83,7 +83,8 @@ async def main():
             if args.max_events is None and seed == args.seeds[0]:
                 all_reports[rid] = reports      # scores use the first seed; repeats are for variance
     if all_reports:
-        card = score_runs(all_reports, index, lambda r: load_jsonl(ROOT / f"data/truth/{r}.jsonl"))
+        card = score_runs(all_reports, index, lambda r: load_jsonl(ROOT / f"data/truth/{r}.jsonl"),
+                          sees_images=ARMS[args.arm]["images"])
         for name, v in card.items():
             shown = f"{v[0]:.2f}  [{v[1]:.2f}, {v[2]:.2f}]" if isinstance(v, tuple) and len(v) == 3 else v
             print(f"  {name:24} {shown}")

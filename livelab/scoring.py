@@ -31,6 +31,21 @@ def _pairs(truth, reports):
             yield "specific_cause", t["acceptable_specific_cause"][0], r["specific_cause"]
 
 
+def blind_to_images(truth):
+    """Truth for an observer that never sees the characterization image (arms A, C-context).
+
+    Without the image the outcome itself is unknowable, so the supported scientific evidence is
+    NOT_YET_AVAILABLE, except that anomalous execution already makes any result INCONCLUSIVE.
+    """
+    out, anomalous = [], False
+    for t in truth:
+        anomalous |= t["execution_state"] == "ANOMALOUS"
+        if t["scientific_evidence"] != "NOT_YET_AVAILABLE":
+            t = dict(t, scientific_evidence="INCONCLUSIVE" if anomalous else "NOT_YET_AVAILABLE")
+        out.append(t)
+    return out
+
+
 def score_replay(truth, reports):
     assert len(truth) == len(reports), "one report per event is mandatory"
     anomalous = [t["event"] for t in truth if t["execution_state"] == "ANOMALOUS"]
@@ -145,11 +160,11 @@ def summarize(counts):
     }
 
 
-def score_runs(reports_by_replay: dict, index: dict, load_truth) -> dict:
+def score_runs(reports_by_replay: dict, index: dict, load_truth, sees_images: bool = True) -> dict:
     """Score a set of runs, including sensor-removal pairs when base and removal replays are both present."""
     counts, by_ep = [], {}
     for rid, reports in reports_by_replay.items():
-        truth = load_truth(rid)
+        truth = load_truth(rid) if sees_images else blind_to_images(load_truth(rid))
         counts.append(score_replay(truth, reports))
         by_ep.setdefault(index[rid]["episode_id"], {})[index[rid]["condition"]] = (truth, reports)
     for conds in by_ep.values():
