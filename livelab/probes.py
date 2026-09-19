@@ -129,6 +129,8 @@ async def run_single_turn(connect, instruction, tools, required, text, seed=0, m
                             id=fc.id, name=fc.name, response={"result": "recorded"},
                             **({} if async_only(model_id) else {"scheduling": "SILENT"})))
                     await session.send_tool_response(function_responses=responses)
+                    if not [r for r in required if r not in {c["name"] for c in calls}]:
+                        break       # all required calls are in; the session ends, so nothing can leak
                 if sc is not None and getattr(sc, "turn_complete", False):
                     break
             missing = [r for r in required if r not in {c["name"] for c in calls}]

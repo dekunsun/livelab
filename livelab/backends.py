@@ -12,6 +12,7 @@ from .prompting import REPORT_ASSESSMENT, SYSTEM_INSTRUCTION, async_only, tools_
 ROOT = Path(__file__).resolve().parent.parent
 MAX_REMINDERS = 2
 ASYNC_PATIENCE_S = 90   # async (Extended Thinking) reports can arrive long after turn_complete
+DRAIN_S = 30            # after a report, how long to wait for turn_complete before moving on
 EVENT_TIMEOUT_S = 300   # a silently stalled connection raises instead of hanging (HIGH thinking can be slow)
 
 
@@ -104,7 +105,16 @@ class GeminiLiveBackend:
         started = asyncio.get_running_loop().time()
         asynchronous = async_only(self.model_id)
         while True:
-            async for msg in self._session.receive():
+            stream = self._session.receive().__aiter__()
+            while True:
+                try:
+                    wait = DRAIN_S if result["report"] is not None else None
+                    msg = await asyncio.wait_for(stream.__anext__(), wait)
+                except StopAsyncIteration:
+                    break
+                except asyncio.TimeoutError:
+                    result["problems"].append(f"no turn_complete within {DRAIN_S}s after the report")
+                    break
                 if getattr(msg, "session_resumption_update", None) and msg.session_resumption_update.new_handle:
                     self._handle = msg.session_resumption_update.new_handle
                 if getattr(msg, "go_away", None) is not None:
@@ -132,8 +142,8 @@ class GeminiLiveBackend:
                             **({} if async_only(self.model_id) else {"scheduling": "SILENT"}),
                             response={"result": "recorded" if not problems else "rejected: " + "; ".join(problems)}))
                     await self._session.send_tool_response(function_responses=responses)
-                # The turn is drained to turn_complete even after a report, so a second call made in
-                # this turn cannot leak into the next event. The first valid report is the one kept.
+                # After a report the turn is drained to turn_complete (for at most DRAIN_S), so a second
+                # call made in this turn does not leak into the next event. The first valid report is kept.
                 if sc is not None and getattr(sc, "turn_complete", False):
                     break
             if result["report"] is not None or result["reminders"] >= MAX_REMINDERS:

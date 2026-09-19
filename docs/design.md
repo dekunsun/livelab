@@ -472,7 +472,9 @@ reasoning from semantic priors rather than from the sensor evidence it has.
   that report during event 1. For async models the harness now keeps listening, with no reminder,
   while `interaction_status` is IN_PROGRESS or for up to 90 s. It drains each turn to
   `turn_complete` and sends the next event only after the current event's report. If several
-  reports arrive in one event, the first valid one is kept and all are logged.
+  reports arrive in one event, the first valid one is kept and all are logged. After a report the
+  harness waits at most 30 s for `turn_complete`: in the probe run the async model sometimes never
+  sent one, and the old code waited until its 600 s timeout.
 - **Thinking level: HIGH.** The API requires one for this model (error 1007 without it). HIGH is
   used because it gives the largest contrast for Q7: if the most thinking does not change the
   answer, that is the most informative null. The level is recorded in every run's meta.

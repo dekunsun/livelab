@@ -161,3 +161,21 @@ def test_async_model_is_given_time_before_any_reminder():
     res = asyncio.run(go())
     assert res["report"] == VALID and res["reminders"] == 0 and len(session.sent) == 1
     assert len(session.turns) == 0 and res["tool_calls"] == 2   # turn drained; the first report is kept
+
+
+def test_report_without_turn_complete_does_not_hang(monkeypatch):
+    import livelab.backends as be
+    monkeypatch.setattr(be, "DRAIN_S", 0.05)
+
+    class Hanging(FakeSession):
+        async def receive(self):
+            yield msg(tool=VALID)
+            await asyncio.sleep(3600)          # the model never sends turn_complete
+    session = Hanging([])
+    backend = GeminiLiveBackend("gemini-3.8-live-extended-thinking", connect=FakeConnect(session))
+
+    async def go():
+        await backend.start(seed=0)
+        return await asyncio.wait_for(backend.observe("{}", []), 5)
+    res = asyncio.run(go())
+    assert res["report"] == VALID and any("turn_complete" in p for p in res["problems"])

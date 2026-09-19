@@ -116,3 +116,12 @@ def test_runner_end_to_end_with_a_fake_model(tmp_path):
     asyncio.run(rp.main(connect=Echo(), out_root=tmp_path, argv=["--limit", "2"]))
     files = sorted(p.relative_to(tmp_path).as_posix() for p in tmp_path.glob("*/*.json"))
     assert len(files) == 10 and {f.split("/")[0] for f in files} == {"P1", "B0", "B1", "B2", "B3"}
+
+
+def test_single_turn_ends_once_required_calls_are_in():
+    class Hanging(FakeSession):
+        async def receive(self):
+            yield msg([("answer_detectability", {"detectable": "yes"})])
+            await asyncio.sleep(3600)          # no turn_complete
+    res = asyncio.run(asyncio.wait_for(run_single_turn(connect_to(Hanging([])), "x", [], ["answer_detectability"], "q"), 5))
+    assert [c["name"] for c in res["calls"]] == ["answer_detectability"]
