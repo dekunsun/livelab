@@ -39,6 +39,23 @@ in DeepMind's Gemini paper) and reported its judgment every two simulated minute
 installed and what each stage needs, or asked as its own question. It cannot be left to the
 model's verdict.
 
+### Which half of the thesis this tests
+
+The project began from two claims, and it has so far tested only the second.
+
+| | Status |
+| --- | --- |
+| **Physical observability exceeds software observability**, so a lab agent needs eyes as well as telemetry | **Not tested here.** Every replay delivers exactly one image, after the run ends, and all five fault types leave a telemetry signature. Nothing in this benchmark is visible only to a camera, so it cannot show what a camera would add |
+| **An agent cannot tell "I can't see it" from "nothing is wrong"** | **Tested, and this is the result above.** It holds across two families, seven framings and 97 items |
+
+The second is the first one's precondition: an agent that does not know it is blind will not be
+fixed by giving it eyes — it will report `NORMAL` with the same confidence, now about pixels too.
+But the first claim is the one the words "multimodal" and "live" promise, so it is stated here as
+open rather than implied as done. What it needs is not code: it needs **faults that only a camera
+can see, and real in-run imagery of them**, and the project's hard rule is that physical imagery
+must be real, never generated. That is the blocker, and
+[docs/design.md](docs/design.md) carries the design that would answer it.
+
 ![Detection, false alert and unsupported certainty per arm](docs/figures/arms.png)
 ![Answers at events where only UNKNOWN is supported](docs/figures/unknown.png)
 ![Pre-registered probe](docs/figures/probe.png)
@@ -102,6 +119,12 @@ reference curves) and **C-full** (+ micrographs).
   target as a *monolayer*, and the micrographs include several TMDs. These judgments are therefore
   not claimed as results.
 - **"Scenario-unseen", not open-set.** Pretraining may include these failures.
+- **Nothing here needs a streaming API.** Evidence arrives every 120 simulated seconds and each
+  event is answered with one function call, which is a request/response protocol. A Live session
+  was used because the study is about a live-lab model, and it was paid for: the Live API bills the
+  whole accumulated context every turn, so a replay costs about 0.4M cumulative prompt tokens
+  against a 16k final context, and it has no prompt caching. Streaming would earn its cost only for
+  events shorter than the sampling interval — see the open question above.
 
 ## How the wording was frozen
 
