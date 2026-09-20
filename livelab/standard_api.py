@@ -1,0 +1,168 @@
+"""Ask a request/response model one probe item, over plain HTTP.
+
+The cross-model study (docs/crossmodel_preregistration.md) requires that every model receive the
+same item text, the same instruction and the same answer schema, and that the exact request sent to
+each one be committable so the parity claim can be checked rather than trusted. So the request body
+is built here as a dict and posted as JSON: no provider SDK sits between the registration and the
+bytes.
+
+Only what the study needs: one system instruction, one user turn, tool/function schemas with a
+fixed enum, and up to a few turns so a variant that wants two calls can make them.
+"""
+import asyncio
+import json
+import os
+import urllib.error
+import urllib.request
+
+ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
+ANTHROPIC_VERSION = "2023-06-01"
+OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+MAX_TOKENS = 1024
+TIMEOUT_S = 120
+
+
+class ApiError(RuntimeError):
+    """A provider error, carrying the HTTP status so the runner can tell retryable from not."""
+
+    def __init__(self, status, body):
+        super().__init__(f"HTTP {status}: {str(body)[:200]}")
+        self.status = status
+        self.body = body
+
+
+def schema_of(tool):
+    """The tool's JSON Schema, exactly as the Gemini declaration carries it.
+
+    `behavior` is Live-only scheduling and is dropped; every field name, type and enum value is
+    passed through untouched, because that is what parity means here.
+    """
+    return json.loads(json.dumps(tool["parameters"]))
+
+
+def build_request(provider, model, instruction, tools, messages, force_tool=None, **extra):
+    """The literal request body. Pure, so a test and a committed artifact can both check it."""
+    if provider == "anthropic":
+        body = {
+            "model": model,
+            "max_tokens": MAX_TOKENS,
+            "system": instruction,
+            "messages": messages,
+            "tools": [{"name": t["name"], "description": t["description"],
+                       "input_schema": schema_of(t)} for t in tools],
+        }
+        body["tool_choice"] = ({"type": "tool", "name": force_tool} if force_tool
+                               else {"type": "any"})
+    elif provider == "openai":
+        body = {
+            "model": model,
+            "messages": [{"role": "system", "content": instruction}] + messages,
+            "tools": [{"type": "function",
+                       "function": {"name": t["name"], "description": t["description"],
+                                    "parameters": schema_of(t)}} for t in tools],
+        }
+        body["tool_choice"] = ({"type": "function", "function": {"name": force_tool}} if force_tool
+                               else "required")
+    else:
+        raise ValueError(provider)
+    body.update(extra)
+    return body
+
+
+def _headers(provider, key):
+    if provider == "anthropic":
+        return {"x-api-key": key, "anthropic-version": ANTHROPIC_VERSION,
+                "content-type": "application/json"}
+    return {"authorization": f"Bearer {key}", "content-type": "application/json"}
+
+
+def _post(url, headers, body):
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=headers,
+                                 method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
+            return json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        raise ApiError(e.code, e.read().decode(errors="replace")) from None
+    except urllib.error.URLError as e:
+        raise ApiError(0, str(e.reason)) from None
+
+
+def parse(provider, response):
+    """(calls, spoken text, usage) from one response. Malformed arguments are kept as raw text."""
+    calls, spoken = [], ""
+    if provider == "anthropic":
+        for block in response.get("content") or []:
+            if block.get("type") == "text":
+                spoken += block["text"]
+            elif block.get("type") == "tool_use":
+                calls.append({"id": block.get("id"), "name": block["name"],
+                              "args": block.get("input") or {}})
+        u = response.get("usage") or {}
+        usage = {"prompt_token_count": u.get("input_tokens"),
+                 "response_token_count": u.get("output_tokens")}
+    else:
+        msg = ((response.get("choices") or [{}])[0].get("message")) or {}
+        spoken = msg.get("content") or ""
+        for c in msg.get("tool_calls") or []:
+            fn = c.get("function") or {}
+            raw = fn.get("arguments") or "{}"
+            try:
+                args = json.loads(raw)
+            except json.JSONDecodeError:
+                args = {"__unparsed__": raw}
+            calls.append({"id": c.get("id"), "name": fn.get("name"), "args": args})
+        u = response.get("usage") or {}
+        usage = {"prompt_token_count": u.get("prompt_tokens"),
+                 "response_token_count": u.get("completion_tokens")}
+    return calls, spoken, {k: v for k, v in usage.items() if v is not None}
+
+
+def _acknowledge(provider, calls):
+    """The turn that hands each call a neutral result, so a second call can follow."""
+    if provider == "anthropic":
+        return [{"role": "user",
+                 "content": [{"type": "tool_result", "tool_use_id": c["id"], "content": "recorded"}
+                             for c in calls]}]
+    return [{"role": "tool", "tool_call_id": c["id"], "content": "recorded"} for c in calls]
+
+
+def _assistant_turn(provider, response):
+    if provider == "anthropic":
+        return {"role": "assistant", "content": response.get("content") or []}
+    return (response.get("choices") or [{}])[0].get("message") or {}
+
+
+class StandardAsker:
+    """One provider, one model, one item per call. The Live backends' counterpart."""
+
+    def __init__(self, provider, model, key=None, post=_post, max_turns=3):
+        self.provider, self.model, self.max_turns = provider, model, max_turns
+        self.key = key or os.environ.get(
+            "ANTHROPIC_API_KEY" if provider == "anthropic" else "OPENAI_API_KEY", "")
+        self._post = post
+        self.last_request = None          # committed verbatim as the parity evidence
+
+    async def __call__(self, instruction, tools, required, text):
+        calls, spoken, usage, messages = [], "", {}, [{"role": "user", "content": text}]
+        for _ in range(self.max_turns):
+            missing = [r for r in required if r not in {c["name"] for c in calls}]
+            if not missing:
+                break
+            body = build_request(self.provider, self.model, instruction, tools, messages,
+                                 force_tool=missing[0] if len(required) > 1 else None)
+            self.last_request = body
+            url = ANTHROPIC_URL if self.provider == "anthropic" else OPENAI_URL
+            response = await asyncio.to_thread(self._post, url,
+                                               _headers(self.provider, self.key), body)
+            new, said, u = parse(self.provider, response)
+            calls += new
+            spoken += said
+            for k, v in u.items():
+                usage[k] = usage.get(k, 0) + v
+            if not new:                    # nothing to acknowledge, and nothing would change
+                break
+            messages = messages + [_assistant_turn(self.provider, response)] + \
+                _acknowledge(self.provider, new)
+        return {"calls": [{"name": c["name"], "args": c["args"]} for c in calls],
+                "spoken": spoken, "usage": usage, "reminders": 0}

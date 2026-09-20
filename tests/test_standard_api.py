@@ -1,0 +1,108 @@
+"""The cross-model backend: the same question reaches every provider, byte for byte."""
+import asyncio
+import json
+
+import pytest
+
+from livelab.probes import SINGLE_TURN, prefix_message, variant_setup
+from livelab.prompting import SYSTEM_INSTRUCTION
+from livelab.standard_api import ApiError, StandardAsker, build_request, parse
+
+ITEMS = json.load(open("data/probes/items.json"))
+
+
+def a_reply(calls=(), text=""):
+    content = [{"type": "text", "text": text}] if text else []
+    content += [{"type": "tool_use", "id": f"tu{i}", "name": n, "input": a}
+                for i, (n, a) in enumerate(calls)]
+    return {"content": content, "usage": {"input_tokens": 100, "output_tokens": 7}}
+
+
+def o_reply(calls=(), text=""):
+    tc = [{"id": f"c{i}", "type": "function",
+           "function": {"name": n, "arguments": json.dumps(a)}} for i, (n, a) in enumerate(calls)]
+    msg = {"role": "assistant", "content": text or None}
+    if tc:
+        msg["tool_calls"] = tc
+    return {"choices": [{"message": msg}], "usage": {"prompt_tokens": 100, "completion_tokens": 7}}
+
+
+def test_the_answer_schema_survives_translation_to_both_providers():
+    """Parity is field names and enum values, so assert them rather than trusting the mapping."""
+    _, tools, _ = variant_setup("B0")
+    want = tools[0]["parameters"]
+    ant = build_request("anthropic", "m", "sys", tools, [])["tools"][0]
+    opn = build_request("openai", "m", "sys", tools, [])["tools"][0]["function"]
+    assert ant["input_schema"] == want and opn["parameters"] == want
+    for schema in (ant["input_schema"], opn["parameters"]):
+        assert schema["properties"]["execution_state"]["enum"] == ["NORMAL", "ANOMALOUS", "UNKNOWN"]
+    assert "behavior" not in json.dumps(ant) and "behavior" not in json.dumps(opn)
+
+
+def test_both_providers_get_the_same_instruction_and_item_text():
+    item = ITEMS["in_context"][0]
+    instruction, tools, _ = variant_setup("B0")
+    text = prefix_message(item["replay_id"], item["k"])
+    ant = build_request("anthropic", "m", instruction, tools, [{"role": "user", "content": text}])
+    opn = build_request("openai", "m", instruction, tools, [{"role": "user", "content": text}])
+    assert ant["system"] == instruction == SYSTEM_INSTRUCTION + SINGLE_TURN
+    assert opn["messages"][0] == {"role": "system", "content": instruction}
+    assert ant["messages"][-1]["content"] == text == opn["messages"][-1]["content"]
+
+
+def test_a_single_call_item_is_read_the_same_from_either_provider():
+    args = {"execution_state": "UNKNOWN", "scientific_evidence": "NOT_YET_AVAILABLE"}
+    for provider, reply in (("anthropic", a_reply), ("openai", o_reply)):
+        calls, spoken, usage = parse(provider, reply([("report_assessment", args)], "thinking"))
+        assert [(c["name"], c["args"]) for c in calls] == [("report_assessment", args)]
+        assert spoken == "thinking" and usage["prompt_token_count"] == 100
+
+
+def test_two_calls_take_two_turns_and_the_first_is_acknowledged():
+    _, tools, required = variant_setup("B1")
+    seen = []
+
+    def post(url, headers, body):
+        seen.append(body)
+        if len(seen) == 1:
+            return a_reply([("report_verifiability", {"atmosphere": "cannot_verify",
+                                                      "temperature": "verified",
+                                                      "gas_flow": "verified"})])
+        return a_reply([("report_assessment", {"execution_state": "NORMAL"})])
+
+    res = asyncio.run(StandardAsker("anthropic", "m", key="k", post=post)("sys", tools, required, "events"))
+    assert [c["name"] for c in res["calls"]] == ["report_verifiability", "report_assessment"]
+    assert len(seen) == 2
+    # the second request carries the model's own turn and a neutral result for its call
+    roles = [m["role"] for m in seen[1]["messages"]]
+    assert roles == ["user", "assistant", "user"]
+    assert seen[1]["messages"][-1]["content"][0]["type"] == "tool_result"
+    assert seen[1]["tool_choice"] == {"type": "tool", "name": "report_assessment"}
+    assert res["usage"]["prompt_token_count"] == 200        # summed across both turns
+
+
+def test_silence_is_returned_as_silence_and_never_invented():
+    _, tools, required = variant_setup("B0")
+    res = asyncio.run(StandardAsker("openai", "m", key="k",
+                                    post=lambda *a: o_reply(text="I cannot do that"))(
+        "sys", tools, required, "events"))
+    assert res["calls"] == [] and res["spoken"] == "I cannot do that"
+
+
+def test_a_provider_error_carries_its_status_so_the_runner_can_tell_them_apart():
+    _, tools, required = variant_setup("B0")
+
+    def post(*a):
+        raise ApiError(429, "rate limited")
+    with pytest.raises(ApiError) as e:
+        asyncio.run(StandardAsker("anthropic", "m", key="k", post=post)("s", tools, required, "t"))
+    assert e.value.status == 429
+
+
+def test_the_request_actually_sent_is_kept_for_the_record():
+    _, tools, required = variant_setup("B0")
+    asker = StandardAsker("openai", "gpt-x", key="k",
+                          post=lambda *a: o_reply([("report_assessment", {"execution_state": "NORMAL"})]))
+    asyncio.run(asker("sys", tools, required, "events"))
+    assert asker.last_request["model"] == "gpt-x"
+    assert asker.last_request["messages"][-1]["content"] == "events"

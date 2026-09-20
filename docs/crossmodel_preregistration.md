@@ -144,10 +144,22 @@ Carried forward from the probe study's deviation 7, and binding here from the st
 
 ## Budget
 
-114 calls per model, about 2.7k input tokens each and a few hundred output — roughly **0.35M input
-tokens per model**, so low single-digit dollars each at current frontier pricing. **A hard cap of
-US$20 for the whole study**; if it is reached, the run stops and the partial result is reported
-with its coverage. Prices are read at run time and recorded with the results, not estimated here.
+114 calls per model: B0 and B2 are one request each, B1 is two, so about **0.43M input tokens and
+0.06M output** per model at the measured probe size (2.7k in, a few hundred out).
+
+List prices read from the vendors' own pages on 2026-09-20, per million tokens:
+
+| Model | Input | Output | Estimated for this study |
+| --- | --- | --- | --- |
+| `claude-opus-5` | $5 | $25 | **$3.7** |
+| `claude-sonnet-5` | $2 | $10 | $1.5 |
+| `gpt-6-astra` | $10 | $50 | **$7.3** |
+| `gpt-5.6-sol` | $4 | $20 | $2.9 |
+
+The frontier pair is about **$11**. **A hard cap of US$20 for the whole study**; if it is reached,
+the run stops and the partial result is reported with its coverage. The actual spend is recorded
+with the results — these are estimates, and output length is the part that can surprise, since a
+model that reasons at length bills those tokens as output.
 
 ## What this cannot show
 
