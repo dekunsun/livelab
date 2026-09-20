@@ -273,6 +273,30 @@ ran.
 
    **Caveat on this test's own design: A differed from B in both the item and the variant** (B0 vs
    B2), which is the same confound this deviation was written about. B vs C is clean and settles
-   size. Whether the failure follows the item or the variant is being measured separately, by
-   crossing two items with three variants in one sitting
-   (`scripts/test_variant_vs_item.py`).
+   size.
+
+   **The follow-up was inconclusive, and its own design is why**
+   (`results/diagnostics/variant_vs_item.json`). Two items crossed with three variants, 09:21-10:06:
+   all six emitted no call, including the request that had answered in 14 s at 09:08. It therefore
+   cannot say whether the failure follows the item or the variant. It was started four minutes
+   after the size test, and on the timeline below that is inside the penalty window the size test
+   itself opened. **Two experiments back to back, and the second one measured the first one's
+   wake.**
+
+   What the timeline now looks like, and it is a description, not a mechanism: a long idle is
+   followed by one request that answers, and then everything is silent again; every further
+   request appears to push recovery further out. The overnight cooldown loop, which poked the API
+   every 20 minutes for six hours, is exactly the worst strategy under that description, and it
+   collected nothing.
+
+   The control model answered 5 of those 6 cells in 1.8-5.0 s. On the sixth it failed immediately,
+   at 0.0 s, by **raising** - which is the point: the standard path reports its failures, and the
+   Extended Thinking path spends four minutes and says nothing.
+
+   **The test that would settle it, registered now:** no requests at all to this model for several
+   hours, then exactly one; then a second immediately. One answering and the second going silent
+   would confirm the description. It costs two requests and a lot of wall clock.
+
+   **What does not depend on any of this:** the free tier cannot deliver B1 and B2. One item per
+   multi-hour window is not a data collection rate, so the Extended Thinking arm is either bought
+   (about $0.22 of paid-tier tokens for the 28 items) or closed at B0.
