@@ -66,7 +66,10 @@ async def main(connect=None, out_root=None, argv=None, control_connect=None):
     ap.add_argument("--sets", nargs="*", choices=["U", "N", "A"], help="in-context item sets to run (default: all)")
     ap.add_argument("--cooldown", type=int, default=1200,
                     help="seconds to idle when the API's call path breaks, before trying the item again")
-    ap.add_argument("--max-cooldowns", type=int, default=6, help="give up on the run after this many cooldowns")
+    ap.add_argument("--max-cooldowns", type=int, default=0,
+                    help="cooldown cycles before giving up. Default 0: stop at once. Measured on 2026-09-20, "
+                         "every request while the path is broken appears to push recovery further out, so "
+                         "polling it collected nothing in six hours")
     args = ap.parse_args(argv)
     model = MODELS[args.backend]
     thinking = "HIGH" if "extended" in model else None

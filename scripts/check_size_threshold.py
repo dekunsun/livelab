@@ -11,7 +11,7 @@ control model. Only whether a function call comes back is recorded, never what i
   C works and B fails        -> size-driven, which is what a token-metered quota looks like
   A, B and C all fail        -> the whole path is down for this model right now
 
-  ./.venv/bin/python scripts/test_size_threshold.py
+  ./.venv/bin/python scripts/check_size_threshold.py
 """
 import asyncio
 import json
@@ -58,4 +58,5 @@ async def main():
     print(f"\nsaved {path}")
 
 
-asyncio.run(main())
+if __name__ == "__main__":      # never at import: pytest once collected this and called the API
+    asyncio.run(main())

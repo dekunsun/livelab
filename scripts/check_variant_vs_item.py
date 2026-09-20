@@ -4,7 +4,7 @@ The registered size test (deviation 7) compared a working request with a failing
 differed in BOTH the item and the variant, so it settled only that size is not the cause. This
 crosses two items with three variants at one sitting; the control model runs every request too.
 
-  ./.venv/bin/python scripts/test_variant_vs_item.py
+  ./.venv/bin/python scripts/check_variant_vs_item.py
 """
 import asyncio
 import json
@@ -48,4 +48,5 @@ async def main():
     print(f"\nsaved {path}")
 
 
-asyncio.run(main())
+if __name__ == "__main__":      # never at import: pytest once collected this and called the API
+    asyncio.run(main())

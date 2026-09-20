@@ -173,7 +173,8 @@ def test_silence_while_the_control_model_answers_waits_then_resumes(tmp_path):
     rp.PATIENCE_S = 0
     under_test = BrokenThenFixed()
     asyncio.run(rp.main(connect=under_test, control_connect=answers, out_root=tmp_path,
-                        argv=["--backend", "gemini-extended", "--only", "P1", "--limit", "1", "--cooldown", "0"]))
+                        argv=["--backend", "gemini-extended", "--only", "P1", "--limit", "1",
+                              "--cooldown", "0", "--max-cooldowns", "1"]))     # waiting is opt-in now
     [f] = list(tmp_path.glob("P1/*.json"))
     d = json.loads(f.read_text())
     assert not d.get("unanswered") and d["calls"]         # it waited and got a real answer
