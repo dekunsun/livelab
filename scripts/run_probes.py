@@ -9,6 +9,7 @@ import argparse
 import asyncio
 import json
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -21,6 +22,16 @@ MODELS = {"gemini": "gemini-3.8-live", "gemini-extended": "gemini-3.8-live-exten
 VARIANTS = ["P1", "B0", "B1", "B2", "B3"]
 RETRY_WAIT_S = 30
 PATIENCE_S = 240        # how long an async model may reason before a reminder interrupts it
+
+
+async def path_is_broken(model, thinking, connect, control_connect, request):
+    """Did the API fail, or did the model decline? Only a control on the same request can say.
+
+    The free-tier Extended Thinking model's call path degrades with use and recovers when idle, and
+    the server reports the failure to the model, not to the client (deviation 7)."""
+    if model != CONTROL_MODEL:
+        return await calls_come_back(control_connect, *request, patience=PATIENCE_S)
+    return not await call_path_healthy(connect, model, thinking)     # no second model to compare with
 
 
 def real_connect(model):
@@ -53,6 +64,9 @@ async def main(connect=None, out_root=None, argv=None, control_connect=None):
     ap.add_argument("--limit", type=int, help="at most this many items per variant (smoke test)")
     ap.add_argument("--backend", default="gemini", choices=sorted(MODELS))
     ap.add_argument("--sets", nargs="*", choices=["U", "N", "A"], help="in-context item sets to run (default: all)")
+    ap.add_argument("--cooldown", type=int, default=1200,
+                    help="seconds to idle when the API's call path breaks, before trying the item again")
+    ap.add_argument("--max-cooldowns", type=int, default=6, help="give up on the run after this many cooldowns")
     args = ap.parse_args(argv)
     model = MODELS[args.backend]
     thinking = "HIGH" if "extended" in model else None
@@ -69,41 +83,38 @@ async def main(connect=None, out_root=None, argv=None, control_connect=None):
         out = Path(out_root) / v / f"{item_id}.json"
         if out.exists():
             continue
-        res, unanswered = None, []
-        for attempt in range(3):
-            try:
-                got = await asyncio.wait_for(run_single_turn(connect, instruction, tools, required, text, model_id=model,
-                                                             thinking_level=thinking, patience=PATIENCE_S), 600)
-            except Exception as exc:  # noqa: BLE001 - free-tier transient errors; retry the whole item
-                print(f"{v} {item_id} attempt {attempt + 1} failed: {type(exc).__name__}: {str(exc)[:120]}")
-                await asyncio.sleep(RETRY_WAIT_S * (attempt + 1))
-                continue
-            if [r for r in required if r not in {c["name"] for c in got["calls"]}]:
-                unanswered.append(got)                  # the model answered nothing this time
-                print(f"{v} {item_id} attempt {attempt + 1}: required call missing after reminders")
-                continue
-            res = got
-            break
-        if res is None and len(unanswered) == 3:
-            # Three silent attempts mean either the model declined or the API's function-call path is
-            # broken for this request, and from here those look identical (pre-registration,
-            # deviation 7). Replay the same request against the control model before recording
-            # anything about the model under test.
-            if model != CONTROL_MODEL:
-                path_broken = await calls_come_back(control_connect, instruction, tools, required, text,
-                                                      patience=PATIENCE_S)
-                why = f"but {CONTROL_MODEL} answered the same request"
-            else:                          # no second model to compare with: catch a total outage
-                path_broken = not await call_path_healthy(connect, model, thinking)
-                why = "and the canary could not make a call either"
-            if path_broken:
-                sys.exit(f"{v} {item_id}: no function call in 3 attempts, {why}.\n"
-                         "The function-call path is broken, so silence here says nothing about the model's\n"
-                         "judgment. Nothing was saved for this item; rerun when the API is healthy.")
-            # Neither model could answer this request: recorded, and excluded from every rate, with
-            # what the model under test said.
-            res = dict(unanswered[-1], unanswered=True, control_answered=False,
-                       attempts_spoken=[u["spoken"] for u in unanswered])
+        res, unanswered, cooldowns = None, [], 0
+        while res is None:
+            for attempt in range(1 if cooldowns else 3):
+                try:
+                    got = await asyncio.wait_for(run_single_turn(connect, instruction, tools, required, text, model_id=model,
+                                                                 thinking_level=thinking, patience=PATIENCE_S), 600)
+                except Exception as exc:  # noqa: BLE001 - free-tier transient errors; retry the whole item
+                    print(f"{v} {item_id} attempt {attempt + 1} failed: {type(exc).__name__}: {str(exc)[:120]}", flush=True)
+                    await asyncio.sleep(RETRY_WAIT_S * (attempt + 1))
+                    continue
+                if [r for r in required if r not in {c["name"] for c in got["calls"]}]:
+                    unanswered.append(got)              # the model answered nothing this time
+                    print(f"{v} {item_id} attempt {attempt + 1}: required call missing after reminders", flush=True)
+                    continue
+                res = got
+                break
+            if res is not None or not unanswered:
+                break                                   # answered, or only transient errors: --resume picks it up
+            # Silence means either the model declined or the API's call path is broken, and from here
+            # those look identical (deviation 7). Ask the control model before recording anything.
+            if not await path_is_broken(model, thinking, connect, control_connect, (instruction, tools, required, text)):
+                res = dict(unanswered[-1], unanswered=True, control_answered=False,
+                           attempts_spoken=[u["spoken"] for u in unanswered])
+                break
+            cooldowns += 1
+            if cooldowns > args.max_cooldowns:
+                sys.exit(f"{v} {item_id}: the call path was still broken after {args.max_cooldowns} cooldowns.\n"
+                         "Nothing was saved for this item. Rerun when the API is healthy.")
+            print(f"{time.strftime('%H:%M:%S')} {v} {item_id}: call path broken ({CONTROL_MODEL} answers the same "
+                  f"request). Waiting {args.cooldown // 60} min, then one more attempt "
+                  f"(cooldown {cooldowns}/{args.max_cooldowns}).", flush=True)
+            await asyncio.sleep(args.cooldown)
         if res is None:
             failures += 1
             continue

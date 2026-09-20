@@ -62,6 +62,12 @@ class FakeSession:
             yield m
 
 
+class Mute(FakeSession):
+    """A model that never answers and never stops the turn, like the broken call path."""
+    async def receive(self):
+        yield msg(done=True)
+
+
 def connect_to(session):
     class CM:
         async def __aenter__(self):
@@ -138,13 +144,14 @@ def test_a_broken_call_path_aborts_instead_of_recording_a_non_answer(tmp_path):
         def __call__(self, cfg):
             return connect_to(FakeSession([[msg(done=True)]] * 4))(cfg)
     with pytest.raises(SystemExit) as e:
-        asyncio.run(rp.main(connect=SilentEverywhere(), out_root=tmp_path, argv=["--only", "P1", "--limit", "1"]))
-    assert "canary" in str(e.value)
+        asyncio.run(rp.main(connect=SilentEverywhere(), out_root=tmp_path,
+                            argv=["--only", "P1", "--limit", "1", "--cooldown", "0", "--max-cooldowns", "0"]))
+    assert "still broken after 0 cooldowns" in str(e.value)
     assert list(tmp_path.glob("*/*.json")) == []
 
 
-def test_silence_while_the_control_model_answers_aborts(tmp_path):
-    """The failure that this catches: the model under test emits no call, the control model does."""
+def test_silence_while_the_control_model_answers_waits_then_resumes(tmp_path):
+    """Deviation 7: a broken call path makes the runner idle and retry, never record a non-answer."""
     import scripts.run_probes as rp
     rp.RETRY_WAIT_S = 0
 
@@ -153,15 +160,40 @@ def test_silence_while_the_control_model_answers_aborts(tmp_path):
         args = {"answer_detectability": {"detectable": "yes"}, "answer_distinguishability": {"distinguishable": "yes"}}
         return connect_to(FakeSession([[msg([(n, args[n]) for n in names]), msg(done=True)]]))(cfg)
 
-    rp.PATIENCE_S = 0          # the fake model has nothing to reason about
+    class BrokenThenFixed:
+        """Silent until the cooldown has passed once, exactly like the API recovering while idle."""
+        def __init__(self):
+            self.calls_made = 0
 
-    class Mute(FakeSession):
-        async def receive(self):
-            yield msg(done=True)
+        def __call__(self, cfg):
+            self.calls_made += 1
+            if self.calls_made <= 3:
+                return connect_to(Mute([]))(cfg)
+            return answers(cfg)
+    rp.PATIENCE_S = 0
+    under_test = BrokenThenFixed()
+    asyncio.run(rp.main(connect=under_test, control_connect=answers, out_root=tmp_path,
+                        argv=["--backend", "gemini-extended", "--only", "P1", "--limit", "1", "--cooldown", "0"]))
+    [f] = list(tmp_path.glob("P1/*.json"))
+    d = json.loads(f.read_text())
+    assert not d.get("unanswered") and d["calls"]         # it waited and got a real answer
+    assert under_test.calls_made == 4                     # 3 silent attempts, one cooldown, then one more
+
+
+def test_a_run_gives_up_after_the_cooldowns_are_spent(tmp_path):
+    import scripts.run_probes as rp
+    rp.RETRY_WAIT_S = 0
+    rp.PATIENCE_S = 0
+
+    def answers(cfg):
+        names = [fd.name for fd in cfg.tools[0].function_declarations]
+        args = {"answer_detectability": {"detectable": "yes"}, "answer_distinguishability": {"distinguishable": "yes"}}
+        return connect_to(FakeSession([[msg([(n, args[n]) for n in names]), msg(done=True)]]))(cfg)
     with pytest.raises(SystemExit) as e:
         asyncio.run(rp.main(connect=lambda cfg: connect_to(Mute([]))(cfg), control_connect=answers, out_root=tmp_path,
-                            argv=["--backend", "gemini-extended", "--only", "P1", "--limit", "1"]))
-    assert "answered the same request" in str(e.value)
+                            argv=["--backend", "gemini-extended", "--only", "P1", "--limit", "1",
+                                  "--cooldown", "0", "--max-cooldowns", "2"]))
+    assert "still broken after 2 cooldowns" in str(e.value)
     assert list(tmp_path.glob("*/*.json")) == []
 
 
@@ -175,7 +207,8 @@ def test_a_working_call_path_records_the_non_answer_and_excludes_it(tmp_path):
             if names == ["canary"]:
                 return connect_to(FakeSession([[msg([("canary", {"ok": "yes"})]), msg(done=True)]]))(cfg)
             return connect_to(FakeSession([[msg(done=True)]] * 3))(cfg)
-    asyncio.run(rp.main(connect=SilentButCanaryWorks(), out_root=tmp_path, argv=["--only", "P1", "--limit", "1"]))
+    asyncio.run(rp.main(connect=SilentButCanaryWorks(), out_root=tmp_path,
+                        argv=["--only", "P1", "--limit", "1", "--cooldown", "0"]))
     [f] = list(tmp_path.glob("P1/*.json"))
     d = json.loads(f.read_text())
     assert d["unanswered"] is True and d["calls"] == []
