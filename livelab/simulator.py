@@ -22,11 +22,24 @@ KP, KI = 0.02, 2e-4
 O2_AIR_PPM, O2_PURGE_TAU_S = 2.09e5, 60.0
 
 
+# Transient faults exist for the undersampling study (docs/undersampling_preregistration.md):
+# an excursion that lasts duration_s and then leaves no trace, so whether it is observable at all
+# depends on how often the instrument is read. Shapes are author-constructed, as all the others are.
+TRANSIENT = ("transient_blockage", "transient_mfc_dropout", "transient_pressure_spike")
+
+
 @dataclass(frozen=True)
 class Fault:
-    type: str            # seal_leak | exhaust_blockage | thermocouple_drift | mfc_stuck | stale_status
+    type: str            # seal_leak | exhaust_blockage | thermocouple_drift | mfc_stuck |
+                         # stale_status | one of TRANSIENT
     t_fault_s: int
     params: dict
+    duration_s: int | None = None      # transients only: the fault clears after this long
+
+    def active_at(self, t: int) -> bool:
+        if t < self.t_fault_s:
+            return False
+        return self.duration_s is None or t < self.t_fault_s + self.duration_s
 
 
 def simulate(protocol: Protocol, regime: str, seed: int, fault: Fault | None = None) -> dict:
@@ -50,7 +63,7 @@ def simulate(protocol: Protocol, regime: str, seed: int, fault: Fault | None = N
         stage, _, _ = protocol.stage_at(t)
         t_set = protocol.setpoint(t)
         f_set = stage.f_ar_sccm
-        since = t - fault.t_fault_s if fault and t >= fault.t_fault_s else None
+        since = t - fault.t_fault_s if fault and fault.active_at(t) else None
 
         drift = p.get("drift_c_per_min", 0.5) * since / 60 if since is not None and fault.type == "thermocouple_drift" else 0.0
         reading = temp + drift
@@ -65,7 +78,9 @@ def simulate(protocol: Protocol, regime: str, seed: int, fault: Fault | None = N
                 integ += err
         temp += gain * u - B * (temp - t_amb)
 
-        if not (since is not None and fault.type == "mfc_stuck"):
+        if since is not None and fault.type == "transient_mfc_dropout":
+            flow += (f_set * p.get("dropout_fraction", 0.55) - flow) / 2.0   # falls, then recovers
+        elif not (since is not None and fault.type == "mfc_stuck"):
             flow += (f_set - flow) / 5.0
 
         pressure = p_base + (0.01 * flow if regime == "lpcvd" else 0.002 * flow)
@@ -76,6 +91,9 @@ def simulate(protocol: Protocol, regime: str, seed: int, fault: Fault | None = N
                 pressure += p.get("pressure_rise_torr_per_min", 0.01) * since / 60
         if since is not None and fault.type == "exhaust_blockage":
             pressure += p.get("pressure_rise_torr_per_min", 0.01 if regime == "lpcvd" else 0.5) * since / 60
+        if since is not None and fault.type in ("transient_blockage", "transient_pressure_spike"):
+            # A square excursion: present while the fault is active, gone the moment it clears.
+            pressure += p.get("pressure_offset_torr", 0.06 if regime == "lpcvd" else 3.0)
 
         out["T_tc"][t] = reading + NOISE["T_tc"] * noise["T_tc"][t]
         out["P_heater"][t] = max(0.0, 100 * u + NOISE["P_heater"] * noise["P_heater"][t])

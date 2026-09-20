@@ -56,11 +56,23 @@ As in the probe study, each item is a single turn carrying every delivered event
 asking for one `report_assessment`. That keeps cost linear in the number of events and reuses a
 method already validated.
 
-## Truth needs no new rule
+## Truth: one new rule, and it does not touch the benchmark
 
-This is the part worth stating plainly: **the existing ground truth already does this.** Truth is
-computed by the pre-registered z-score rules over the **delivered** samples, under "same evidence,
-same answer". Change the cadence and the supported answer changes by itself. Three classes follow,
+Most of this needs nothing new. Truth is computed by the pre-registered z-score rules over the
+**delivered** samples, under "same evidence, same answer", so changing the cadence changes what is
+supported by itself: an excursion no sample falls into is simply not there, and one that meets the
+consecutive-sample threshold is `ANOMALOUS`.
+
+**The glimpsed class is the exception, and this registration originally got it wrong.** The
+benchmark's rule maps a single deviating sample to `NORMAL`, not to `UNKNOWN` — one point does not
+meet the consecutive-sample threshold, so nothing is supported beyond "normal so far". Calling it
+`UNKNOWN` is a **new rule**, stated here before any run:
+
+> A delivered sample that deviates by |z| ≥ 3.5 with no second consecutive sample to confirm it
+> supports `UNKNOWN`: the evidence contains something unexplained and nothing that can resolve it.
+
+It applies **only to this study**, and the benchmark's own ground truth and published results are
+untouched (see deviation 1). Three classes follow,
 and each episode is assigned to its class by script, never by hand:
 
 | Class | What the delivered samples contain | Supported answer |
@@ -131,4 +143,11 @@ roughly 11k tokens each; the whole study is a few hundred thousand tokens. **Cap
 
 ## Deviations log
 
-None yet. Entries are added here, with dates and reasons, as they happen.
+1. **The glimpsed rule is new, and is scoped to this study (2026-09-20, found while implementing,
+   before any episode was written).** The text above first claimed the existing truth already
+   produced `UNKNOWN` for a single unconfirmed excursion. It does not: the benchmark's rule requires
+   two consecutive deviating samples and otherwise reports `NORMAL`. The rule is therefore stated
+   explicitly above and implemented in a separate module, so that
+   `evidence_supported_answers` — and every result already published from it — is unchanged. Had
+   the rule been applied globally it would have silently rewritten the ground truth of the
+   1,986-event finding.
