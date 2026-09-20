@@ -21,6 +21,10 @@ from livelab.scoring import score_runs  # noqa: E402
 from scripts.compare_arms import MODEL, VERSION, load_jsonl, reports  # noqa: E402
 from scripts.score_probes import load as load_probes  # noqa: E402
 
+PROBE_MODELS = [("gemini-3.8-live", "Gemini 3.8 Live", "#4c78a8"),
+                ("gemini-3.8-live-extended-thinking", "+ Extended Thinking (HIGH)", "#1f3a5f")]
+VERDICT_COLORS = {"NORMAL": "#9aa5b1", "ANOMALOUS": "#d9534f", "UNKNOWN": "#2ca02c"}
+
 COLORS = {"A": "#9aa5b1", "C-context": "#4c78a8", "C-full": "#1f3a5f"}
 FOOT = "LiveLab · Gemini 3.8 Live · simulated CVD episodes (author-constructed telemetry) · one run per replay"
 
@@ -94,39 +98,85 @@ def fig_unknown(arms, unknown):
     fig.savefig(ROOT / "docs/figures/unknown.png", dpi=160)
 
 
+def b1_followup(model, items):
+    """On U items where it said atmosphere cannot be verified, what verdict did it then give?"""
+    sets = {i["item_id"]: i["set"] for i in items["in_context"]}
+    got = load_probes(ROOT / "results" / "probes" / model).get("B1", {})
+    out = collections.Counter()
+    for iid, d in got.items():
+        if sets.get(iid) != "U" or d.get("unanswered"):
+            continue
+        ver = [c["args"] for c in d["calls"] if c["name"] == "report_verifiability"]
+        rep = [c["args"] for c in d["calls"] if c["name"] == "report_assessment"]
+        if ver and rep and ver[-1].get("atmosphere") == "cannot_verify":
+            out[rep[-1].get("execution_state")] += 1
+    return out
+
+
 def fig_probe():
     items = json.load(open(ROOT / "data/probes/items.json"))
-    s = probe_score(items, load_probes())
-    fig, axes = plt.subplots(1, 3, figsize=(10.5, 3.4), gridspec_kw={"width_ratios": [1, 1.2, 1.6]})
-    p1 = s["P1"]["detectable"]
-    axes[0].bar([0], [p1["balanced_accuracy"]], color="#4c78a8")
+    models = [(m, lab, col) for m, lab, col in PROBE_MODELS
+              if (ROOT / "results" / "probes" / m).exists()]
+    scores = {m: probe_score(items, load_probes(ROOT / "results" / "probes" / m)) for m, _, _ in models}
+    fig, axes = plt.subplots(1, 3, figsize=(11.5, 3.6), gridspec_kw={"width_ratios": [1, 1.25, 1.9]})
+
+    p1 = scores["gemini-3.8-live"]["P1"]["detectable"]           # P1 was not run for the other model
+    axes[0].bar([0], [p1["balanced_accuracy"]], color="#4c78a8", width=0.5)
     axes[0].axhline(0.8, ls="--", color="#888", lw=1)
-    axes[0].text(0, p1["balanced_accuracy"] + 0.03, f"{p1['balanced_accuracy']:.0%}", ha="center")
+    axes[0].text(0, p1["balanced_accuracy"] + 0.04, f"{p1['balanced_accuracy']:.0%}", ha="center")
     axes[0].set_xticks([0], ["which sensors\nsee which fault"])
-    axes[0].set_ylim(0, 1.1)
-    axes[0].set_title("Knows? (P1, balanced acc.)", fontsize=10)
-    b1 = s["B1"]
-    said, conf = b1["atmosphere_cannot_verify_on_U"], b1["conflation_rate_on_U"]
-    axes[1].bar([0, 1], [said[0], conf[0]], color=["#4c78a8", "#d9534f"])
-    axes[1].text(0, said[0] + 0.3, f"{said[0]}/{said[1]}", ha="center")
-    axes[1].text(1, conf[0] + 0.3, f"{conf[0]}/{said[0]}", ha="center")
-    axes[1].set_xticks([0, 1], ["says atmosphere\n'cannot verify'", "of those, then\nreports NORMAL"])
-    axes[1].set_ylim(0, said[1] + 2)
-    axes[1].set_title("Says it, then ignores it (B1)", fontsize=10)
+    axes[0].set_ylim(0, 1.15)
+    axes[0].set_title("It knows\n(P1, balanced accuracy)", fontsize=10)
+
+    for i, (m, lab, _) in enumerate(models):                     # what followed "cannot verify"
+        counts = b1_followup(m, items)
+        bottom, total = 0, sum(counts.values())
+        for verdict in ("NORMAL", "ANOMALOUS", "UNKNOWN"):
+            v = counts.get(verdict, 0)
+            axes[1].bar(i, v, bottom=bottom, color=VERDICT_COLORS[verdict],
+                        label=verdict if i == 0 else None)
+            if v:
+                axes[1].text(i, bottom + v / 2, str(v), ha="center", va="center", color="white", fontsize=9)
+            bottom += v
+        axes[1].text(i, total + 0.5, f"{total} said 'cannot verify'", ha="center", fontsize=7.5, color="#444")
+    axes[1].set_xticks(range(len(models)), [lab.replace("+ ", "+\n") for _, lab, _ in models], fontsize=8)
+    axes[1].set_ylim(0, 19)
+    axes[1].set_title("Then it ruled anyway\n(B1, verdict after 'cannot verify')", fontsize=10)
+    axes[1].legend(fontsize=7, frameon=False, loc="upper center", ncol=3, columnspacing=0.8,
+                   handlelength=1.2, bbox_to_anchor=(0.5, 1.0))
+
     names = {"B0": "benchmark\nwording", "B1": "verify\nfirst", "B2": "explicit\ndefinition", "B3": "renamed\nenum"}
-    vals = [s[v]["abstention_on_U"] for v in ("B0", "B1", "B2", "B3")]
-    axes[2].bar(range(4), [v[0] for v in vals], color="#2ca02c")
-    for i, v in enumerate(vals):
-        axes[2].text(i, v[0] + 0.3, f"{v[0]}/{v[1]}", ha="center")
-    axes[2].set_xticks(range(4), [names[v] for v in ("B0", "B1", "B2", "B3")], fontsize=8)
-    axes[2].set_ylim(0, vals[0][1] + 2)
-    axes[2].set_title("Answers UNKNOWN when it should (U items)", fontsize=10)
+    variants = ["B0", "B1", "B2", "B3"]
+    width = 0.38
+    for i, (m, lab, col) in enumerate(models):
+        xs, heights, labels = [], [], []
+        for j, v in enumerate(variants):
+            cov = scores[m][v]["coverage"].get("U", (0, 0))
+            xs.append(j + (i - 0.5) * width)
+            heights.append(scores[m][v]["abstention_on_U"][0])
+            labels.append(f"{scores[m][v]['abstention_on_U'][0]}/{cov[0]}" if cov[0] else "not run")
+        axes[2].bar(xs, heights, width=width, color=col, label=lab)
+        for x, h, t in zip(xs, heights, labels):
+            axes[2].text(x, h + 0.25, t, ha="center", fontsize=7.5,
+                         color="#999" if t == "not run" else "#333")
+    axes[2].set_xticks(range(len(variants)), [names[v] for v in variants], fontsize=8)
+    axes[2].set_ylim(0, 6)
+    axes[2].set_yticks([0, 1, 2])
+    axes[2].set_ylabel("items answered UNKNOWN", fontsize=8)
+    axes[2].set_title("It never abstains\n(U items: only UNKNOWN is supported)", fontsize=10)
+    axes[2].legend(fontsize=7.5, frameon=False, loc="upper left", bbox_to_anchor=(0.0, 1.02))
+    total = sum(scores[m][v]["coverage"].get("U", (0, 0))[0] for m, _, _ in models for v in variants)
+    axes[2].text(1.5, 3.1, f"0 of {total} answers, across both models",
+                 ha="center", fontsize=10, color="#d9534f", weight="bold")
+
     for ax in axes:
         style(ax)
-    fig.suptitle("Pre-registered probe: the model knows it cannot see, but its verdict does not change", fontsize=11)
-    fig.text(0.01, 0.01, "Gemini 3.8 Live · single-turn prefixes (events 0–24) · one run per item · "
+    fig.suptitle("Pre-registered probe: it knows it cannot see, and rules anyway \u2014 more thinking does not change that",
+                 fontsize=11)
+    fig.text(0.01, 0.01, "Gemini 3.8 Live and Gemini 3.8 Live Extended Thinking (HIGH) \u00b7 single-turn prefixes "
+             "(events 0\u201324) \u00b7 one run per item \u00b7 items with no answer excluded \u00b7 "
              "see docs/probe_preregistration.md", fontsize=7, color="#666")
-    fig.tight_layout(rect=(0, 0.04, 1, 0.92))
+    fig.tight_layout(rect=(0, 0.04, 1, 0.9))
     fig.savefig(ROOT / "docs/figures/probe.png", dpi=160)
 
 
