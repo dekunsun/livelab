@@ -29,6 +29,11 @@ in DeepMind's Gemini paper) and reported its judgment every two simulated minute
 
    What remains: asked separately, it said *"atmosphere cannot be verified"* on 12 of 14 such items,
    then reported the run as **NORMAL on all 12**.
+   - **Thinking longer:** Gemini 3.8 Live Extended Thinking, at HIGH, abstained **0 of 41** times
+     under three of the same framings. It named the missing evidence more precisely, including the
+     test that would settle the question, and then committed anyway.
+
+   Across both models, **97 answers** on items where only `UNKNOWN` is supported, **0 abstentions**.
 
 **Implication:** "cannot verify" has to be a system state, computed from which sensors are
 installed and what each stage needs, or asked as its own question. It cannot be left to the
@@ -147,12 +152,11 @@ compact JSON.
 - arms A, C-context and C-full, each under frozen prompt v4;
 - the pre-registered UNKNOWN probe.
 
-**Partly done:**
-- **Extended Thinking.** Stage 1 ran; only its B0 arm is readable. It answered `UNKNOWN` 0 of 13
-  times, naming the missing evidence in every one. B1 and B2 are withheld: the model's
-  function-call path failed for hours without reporting anything to the client, which the harness
-  first recorded as the model declining to answer. How that was caught, and what now prevents it,
-  is in [deviation 7](docs/probe_preregistration.md) and
+- **the Extended Thinking comparison** (stage 1: B0, B1 and B2 on the 14 U items). Collecting it
+  took a night and produced nothing on the free tier, where the model's function-call path fails
+  silently for hours, and about twenty minutes once billing was enabled. What that failure looked
+  like, how it was caught, and what now prevents a harness from scoring it as the model declining
+  to answer, is in [deviation 7](docs/probe_preregistration.md) and
   [lessons_learned.md](docs/lessons_learned.md).
 
 **Not yet built:**

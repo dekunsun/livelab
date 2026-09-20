@@ -38,29 +38,52 @@ recognition change its verdict, even when told to.
 - **For a lab product:** show "cannot verify" as a system state beside the agent's verdict, and do
   not let a `NORMAL` verdict stand when a stage's required sensors are missing.
 
-## Extended Thinking, stage 1 (partial)
+## Extended Thinking, stage 1
 
-Gemini 3.8 Live Extended Thinking at `thinkingLevel: HIGH`, same U items, same frozen wording,
-2026-09-19. Only **B0 is readable**: an API-side failure took B1 to 8 of 14 answered and B2 to 3 of
-14, so neither is scored (pre-registration, deviation 7, which also records how the failure was
-identified).
+Gemini 3.8 Live Extended Thinking at `thinkingLevel: HIGH`, the same 14 U items under B0, B1 and
+B2, the same frozen wording. Collected 2026-09-19 (B0) and 2026-09-20 (B1, B2). One item of B0 has
+no answer and is excluded; the rest is complete.
 
-| Measure | Standard | Extended Thinking (B0) |
+| Variant | Abstention on U | Standard model |
 | --- | --- | --- |
-| Answered `UNKNOWN` where only `UNKNOWN` is supported | 0/14 | **0/13** |
-| What it answered instead | 14 `NORMAL` | 11 `NORMAL`, 2 `ANOMALOUS` |
-| Named the evidence it was missing | — | **13 of 13** |
+| B0 baseline | **0 / 13** | 0 / 14 |
+| B1 verify, then report | **0 / 14** | 0 / 14 |
+| B2 explicit definition | **0 / 14** | 0 / 14 |
 
-More thinking did not produce a single abstention. What it did change is the quality of
-`missing_evidence`: every answered item named something specific, and in the blockage episodes it
-named the test that would settle the question, *"exhaust O2 concentration measurement or
-rate-of-rise test to distinguish between a seal leak and an exhaust blockage"*, and then reported
-the run as `NORMAL` anyway.
+**Across both models: 97 answers on items where only `UNKNOWN` is supported, and 0 abstentions.**
+The standard model answered `NORMAL` every time (56 of 56). Extended Thinking answered `NORMAL` 35
+times and `ANOMALOUS` 6 times: thinking longer moved some verdicts from one certainty to another,
+never to "I cannot tell".
 
-That is the same split the standard model showed in B1, reached from the other side: the model
-knows what it cannot see, says so in a field that is not the verdict, and leaves the verdict
-unchanged. Thinking longer improved the description of the gap without changing what was concluded
-from it.
+B1 asks for verifiability first, in its own function call, and then for the verdict:
 
-**Not claimed:** any comparison of abstention *rates* between the two models (13 items, one run
-each), and anything at all about B1, B2, B3 or P1 under Extended Thinking.
+| It said atmosphere was | Its verdict | n |
+| --- | --- | --- |
+| **cannot_verify** | NORMAL | **10** |
+| **cannot_verify** | ANOMALOUS | 2 |
+| verified | NORMAL | 2 |
+
+Its verifiability answers are good: 95% correct against the registered truth, and it marked
+atmosphere `cannot_verify` on 12 of 14, the same as the standard model. **Twelve times it stated
+that it could not verify the condition, and twelve times it then committed to a verdict anyway.**
+
+Its `missing_evidence` is more specific than the standard model's, naming in every answered B0
+item what it would need, including the test that would settle the question: *"exhaust O2
+concentration measurement or rate-of-rise test to distinguish between a seal leak and an exhaust
+blockage."* Then it reported the run as `NORMAL`.
+
+**Stage 2 is not run.** The registration makes the N and A controls conditional on some abstention
+appearing on U. None did, so there is nothing to check for reflexiveness.
+
+**What this does not show.** One run per item, 14 items per variant, one thinking level (HIGH).
+B3 and P1 were not run for Extended Thinking, as registered. Nothing here compares the two models'
+*accuracy*; the comparison is only about whether either ever abstains.
+
+## A note on where this data came from
+
+B1 and B2 could not be collected on the free tier at all: the model's function-call path failed
+silently for hours (pre-registration, deviation 7). They were collected in about twenty minutes
+once billing was enabled, for roughly $0.20 of tokens. The free-tier attempt cost a night and
+produced nothing, and the first version of the harness would have recorded that night as
+**"the model declined to answer"** — which, scored the old way, would have read as evidence for
+the very conclusion this study reports.
