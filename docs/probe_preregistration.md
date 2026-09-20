@@ -252,3 +252,27 @@ ran.
 
    Either way it changes nothing about what is scored: coverage governs that, and the mechanism
    does not enter any measure.
+
+   **Result, 2026-09-20 09:08–09:17 (`results/diagnostics/size_threshold.json`). The hypothesis is
+   wrong: size is not the cause.**
+
+   | Request | Prefix | Extended Thinking | Control |
+   | --- | --- | --- | --- |
+   | A: the health-check item | 25 events, 3,709 chars | **call in 14 s** | call |
+   | B: the item that was silent all night | 25 events, 3,709 chars | **no call** | call |
+   | C: that same item, cut down | 3 events, 581 chars | **no call** | call |
+
+   C is one sixth of B and fails identically, so a token-metered quota cannot explain it, and the
+   control model answered all three at the same minute. Two further observations point the same
+   way: six hours of near-idle overnight never restored the failing item (12 control checks, all
+   fine), and midnight Pacific passed without changing anything.
+
+   What it looks like instead is that **particular requests fail permanently on this model while
+   others succeed**, with no error to the client. One item answered in B2 at 22:48 and the same
+   item was silent through seven attempts in B1 from 02:17.
+
+   **Caveat on this test's own design: A differed from B in both the item and the variant** (B0 vs
+   B2), which is the same confound this deviation was written about. B vs C is clean and settles
+   size. Whether the failure follows the item or the variant is being measured separately, by
+   crossing two items with three variants in one sitting
+   (`scripts/test_variant_vs_item.py`).
