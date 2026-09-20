@@ -300,3 +300,31 @@ ran.
    **What does not depend on any of this:** the free tier cannot deliver B1 and B2. One item per
    multi-hour window is not a data collection rate, so the Extended Thinking arm is either bought
    (about $0.22 of paid-tier tokens for the 28 items) or closed at B0.
+
+   ### Settled: it was the free tier
+
+   Billing was enabled on the same key and project at 10:30 on 2026-09-20, and the first three
+   items ran at 10:33 with no retries and no reminders. Among them was
+   `cvd_exhaust_blockage_lpcvd_v2__no_o2`, **the request that had been silent for six hours
+   overnight and failed every attempt in both of the morning's experiments**. The same request,
+   the same key, the same model, twenty minutes later on the paid tier: answered at once.
+
+   That is a clean before/after on one request, and it rules out the three explanations tried
+   along the way, including two of mine:
+
+   | Explanation | Ruled out by |
+   | --- | --- |
+   | A token-metered quota | the registered size test: one sixth of the length failed identically |
+   | Something specific to that request | it answers on the paid tier |
+   | Something specific to a variant | B0, B1 and B2 all failed together while the tier was free, and all run now |
+
+   What remains is the tier boundary itself. **Which quota dimension is being hit is still
+   unknown, and is not worth further free-tier experiments**; what matters for this study is
+   recorded and reproducible: on the free tier, exceeding a limit on this model produces no error
+   to the client at all. The model is told, and says "a system error occurred" in audio. A
+   programmatic client sees a turn that completes normally with no function call, which is exactly
+   what a model declining to answer looks like.
+
+   The standard model, in the same sessions, kept reporting its failures as errors (18 of them,
+   1.8-5.0 s, plus one raised immediately). So this is not how the Live API behaves in general.
+   It is how this path behaves.
