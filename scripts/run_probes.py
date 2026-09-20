@@ -26,8 +26,9 @@ MODELS = {"gemini": "gemini-3.8-live", "gemini-extended": "gemini-3.8-live-exten
 # Request/response providers, and the cheaper model on the same provider that acts as the control
 # when a request comes back silent (docs/crossmodel_preregistration.md).
 PROVIDER = {"claude-opus-5": "anthropic", "claude-sonnet-5": "anthropic",
-            "gpt-6-astra": "openai", "gpt-5.6-sol": "openai"}
-CONTROL_FOR = {"anthropic": "claude-haiku-4-5-20251001", "openai": "gpt-5.6-luna"}
+            "gpt-6-astra": "openai_responses", "gpt-5.6-sol": "openai"}
+CONTROL_FOR = {"anthropic": "claude-haiku-4-5-20251001", "openai": "gpt-5.6-luna",
+               "openai_responses": "gpt-5.6-luna"}
 VARIANTS = ["P1", "B0", "B1", "B2", "B3"]
 RETRY_WAIT_S = 30
 PATIENCE_S = 240        # how long an async model may reason before a reminder interrupts it
@@ -95,7 +96,9 @@ async def main(connect=None, out_root=None, argv=None, control_connect=None):
             sys.exit(f"Set {env} in livelab/.env (never commit it).")
         asker = StandardAsker(provider, model)
         connect = asker                         # takes (instruction, tools, required, text)
-        control_connect = control_connect or StandardAsker(provider, CONTROL_FOR[provider])
+        control = CONTROL_FOR[provider]
+        control_connect = control_connect or StandardAsker(
+            "openai" if provider == "openai_responses" else provider, control)
     elif connect is None:
         connect = real_connect(model)
         control_connect = control_connect or real_connect(CONTROL_MODEL)

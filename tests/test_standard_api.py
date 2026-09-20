@@ -106,3 +106,53 @@ def test_the_request_actually_sent_is_kept_for_the_record():
     asyncio.run(asker("sys", tools, required, "events"))
     assert asker.last_request["model"] == "gpt-x"
     assert asker.last_request["messages"][-1]["content"] == "events"
+
+
+def r_reply(calls=(), text="", reasoning=0):
+    out = [{"id": f"fc{i}", "type": "function_call", "call_id": f"call_{i}", "name": n,
+            "arguments": json.dumps(a)} for i, (n, a) in enumerate(calls)]
+    if text:
+        out.append({"type": "message", "content": [{"type": "output_text", "text": text}]})
+    return {"output": out, "usage": {"input_tokens": 100, "output_tokens": 7,
+                                     "output_tokens_details": {"reasoning_tokens": reasoning}}}
+
+
+def test_the_responses_endpoint_gets_the_same_schema_and_instruction():
+    """gpt-6-astra needs /v1/responses for function tools; parity must survive the move."""
+    instruction, tools, _ = variant_setup("B0")
+    body = build_request("openai_responses", "gpt-6-astra", instruction, tools,
+                         [{"role": "user", "content": "events"}])
+    assert body["instructions"] == instruction
+    assert body["input"][-1]["content"] == "events"
+    assert body["tools"][0]["parameters"] == tools[0]["parameters"]
+    assert body["tools"][0]["parameters"]["properties"]["execution_state"]["enum"] == \
+        ["NORMAL", "ANOMALOUS", "UNKNOWN"]
+    assert "reasoning_effort" not in body          # the model's own default is what is measured
+
+
+def test_a_responses_answer_and_its_reasoning_tokens_are_read():
+    args = {"execution_state": "UNKNOWN"}
+    calls, spoken, usage = parse("openai_responses", r_reply([("report_assessment", args)],
+                                                             "thinking out loud", reasoning=512))
+    assert [(c["name"], c["args"]) for c in calls] == [("report_assessment", args)]
+    assert spoken == "thinking out loud" and usage["thoughts_token_count"] == 512
+
+
+def test_responses_two_calls_echo_the_call_and_its_output():
+    _, tools, required = variant_setup("B1")
+    seen = []
+
+    def post(url, headers, body):
+        seen.append(body)
+        if len(seen) == 1:
+            return r_reply([("report_verifiability", {"atmosphere": "cannot_verify",
+                                                      "temperature": "verified",
+                                                      "gas_flow": "verified"})])
+        return r_reply([("report_assessment", {"execution_state": "NORMAL"})])
+
+    res = asyncio.run(StandardAsker("openai_responses", "gpt-6-astra", key="k", post=post)(
+        "sys", tools, required, "events"))
+    assert [c["name"] for c in res["calls"]] == ["report_verifiability", "report_assessment"]
+    kinds = [i.get("type") or i.get("role") for i in seen[1]["input"]]
+    assert kinds == ["user", "function_call", "function_call_output"]
+    assert seen[1]["tool_choice"] == {"type": "function", "name": "report_assessment"}

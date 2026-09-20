@@ -19,6 +19,7 @@ import urllib.request
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 MAX_TOKENS = 1024
 TIMEOUT_S = 120
 
@@ -71,6 +72,20 @@ def build_request(provider, model, instruction, tools, messages, force_tool=None
         }
         body["tool_choice"] = ({"type": "tool", "name": force_tool} if force_tool
                                else {"type": "any"})
+    elif provider == "openai_responses":
+        # gpt-6-astra refuses function tools on /v1/chat/completions unless reasoning_effort is
+        # "none". That is an intervention, not a default, and the registration keeps each model at
+        # its own default reasoning - so this endpoint is used instead. The shape below was read
+        # from one real call, not guessed.
+        body = {
+            "model": model,
+            "instructions": instruction,
+            "input": messages,
+            "tools": [{"type": "function", "name": t["name"], "description": t["description"],
+                       "parameters": schema_of(t)} for t in tools],
+        }
+        body["tool_choice"] = ({"type": "function", "name": force_tool} if force_tool
+                               else "required")
     elif provider == "openai":
         body = {
             "model": model,
@@ -85,6 +100,11 @@ def build_request(provider, model, instruction, tools, messages, force_tool=None
         raise ValueError(provider)
     body.update(extra)
     return body
+
+
+def url_for(provider):
+    return {"anthropic": ANTHROPIC_URL, "openai": OPENAI_URL,
+            "openai_responses": OPENAI_RESPONSES_URL}[provider]
 
 
 def _headers(provider, key):
@@ -119,6 +139,23 @@ def parse(provider, response):
         u = response.get("usage") or {}
         usage = {"prompt_token_count": u.get("input_tokens"),
                  "response_token_count": u.get("output_tokens")}
+    elif provider == "openai_responses":
+        for item in response.get("output") or []:
+            if item.get("type") == "function_call":
+                raw = item.get("arguments") or "{}"
+                try:
+                    args = json.loads(raw)
+                except json.JSONDecodeError:
+                    args = {"__unparsed__": raw}
+                calls.append({"id": item.get("call_id"), "name": item.get("name"), "args": args,
+                              "raw": item})
+            elif item.get("type") == "message":
+                for part in item.get("content") or []:
+                    spoken += part.get("text") or ""
+        u = response.get("usage") or {}
+        usage = {"prompt_token_count": u.get("input_tokens"),
+                 "response_token_count": u.get("output_tokens"),
+                 "thoughts_token_count": (u.get("output_tokens_details") or {}).get("reasoning_tokens")}
     else:
         msg = ((response.get("choices") or [{}])[0].get("message")) or {}
         spoken = msg.get("content") or ""
@@ -142,13 +179,19 @@ def _acknowledge(provider, calls):
         return [{"role": "user",
                  "content": [{"type": "tool_result", "tool_use_id": c["id"], "content": "recorded"}
                              for c in calls]}]
+    if provider == "openai_responses":
+        return [{"type": "function_call_output", "call_id": c["id"], "output": "recorded"}
+                for c in calls]
     return [{"role": "tool", "tool_call_id": c["id"], "content": "recorded"} for c in calls]
 
 
-def _assistant_turn(provider, response):
+def _assistant_turn(provider, response, calls):
+    """What the model said, in the shape its own API wants echoed back."""
     if provider == "anthropic":
-        return {"role": "assistant", "content": response.get("content") or []}
-    return (response.get("choices") or [{}])[0].get("message") or {}
+        return [{"role": "assistant", "content": response.get("content") or []}]
+    if provider == "openai_responses":
+        return [c["raw"] for c in calls if c.get("raw")]
+    return [(response.get("choices") or [{}])[0].get("message") or {}]
 
 
 class StandardAsker:
@@ -170,8 +213,7 @@ class StandardAsker:
             body = build_request(self.provider, self.model, instruction, tools, messages,
                                  force_tool=missing[0] if len(required) > 1 else None)
             self.last_request = body
-            url = ANTHROPIC_URL if self.provider == "anthropic" else OPENAI_URL
-            response = await asyncio.to_thread(self._post, url,
+            response = await asyncio.to_thread(self._post, url_for(self.provider),
                                                _headers(self.provider, self.key), body)
             new, said, u = parse(self.provider, response)
             calls += new
@@ -180,7 +222,7 @@ class StandardAsker:
                 usage[k] = usage.get(k, 0) + v
             if not new:                    # nothing to acknowledge, and nothing would change
                 break
-            messages = messages + [_assistant_turn(self.provider, response)] + \
+            messages = messages + _assistant_turn(self.provider, response, new) + \
                 _acknowledge(self.provider, new)
         return {"calls": [{"name": c["name"], "args": c["args"]} for c in calls],
                 "spoken": spoken, "usage": usage, "reminders": 0}
