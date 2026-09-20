@@ -22,11 +22,18 @@ def wilson(k, n, z=1.96):
     return (p, max(0.0, c - h), min(1.0, c + h))
 
 
-def _pairs(truth, reports):
-    """(question, truth answer, model answer) for every scored question at every event."""
+def _pairs(truth, reports, image_truth=True):
+    """(question, truth answer, model answer) for every scored question at every event.
+
+    `image_truth=False` drops every scientific-evidence question whose answer comes from the
+    micrograph. Those labels were assigned by a model and cannot be verified here (the captions
+    state growth parameters, not morphology), so the benchmark reports what it claims without
+    them; scripts/check_image_label_exposure.py measures the difference.
+    """
     for t, r in zip(truth, reports):
         yield "execution_state", t["execution_state"], r["execution_state"]
-        yield "scientific_evidence", t["scientific_evidence"], r["scientific_evidence"]
+        if image_truth or t["scientific_evidence"] == "NOT_YET_AVAILABLE":
+            yield "scientific_evidence", t["scientific_evidence"], r["scientific_evidence"]
         if t["execution_state"] == "ANOMALOUS":        # cause is a question only once an anomaly is supported
             yield "specific_cause", t["acceptable_specific_cause"][0], r["specific_cause"]
 
@@ -46,7 +53,7 @@ def blind_to_images(truth):
     return out
 
 
-def score_replay(truth, reports):
+def score_replay(truth, reports, image_truth=True):
     assert len(truth) == len(reports), "one report per event is mandatory"
     anomalous = [t["event"] for t in truth if t["execution_state"] == "ANOMALOUS"]
     k_obs = anomalous[0] if anomalous else None
@@ -80,7 +87,7 @@ def score_replay(truth, reports):
             c["negative_called_fault"] = int(bool(alarms) or reports[-1]["scientific_evidence"] == "INCONCLUSIVE")
             c["false_alert"] = c["negative_called_fault"]
 
-    for q, want, got in _pairs(truth, reports):
+    for q, want, got in _pairs(truth, reports, image_truth):
         want_abstain = want in ABSTAIN[q]
         got_abstain = got in ABSTAIN[q]     # "none" is a claim ("no fault"), not an abstention
         c["q"] += 1
@@ -160,12 +167,13 @@ def summarize(counts):
     }
 
 
-def score_runs(reports_by_replay: dict, index: dict, load_truth, sees_images: bool = True) -> dict:
+def score_runs(reports_by_replay: dict, index: dict, load_truth, sees_images: bool = True,
+               image_truth: bool = True) -> dict:
     """Score a set of runs, including sensor-removal pairs when base and removal replays are both present."""
     counts, by_ep = [], {}
     for rid, reports in reports_by_replay.items():
         truth = load_truth(rid) if sees_images else blind_to_images(load_truth(rid))
-        counts.append(score_replay(truth, reports))
+        counts.append(score_replay(truth, reports, image_truth))
         by_ep.setdefault(index[rid]["episode_id"], {})[index[rid]["condition"]] = (truth, reports)
     for conds in by_ep.values():
         for cond, (t, r) in conds.items():

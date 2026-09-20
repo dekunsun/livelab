@@ -86,7 +86,16 @@ reference curves) and **C-full** (+ micrographs).
 - **Telemetry dynamics are author-constructed.** Fault *types* cite published incidents
   (DeepMind arXiv 2608.26701; Anthropic MHS), but the curve shapes are the author's.
 - **Images are real; their pairing with a run is not.** See `data/images/manifest.csv` and
-  `data/images/ATTRIBUTION.md`. Image outcome labels await human review.
+  `data/images/ATTRIBUTION.md`.
+- **The micrograph labels are not verified, and nothing rests on them.** A model assigned each
+  class from a 230 × 114 crop and its caption. They cannot be checked here: the author is not a
+  materials scientist, and the captions state growth parameters rather than morphology. So instead
+  of asserting them, the benchmark measures what they carry: dropping **every** image-derived
+  judgment leaves detection, false alert and appropriate abstention identical to four decimals and
+  moves nothing by more than **0.005**
+  ([the check](docs/results/image_label_exposure.md), rerun with
+  `scripts/check_image_label_exposure.py`). An expert review would let this project make claims
+  from images; until then it makes none.
 - **One model, one run per replay.** Different seeds gave near-identical outputs (57 of 58 events),
   so variance comes from episode variants. Other models are untested.
 - **Scientific-evidence judgments from images are confounded.** The prompt never defined the
