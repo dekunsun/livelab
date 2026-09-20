@@ -69,7 +69,7 @@ is a **negative result**, not a malfunction. A result from a run with anomalous 
 | Ground truth | Pre-registered rules decide what the delivered evidence supports at each event. **Same evidence, same answer:** truth never depends on hidden state | `livelab/observability.py`, `data/truth/` |
 | Frozen replay | Every condition receives identical evidence at identical times, with an opaque id and no truth | `data/replays/`, `livelab/harness.py` |
 | Scoring | Five primary metrics, plus operational metrics, validated first against mock observers (oracle, always-normal, always-unknown, prior-matcher and others) | `livelab/scoring.py`, `livelab/mock_models.py` |
-| Model | Gemini 3.8 Live on the free tier, one Live session per replay, and an append-only audit log of visible behavior only | `livelab/backends.py`, `results/` |
+| Model | Gemini 3.8 Live on the free tier (the Extended Thinking probes on the paid tier), one Live session per replay, and an append-only audit log of visible behavior only | `livelab/backends.py`, `results/` |
 
 The benchmark has **18 CVD episodes**, which render to **38 replays** once sensor-removal
 conditions are included. The arms are: **A** (telemetry only), **C-context** (+ normal-run
@@ -150,14 +150,14 @@ compact JSON.
 - 18 CVD episodes;
 - the scorer and its mock validation;
 - arms A, C-context and C-full, each under frozen prompt v4;
-- the pre-registered UNKNOWN probe.
+- the pre-registered UNKNOWN probe;
+- the Extended Thinking comparison, stage 1 (B0, B1 and B2 on the 14 U items).
 
-- **the Extended Thinking comparison** (stage 1: B0, B1 and B2 on the 14 U items). Collecting it
-  took a night and produced nothing on the free tier, where the model's function-call path fails
-  silently for hours, and about twenty minutes once billing was enabled. What that failure looked
-  like, how it was caught, and what now prevents a harness from scoring it as the model declining
-  to answer, is in [deviation 7](docs/probe_preregistration.md) and
-  [lessons_learned.md](docs/lessons_learned.md).
+Collecting that last one took a night and produced nothing on the free tier, where this model's
+function-call path fails silently for hours, and about twenty minutes once billing was enabled.
+What the failure looked like, how it was caught, and what now stops a harness from scoring it as
+the model declining to answer: [deviation 7](docs/probe_preregistration.md) and
+[lessons_learned.md](docs/lessons_learned.md).
 
 **Not yet built:**
 - the liquid-handling control;
