@@ -147,10 +147,17 @@ compact JSON.
 - arms A, C-context and C-full, each under frozen prompt v4;
 - the pre-registered UNKNOWN probe.
 
+**Partly done:**
+- **Extended Thinking.** Stage 1 ran; only its B0 arm is readable. It answered `UNKNOWN` 0 of 13
+  times, naming the missing evidence in every one. B1 and B2 are withheld: the model's
+  function-call path failed for hours without reporting anything to the client, which the harness
+  first recorded as the model declining to answer. How that was caught, and what now prevents it,
+  is in [deviation 7](docs/probe_preregistration.md) and
+  [lessons_learned.md](docs/lessons_learned.md).
+
 **Not yet built:**
 - the liquid-handling control;
 - arm B (specialist detectors);
 - C-vision and C-shuffled-image;
-- the Extended Thinking comparison;
 - a cross-model comparison;
 - the Active Live demo.

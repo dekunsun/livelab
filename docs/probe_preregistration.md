@@ -169,7 +169,9 @@ ran.
    separate attempts (each with the 240 s no-interruption window), the model is treated as
    declining to answer. The item is saved with `no_answer: true` and what the model said, and it
    is scored as not correct: a non-answer counts neither as abstention on U nor as correct in P1.
-   Transient API errors are still retried and never saved.
+   Transient API errors are still retried and never saved. **This rule was wrong, and is
+   superseded by deviation 7:** a non-answer can also be an API-side failure invisible to the
+   client.
 6. **Staged Extended Thinking run (2026-09-19, decided before any Extended Thinking in-context item
    ran):** at HIGH thinking, items take minutes each, so 212 items would take 4–14 hours. The
    Extended Thinking study therefore runs in stages:
@@ -180,3 +182,43 @@ ran.
    - **Not run for Extended Thinking:** P1 and B3. The standard model already answered those
      questions, and they do not bear on Q7. The 5 P1 items already answered are kept, but P1 is
      not scored for Extended Thinking.
+7. **Extended Thinking B1 and B2 are withheld: the non-answers were an API failure, not the model
+   (2026-09-19, decided before scoring; supersedes deviation 5).** Stage 1 ran B0, then B1, then
+   B2, and the share of items with no function call rose with the clock, not with the variant:
+
+   | Quarter of the run | 13:32–14:57 | 14:57–15:35 | 15:36–17:21 | 17:34–19:49 |
+   | --- | --- | --- | --- | --- |
+   | Items with no answer | 1/12 | 2/12 | 6/12 | 9/12 |
+
+   Per variant: B0 1/14, B1 6/14, B2 11/14. Because variant order was also time order, the two
+   are confounded. Three checks separate them, all run after the stage finished:
+
+   - An item that **had answered at 14:58** (`B0 cvd_seal_leak_apcvd__no_o2`) was rerun at 19:55.
+     It failed 3 times out of 3.
+   - The **standard** `gemini-3.8-live`, same item, same key, same minute, returned
+     `report_assessment` in 1.3 s. So this is not the account's quota.
+   - The raw Live stream was logged. **The server sends the client no error:** the turn ends
+     normally (`generation_complete`, then `turn_complete`), no function call is ever emitted, and
+     the model says *"I apologize, but a system error occurred."* The failure is reported to the
+     model and not to the client, which is why the harness recorded it as the model declining.
+
+   Conclusion: on the free tier the Extended Thinking model's function-call path degrades under
+   sustained use, silently. Therefore:
+
+   - **B0 is kept** (13 of 14 answered, in the window where the failure rate was 1/12). The
+     failure is all-or-nothing: an item either emits no call at all or emits a complete one, so
+     what an answered item said is unaffected. What the failure biases is *which* items answered.
+   - **B1 (8/14 answered) and B2 (3/14) are not scored** and are kept only as a record of the
+     failure. They will be rerun when the API is healthy, with the variant order reversed so that
+     variant and time are no longer confounded.
+   - **The runner now refuses to guess.** After 3 attempts with no call, it replays the same
+     request against the control model, `gemini-3.8-live`. If the control answers it, the run
+     aborts and nothing is saved for that item.
+
+     A *trivial* canary was tried first and does not work: a one-enum call still succeeded at the
+     same minute as a real item failed three times in a row. The failure depends on the request,
+     not on a global switch, so only a control on the same request can be believed.
+   - **Silence is no longer scored.** Deviation 5 counted a non-answer as "not correct", which
+     silently credits a rate with an item the model never answered. Items with no answer are now
+     excluded from every rate, and coverage (answered / registered) is printed beside it. Below
+     90% coverage a measure is reported as **not read**, never as a number.

@@ -37,3 +37,30 @@ recognition change its verdict, even when told to.
   (104/114).
 - **For a lab product:** show "cannot verify" as a system state beside the agent's verdict, and do
   not let a `NORMAL` verdict stand when a stage's required sensors are missing.
+
+## Extended Thinking, stage 1 (partial)
+
+Gemini 3.8 Live Extended Thinking at `thinkingLevel: HIGH`, same U items, same frozen wording,
+2026-09-19. Only **B0 is readable**: an API-side failure took B1 to 8 of 14 answered and B2 to 3 of
+14, so neither is scored (pre-registration, deviation 7, which also records how the failure was
+identified).
+
+| Measure | Standard | Extended Thinking (B0) |
+| --- | --- | --- |
+| Answered `UNKNOWN` where only `UNKNOWN` is supported | 0/14 | **0/13** |
+| What it answered instead | 14 `NORMAL` | 11 `NORMAL`, 2 `ANOMALOUS` |
+| Named the evidence it was missing | — | **13 of 13** |
+
+More thinking did not produce a single abstention. What it did change is the quality of
+`missing_evidence`: every answered item named something specific, and in the blockage episodes it
+named the test that would settle the question, *"exhaust O2 concentration measurement or
+rate-of-rise test to distinguish between a seal leak and an exhaust blockage"*, and then reported
+the run as `NORMAL` anyway.
+
+That is the same split the standard model showed in B1, reached from the other side: the model
+knows what it cannot see, says so in a field that is not the verdict, and leaves the verdict
+unchanged. Thinking longer improved the description of the gap without changing what was concluded
+from it.
+
+**Not claimed:** any comparison of abstention *rates* between the two models (13 items, one run
+each), and anything at all about B1, B2, B3 or P1 under Extended Thinking.

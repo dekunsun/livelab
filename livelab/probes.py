@@ -51,6 +51,43 @@ REGIME_WORDS = {"lpcvd": "a low-pressure CVD run (a few Torr, pumped)",
 P1_INSTRUCTION = ("You are an expert in monitoring chemical vapor deposition (CVD) runs in a single-zone tube furnace "
                   "growing MoS2 on SiO2/Si. Answer the question by calling the function provided.")
 
+# On 2026-09-19 the Extended Thinking model's function-call path degraded over a run: no call was
+# emitted, the server told the client nothing, and the model said "a system error occurred". That
+# is indistinguishable, from the client, from a model declining to answer.
+#
+# A trivial canary does not catch it: a one-enum call still succeeded at the same minute as a real
+# item failed three times, because the failure depends on the request (a 5k-token prefix and the
+# full report_assessment schema), not on a global switch. The control therefore replays the SAME
+# request against the standard Live model, which is what separated the two by hand
+# (pre-registration, deviation 7).
+CONTROL_MODEL = "gemini-3.8-live"
+CANARY_TOOL = {
+    "name": "canary", "behavior": "BLOCKING",
+    "description": "Acknowledge this message.",
+    "parameters": {"type": "object", "properties": {"ok": {"type": "string", "enum": ["yes"]}}, "required": ["ok"]},
+}
+CANARY_INSTRUCTION = "Call the canary function with ok=yes. Say nothing else."
+
+
+async def calls_come_back(connect, instruction, tools, required, text, model_id=CONTROL_MODEL,
+                          thinking_level=None, patience=240):
+    """Does this model emit the required calls for this request? Only whether, never what."""
+    import asyncio
+    try:
+        res = await asyncio.wait_for(
+            run_single_turn(connect, instruction, tools, required, text, max_reminders=1,
+                            model_id=model_id, thinking_level=thinking_level, patience=patience),
+            patience + 120)
+    except Exception:       # noqa: BLE001 - any failure here means the path cannot be shown to work
+        return False
+    return not [r for r in required if r not in {c["name"] for c in res["calls"]}]
+
+
+async def call_path_healthy(connect, model_id=CONTROL_MODEL, thinking_level=None, patience=60):
+    """Can this model make any function call at all? Catches a total outage, not a per-request one."""
+    return await calls_come_back(connect, CANARY_INSTRUCTION, [CANARY_TOOL], ["canary"], "Call canary now.",
+                                 model_id, thinking_level, patience)
+
 
 def variant_setup(variant):
     """(system instruction, tools, required tool names) for an in-context variant."""
@@ -97,7 +134,7 @@ def p1_setup(item):
 
 
 async def run_single_turn(connect, instruction, tools, required, text, seed=0, max_reminders=2, model_id="gemini-3.8-live",
-                          thinking_level=None):
+                          thinking_level=None, patience=240):
     """One Live session, one user turn; returns every function call made, what was said, and usage."""
     from google.genai import types
     config = types.LiveConnectConfig(response_modalities=["AUDIO"], system_instruction=instruction,
@@ -116,7 +153,7 @@ async def run_single_turn(connect, instruction, tools, required, text, seed=0, m
             stream = session.receive().__aiter__()
             while True:
                 try:
-                    left = started + 240 - asyncio.get_running_loop().time()
+                    left = started + patience - asyncio.get_running_loop().time()
                     wait = (left if left > 1 else 120.0) if async_only(model_id) else None
                     msg = await asyncio.wait_for(stream.__anext__(), wait)
                 except (StopAsyncIteration, asyncio.TimeoutError):
@@ -143,7 +180,7 @@ async def run_single_turn(connect, instruction, tools, required, text, seed=0, m
             missing = [r for r in required if r not in {c["name"] for c in calls}]
             if not missing or reminders >= max_reminders:
                 break
-            if busy or (async_only(model_id) and asyncio.get_running_loop().time() - started < 240):
+            if busy or (async_only(model_id) and asyncio.get_running_loop().time() - started < patience):
                 continue            # async model may still be reasoning: keep listening, never interrupt
             reminders += 1
             await session.send_client_content(
@@ -158,19 +195,31 @@ def last_args(result, name):
     return found[-1] if found else None
 
 
+def answered(results):
+    """Drop items with no answer: silence is excluded from every rate, never counted as a choice.
+
+    A missing answer can be the model declining or the API's function-call path failing, and the
+    two are indistinguishable from the client (pre-registration, deviation 7). Coverage is reported
+    beside each rate so that a measure computed on few items cannot be mistaken for a full one."""
+    return {v: {i: d for i, d in items.items() if not (d.get("unanswered") or d.get("no_answer"))}
+            for v, items in results.items()}
+
+
 def score(items, results):
     """Registered measures. `results[variant][item_id]` is a run_single_turn result."""
     abstain = {"UNKNOWN", "CANNOT_VERIFY"}
     out = {}
     ctx = items["in_context"]
+    saved, results = results, answered(results)
     for variant in ("B0", "B1", "B2", "B3"):
         res = results.get(variant, {})
-        m = {}
+        m = {"coverage": {}}
         for s, want in (("U", "abstain"), ("N", "abstain"), ("A", "ANOMALOUS")):
             got = [(last_args(res[i["item_id"]], "report_assessment") or {}).get("execution_state")
                    for i in ctx if i["set"] == s and i["item_id"] in res]
             hits = sum((g in abstain) if want == "abstain" else (g == "ANOMALOUS") for g in got)
             m[{"U": "abstention_on_U", "N": "over_abstention_on_N", "A": "detection_on_A"}[s]] = (hits, len(got))
+            m["coverage"][s] = (len(got), sum(i["set"] == s for i in ctx))   # answered / registered
         if variant == "B1":
             u = [i for i in ctx if i["set"] == "U" and i["item_id"] in res]
             conflate = sum(((last_args(res[i["item_id"]], "report_verifiability") or {}).get("atmosphere") == "cannot_verify"
@@ -185,6 +234,7 @@ def score(items, results):
                                                == i["truth_verifiability"][c] for i, c in cells), len(cells))
         out[variant] = m
     res = results.get("P1", {})
+    out.setdefault("P1", {})["coverage"] = (len(res), len(items["p1"]))       # answered / registered
     for kind, key in (("detectable", "detectable"), ("distinguishable", "distinguishable")):
         its = [i for i in items["p1"] if i["kind"] == kind and i["item_id"] in res]
         fn = "answer_detectability" if kind == "detectable" else "answer_distinguishability"

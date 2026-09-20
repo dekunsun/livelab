@@ -15,6 +15,38 @@ results from before each fix are kept in `results/` and `docs/pilot/`.
 | The truth rule itself was wrong three times: too few reference runs (4.5% false positives), blind to within-run drift, and missing sustained moderate departures | Mock observers raising "premature" alarms that were actually justified; declared expectations failing | The ground-truth rule is a model too. Calibrate it on normal runs only, before any model runs, and test it |
 | Scorer bugs: first-action quality mixed timing with quality; `none` was counted as an abstention; arms that never see the image were asked to judge it | Some by mock observers, some only by real model data | Validating metrics on mock observers catches a lot, but not everything. Real data exposes cases you did not imagine |
 | Different seeds gave identical reports on 57 of 58 events | Comparing two pilot runs | Repeating a replay mostly re-samples the same answer. Variance has to come from the evidence (episode variants), which also saved free-tier quota |
+| A non-answer was scored as "the model did not abstain". It was an API failure: no function call, no error to the client, and the model saying *"a system error occurred"* | Only by rerunning an item that had answered 5 hours earlier | **Silence is not an answer.** A missing answer must be excluded and reported as coverage, never counted as a choice the model made |
+
+### The failure that nearly became a finding
+
+On 2026-09-19, the Extended Thinking stage collected 42 items over six hours. The share with no
+answer rose 1/12 → 2/12 → 6/12 → 9/12 across the run. Because the variants ran in order (B0, then
+B1, then B2), the obvious reading was about the variants: B1 asks for two calls, B2 adds a
+definition, so the harder formats fail. Both readings were wrong, and either would have been
+published as a fact about the model.
+
+Three cheap checks settled it after the run:
+
+| Check | Result |
+| --- | --- |
+| Rerun an item that **had** answered, 5 hours later | failed 3 times out of 3 |
+| The same item on the **standard** model, same key, same minute | answered in 1.3 s |
+| Log every raw message instead of the calls only | no error is ever sent to the client |
+
+Lessons:
+
+1. **When a rate changes over a run, suspect the clock before the condition.** Variant order was
+   time order, so the two were confounded by construction. Randomising or reversing the order is
+   nearly free and would have made this visible immediately.
+2. **Hold out one condition you already know the answer to.** An item that answered earlier is the
+   cheapest possible control, and it was sitting in the results directory the whole time.
+3. **A trivial canary proves nothing.** The first fix was a one-enum call; it succeeded at the same
+   minute a real item failed three times. A control has to carry the same load as the thing it
+   vouches for, so the runner now replays the *same request* against the control model.
+4. **Log what the server sends, not only what you parse.** The harness recorded calls and
+   transcription. The failure lived in the gap between them, and stayed invisible for six hours.
+   `scripts/diagnose_live_stream.py` now prints the whole stream; both logs are in
+   `results/diagnostics/`.
 
 ## B. Contract ambiguity vs real model behaviour
 
@@ -63,6 +95,7 @@ model:
 | A report landed on the next event | Reasoning continues in the background; `turn_complete` does not mean idle | Send the next event only after this event's own report |
 | 10-minute stalls | Sometimes no `turn_complete` follows a report | Wait at most 30 s after a report |
 | Reasoning never finished; no answer | **The harness's reminders interrupted it.** The docs say a new client message interrupts generation; the consequence was missed | No reminder for 240 s; never save a harness-caused non-answer |
+| No function call at all, for hours, with no error | The model's function-call path degraded under sustained use on the free tier. The server reports this to the model, not to the client | Replay the same request against the control model before recording anything; abort the run if the control answers |
 
 Lessons:
 
@@ -74,6 +107,9 @@ Lessons:
 3. **Measure before planning.** The smoke test measured about 14 s per event and about 1.7k tokens
    of context growth per event at HIGH thinking. That showed a full benchmark run would take 9+
    hours and approach the context limit, so the plan changed to a staged probe first.
+4. **A second model is a test instrument.** The standard Live model was not in this run's design at
+   all, yet running one request through it is what separated a broken API from a model that will
+   not abstain.
 
 ## E. Cost structure shapes the design
 

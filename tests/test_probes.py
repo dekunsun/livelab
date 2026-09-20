@@ -3,6 +3,8 @@ import asyncio
 import json
 from types import SimpleNamespace as NS
 
+import pytest
+
 from livelab.probes import (B2_DEFINITION, SINGLE_TURN, p1_message, prefix_message, run_single_turn, score,
                             variant_setup)
 from livelab.prompting import SYSTEM_INSTRUCTION
@@ -127,14 +129,56 @@ def test_single_turn_ends_once_required_calls_are_in():
     assert [c["name"] for c in res["calls"]] == ["answer_detectability"]
 
 
-def test_three_non_answers_are_saved_as_no_answer(tmp_path):
+def test_a_broken_call_path_aborts_instead_of_recording_a_non_answer(tmp_path):
+    """Deviation 7: silence from a broken API must never be saved as the model declining."""
     import scripts.run_probes as rp
     rp.RETRY_WAIT_S = 0
 
-    class Silent:
+    class SilentEverywhere:            # answers nothing, not even the canary
         def __call__(self, cfg):
+            return connect_to(FakeSession([[msg(done=True)]] * 4))(cfg)
+    with pytest.raises(SystemExit) as e:
+        asyncio.run(rp.main(connect=SilentEverywhere(), out_root=tmp_path, argv=["--only", "P1", "--limit", "1"]))
+    assert "canary" in str(e.value)
+    assert list(tmp_path.glob("*/*.json")) == []
+
+
+def test_silence_while_the_control_model_answers_aborts(tmp_path):
+    """The failure that this catches: the model under test emits no call, the control model does."""
+    import scripts.run_probes as rp
+    rp.RETRY_WAIT_S = 0
+
+    def answers(cfg):
+        names = [fd.name for fd in cfg.tools[0].function_declarations]
+        args = {"answer_detectability": {"detectable": "yes"}, "answer_distinguishability": {"distinguishable": "yes"}}
+        return connect_to(FakeSession([[msg([(n, args[n]) for n in names]), msg(done=True)]]))(cfg)
+
+    rp.PATIENCE_S = 0          # the fake model has nothing to reason about
+
+    class Mute(FakeSession):
+        async def receive(self):
+            yield msg(done=True)
+    with pytest.raises(SystemExit) as e:
+        asyncio.run(rp.main(connect=lambda cfg: connect_to(Mute([]))(cfg), control_connect=answers, out_root=tmp_path,
+                            argv=["--backend", "gemini-extended", "--only", "P1", "--limit", "1"]))
+    assert "answered the same request" in str(e.value)
+    assert list(tmp_path.glob("*/*.json")) == []
+
+
+def test_a_working_call_path_records_the_non_answer_and_excludes_it(tmp_path):
+    import scripts.run_probes as rp
+    rp.RETRY_WAIT_S = 0
+
+    class SilentButCanaryWorks:
+        def __call__(self, cfg):
+            names = [fd.name for fd in cfg.tools[0].function_declarations]
+            if names == ["canary"]:
+                return connect_to(FakeSession([[msg([("canary", {"ok": "yes"})]), msg(done=True)]]))(cfg)
             return connect_to(FakeSession([[msg(done=True)]] * 3))(cfg)
-    asyncio.run(rp.main(connect=Silent(), out_root=tmp_path, argv=["--only", "P1", "--limit", "1"]))
+    asyncio.run(rp.main(connect=SilentButCanaryWorks(), out_root=tmp_path, argv=["--only", "P1", "--limit", "1"]))
     [f] = list(tmp_path.glob("P1/*.json"))
     d = json.loads(f.read_text())
-    assert d["no_answer"] is True and d["calls"] == [] and len(d["attempts_spoken"]) == 3
+    assert d["unanswered"] is True and d["calls"] == []
+    # and it is excluded from the rate, not counted as a wrong answer
+    s = score(ITEMS, {"P1": {d["item_id"]: d}})
+    assert s["P1"]["coverage"] == (0, len(ITEMS["p1"])) and s["P1"]["detectable"]["accuracy"] == (0, 0)

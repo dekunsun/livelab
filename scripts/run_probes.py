@@ -14,12 +14,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from livelab.backends import load_dotenv  # noqa: E402
-from livelab.probes import (PROBE_VERSION, p1_message, p1_setup, prefix_message, run_single_turn,  # noqa: E402
-                            variant_setup)
+from livelab.probes import (CONTROL_MODEL, PROBE_VERSION, call_path_healthy, calls_come_back,  # noqa: E402
+                            p1_message, p1_setup, prefix_message, run_single_turn, variant_setup)
 
 MODELS = {"gemini": "gemini-3.8-live", "gemini-extended": "gemini-3.8-live-extended-thinking"}
 VARIANTS = ["P1", "B0", "B1", "B2", "B3"]
 RETRY_WAIT_S = 30
+PATIENCE_S = 240        # how long an async model may reason before a reminder interrupts it
 
 
 def real_connect(model):
@@ -46,7 +47,7 @@ def jobs(items, only, sets=None):
                 yield v, it["item_id"], (*variant_setup(v), prefix_message(it["replay_id"], it["k"]))
 
 
-async def main(connect=None, out_root=None, argv=None):
+async def main(connect=None, out_root=None, argv=None, control_connect=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", nargs="*", choices=VARIANTS)
     ap.add_argument("--limit", type=int, help="at most this many items per variant (smoke test)")
@@ -54,9 +55,12 @@ async def main(connect=None, out_root=None, argv=None):
     ap.add_argument("--sets", nargs="*", choices=["U", "N", "A"], help="in-context item sets to run (default: all)")
     args = ap.parse_args(argv)
     model = MODELS[args.backend]
+    thinking = "HIGH" if "extended" in model else None
     out_root = out_root or ROOT / "results" / "probes" / model
     items = json.load(open(ROOT / "data/probes/items.json"))
-    connect = connect or real_connect(model)
+    if connect is None:
+        connect = real_connect(model)
+        control_connect = control_connect or real_connect(CONTROL_MODEL)
     per_variant, failures = {}, 0
     for v, item_id, (instruction, tools, required, text) in jobs(items, args.only, args.sets):
         if args.limit and per_variant.get(v, 0) >= args.limit:
@@ -69,7 +73,7 @@ async def main(connect=None, out_root=None, argv=None):
         for attempt in range(3):
             try:
                 got = await asyncio.wait_for(run_single_turn(connect, instruction, tools, required, text, model_id=model,
-                                                             thinking_level="HIGH" if "extended" in model else None), 600)
+                                                             thinking_level=thinking, patience=PATIENCE_S), 600)
             except Exception as exc:  # noqa: BLE001 - free-tier transient errors; retry the whole item
                 print(f"{v} {item_id} attempt {attempt + 1} failed: {type(exc).__name__}: {str(exc)[:120]}")
                 await asyncio.sleep(RETRY_WAIT_S * (attempt + 1))
@@ -81,18 +85,34 @@ async def main(connect=None, out_root=None, argv=None):
             res = got
             break
         if res is None and len(unanswered) == 3:
-            # The model declined to answer on every attempt: that is its behaviour, so it is saved and
-            # scored as a non-answer (never as correct), with what it said.
-            res = dict(unanswered[-1], no_answer=True, attempts_spoken=[u["spoken"] for u in unanswered])
+            # Three silent attempts mean either the model declined or the API's function-call path is
+            # broken for this request, and from here those look identical (pre-registration,
+            # deviation 7). Replay the same request against the control model before recording
+            # anything about the model under test.
+            if model != CONTROL_MODEL:
+                path_broken = await calls_come_back(control_connect, instruction, tools, required, text,
+                                                      patience=PATIENCE_S)
+                why = f"but {CONTROL_MODEL} answered the same request"
+            else:                          # no second model to compare with: catch a total outage
+                path_broken = not await call_path_healthy(connect, model, thinking)
+                why = "and the canary could not make a call either"
+            if path_broken:
+                sys.exit(f"{v} {item_id}: no function call in 3 attempts, {why}.\n"
+                         "The function-call path is broken, so silence here says nothing about the model's\n"
+                         "judgment. Nothing was saved for this item; rerun when the API is healthy.")
+            # Neither model could answer this request: recorded, and excluded from every rate, with
+            # what the model under test said.
+            res = dict(unanswered[-1], unanswered=True, control_answered=False,
+                       attempts_spoken=[u["spoken"] for u in unanswered])
         if res is None:
             failures += 1
             continue
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps({"probe_version": PROBE_VERSION, "model": model,
-                                   "thinking_level": "HIGH" if "extended" in model else None, "variant": v,
+                                   "thinking_level": thinking, "variant": v,
                                    "item_id": item_id, **res}, indent=1))
         names = [c["name"] for c in res["calls"]]
-        print(f"{v} {item_id}: {names} reminders={res['reminders']}" + ("  (no answer on 3 attempts)" if res.get("no_answer") else ""))
+        print(f"{v} {item_id}: {names} reminders={res['reminders']}" + ("  (NO ANSWER on 3 attempts; excluded)" if res.get("unanswered") else ""))
     print(f"done; {failures} item(s) failed and can be retried by rerunning the same command")
 
 
