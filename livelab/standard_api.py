@@ -12,6 +12,7 @@ fixed enum, and up to a few turns so a variant that wants two calls can make the
 import asyncio
 import json
 import os
+import ssl
 import urllib.error
 import urllib.request
 
@@ -20,6 +21,23 @@ ANTHROPIC_VERSION = "2023-06-01"
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 MAX_TOKENS = 1024
 TIMEOUT_S = 120
+
+
+def _ssl_context():
+    """python.org builds on macOS ship no CA bundle, so urllib cannot verify anything by default.
+
+    certifi comes with the HTTP stack the Gemini client already uses, which is why those calls
+    worked and these did not. Verification is never disabled - an unverified request to a provider
+    carrying an API key is not a trade worth making.
+    """
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
+_CTX = _ssl_context()
 
 
 class ApiError(RuntimeError):
@@ -80,7 +98,7 @@ def _post(url, headers, body):
     req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=headers,
                                  method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
+        with urllib.request.urlopen(req, timeout=TIMEOUT_S, context=_CTX) as r:
             return json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
         raise ApiError(e.code, e.read().decode(errors="replace")) from None

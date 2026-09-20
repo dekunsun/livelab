@@ -8,6 +8,7 @@ Each answer is saved to results/probes/<model>/<variant>/<item_id>.json as soon 
 import argparse
 import asyncio
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -17,8 +18,16 @@ sys.path.insert(0, str(ROOT))
 from livelab.backends import load_dotenv  # noqa: E402
 from livelab.probes import (CONTROL_MODEL, PROBE_VERSION, call_path_healthy, calls_come_back,  # noqa: E402
                             p1_message, p1_setup, prefix_message, run_single_turn, variant_setup)
+from livelab.standard_api import StandardAsker  # noqa: E402
 
-MODELS = {"gemini": "gemini-3.8-live", "gemini-extended": "gemini-3.8-live-extended-thinking"}
+MODELS = {"gemini": "gemini-3.8-live", "gemini-extended": "gemini-3.8-live-extended-thinking",
+          "opus-5": "claude-opus-5", "sonnet-5": "claude-sonnet-5", "astra": "gpt-6-astra",
+          "sol": "gpt-5.6-sol"}
+# Request/response providers, and the cheaper model on the same provider that acts as the control
+# when a request comes back silent (docs/crossmodel_preregistration.md).
+PROVIDER = {"claude-opus-5": "anthropic", "claude-sonnet-5": "anthropic",
+            "gpt-6-astra": "openai", "gpt-5.6-sol": "openai"}
+CONTROL_FOR = {"anthropic": "claude-haiku-4-5-20251001", "openai": "gpt-5.6-luna"}
 VARIANTS = ["P1", "B0", "B1", "B2", "B3"]
 RETRY_WAIT_S = 30
 PATIENCE_S = 240        # how long an async model may reason before a reminder interrupts it
@@ -29,6 +38,9 @@ async def path_is_broken(model, thinking, connect, control_connect, request):
 
     The free-tier Extended Thinking model's call path degrades with use and recovers when idle, and
     the server reports the failure to the model, not to the client (deviation 7)."""
+    if model in PROVIDER:                       # a second model on the same provider
+        got = await control_connect(*request)
+        return not [r for r in request[2] if r not in {c["name"] for c in got["calls"]}]
     if model != CONTROL_MODEL:
         return await calls_come_back(control_connect, *request, patience=PATIENCE_S)
     return not await call_path_healthy(connect, model, thinking)     # no second model to compare with
@@ -75,7 +87,16 @@ async def main(connect=None, out_root=None, argv=None, control_connect=None):
     thinking = "HIGH" if "extended" in model else None
     out_root = out_root or ROOT / "results" / "probes" / model
     items = json.load(open(ROOT / "data/probes/items.json"))
-    if connect is None:
+    if connect is None and model in PROVIDER:
+        load_dotenv()
+        provider = PROVIDER[model]
+        env = "ANTHROPIC_API_KEY" if provider == "anthropic" else "OPENAI_API_KEY"
+        if not os.environ.get(env):
+            sys.exit(f"Set {env} in livelab/.env (never commit it).")
+        asker = StandardAsker(provider, model)
+        connect = asker                         # takes (instruction, tools, required, text)
+        control_connect = control_connect or StandardAsker(provider, CONTROL_FOR[provider])
+    elif connect is None:
         connect = real_connect(model)
         control_connect = control_connect or real_connect(CONTROL_MODEL)
     per_variant, failures = {}, 0
@@ -90,8 +111,10 @@ async def main(connect=None, out_root=None, argv=None, control_connect=None):
         while res is None:
             for attempt in range(1 if cooldowns else 3):
                 try:
-                    got = await asyncio.wait_for(run_single_turn(connect, instruction, tools, required, text, model_id=model,
-                                                                 thinking_level=thinking, patience=PATIENCE_S), 600)
+                    call = (connect(instruction, tools, required, text) if model in PROVIDER else
+                            run_single_turn(connect, instruction, tools, required, text, model_id=model,
+                                            thinking_level=thinking, patience=PATIENCE_S))
+                    got = await asyncio.wait_for(call, 600)
                 except Exception as exc:  # noqa: BLE001 - free-tier transient errors; retry the whole item
                     print(f"{v} {item_id} attempt {attempt + 1} failed: {type(exc).__name__}: {str(exc)[:120]}", flush=True)
                     await asyncio.sleep(RETRY_WAIT_S * (attempt + 1))
@@ -122,6 +145,11 @@ async def main(connect=None, out_root=None, argv=None, control_connect=None):
             failures += 1
             continue
         out.parent.mkdir(parents=True, exist_ok=True)
+        sample = Path(out_root) / "request_sample.json"
+        if model in PROVIDER and not sample.exists() and getattr(connect, "last_request", None):
+            # the parity evidence the registration asks for: what this model was actually sent
+            sample.write_text(json.dumps({"model": model, "variant": v, "item_id": item_id,
+                                          "request": connect.last_request}, indent=1))
         out.write_text(json.dumps({"probe_version": PROBE_VERSION, "model": model,
                                    "thinking_level": thinking, "variant": v,
                                    "item_id": item_id, **res}, indent=1))
