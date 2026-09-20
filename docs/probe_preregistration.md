@@ -212,8 +212,9 @@ ran.
      failure. They will be rerun when the API is healthy, with the variant order reversed so that
      variant and time are no longer confounded.
    - **The runner now refuses to guess.** After 3 attempts with no call, it replays the same
-     request against the control model, `gemini-3.8-live`. If the control answers it, the run
-     aborts and nothing is saved for that item.
+     request against the control model, `gemini-3.8-live`. If the control answers it, nothing is
+     recorded for that item: the runner idles (`--cooldown`, 20 minutes by default), tries the
+     item once more, and gives up only after `--max-cooldowns` cycles.
 
      A *trivial* canary was tried first and does not work: a one-enum call still succeeded at the
      same minute as a real item failed three times in a row. The failure depends on the request,
@@ -222,3 +223,32 @@ ran.
      silently credits a rate with an item the model never answered. Items with no answer are now
      excluded from every rate, and coverage (answered / registered) is printed beside it. Below
      90% coverage a measure is reported as **not read**, never as a number.
+
+   ### What is measured here, and what is only a hypothesis
+
+   Added 2026-09-19 at 22:40, before the rerun, because the entry above is an observation and the
+   rest of this section is an inference drawn from outside the API. A pre-registration is the
+   place to keep the two apart.
+
+   **Measured, on the rerun.** The health check passed; the first item answered; the second
+   emitted no call on 3 attempts while the control answered the same request; a health check 15
+   minutes later failed again. The path therefore recovers while idle and breaks again within an
+   item or two, so "wait until it is healthy, then collect 14 items" cannot work.
+
+   **Hypothesis, not established: this is a token-metered quota, not a broken code path.**
+
+   - A trivial 30-token call succeeded in the same minute a 5,800-token item failed 3 times out of
+     3. A per-request limit cannot produce that; a per-token one can.
+   - The control model is unaffected at the same minute, which fits per-model budgets.
+   - The failure rate rose monotonically across a six-hour run, which fits a long-window budget
+     draining.
+   - It recovers after an idle hour, which fits a bucket refilling.
+   - Extended Thinking spends several times the tokens per item, because thinking tokens count.
+
+   **Registered test, to run once the quota has recovered and before the hypothesis is stated
+   anywhere as fact.** Same tool schema and same instruction, with the prefix cut from 25 events
+   to 3. Short succeeds while long fails → token-metered. Both fail → the trivial canary's success
+   has some other cause, such as schema size, and this hypothesis is wrong.
+
+   Either way it changes nothing about what is scored: coverage governs that, and the mechanism
+   does not enter any measure.
