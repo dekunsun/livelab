@@ -143,7 +143,14 @@ roughly 11k tokens each; the whole study is a few hundred thousand tokens. **Cap
 
 ## Deviations log
 
-1. **The glimpsed rule is new, and is scoped to this study (2026-09-20, found while implementing,
+1. **Results, for the record (2026-09-20).** Pr2 and Pr3 hold; **Pr1 and Pr4 do not**. Detection at
+   5 s reached 67% (Gemini) and 50% (Opus 5) against a registered bar of 80%, and prompt tokens per
+   event *fell* with event count (273 → 139 → 101) rather than rising. Pr4 was wrong by my own
+   construction: the items are single turns precisely so that context does not accumulate, and I
+   predicted the accumulating-context curve anyway. Both failures are in the same direction as the
+   cross-model study's: I expected effects to be stronger than they are.
+   [Results](results/undersampling_results.md).
+2. **The glimpsed rule is new, and is scoped to this study (2026-09-20, found while implementing,
    before any episode was written).** The text above first claimed the existing truth already
    produced `UNKNOWN` for a single unconfirmed excursion. It does not: the benchmark's rule requires
    two consecutive deviating samples and otherwise reports `NORMAL`. The rule is therefore stated
