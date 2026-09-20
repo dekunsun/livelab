@@ -175,4 +175,17 @@ model that reasons at length bills those tokens as output.
 
 ## Deviations log
 
-None yet. Entries are added here, with dates and reasons, as they happen.
+1. **gpt-6-astra runs on `/v1/responses`, not `/v1/chat/completions` (2026-09-20, before its
+   items ran).** That endpoint refuses function tools for this model unless `reasoning_effort` is
+   set to `"none"`. Setting it would have compared a reasoning-disabled model against Opus 5 at its
+   own default, which this file forbids, so the other endpoint is used and the model keeps its
+   default. Request and response shapes were read from one real call, not guessed.
+2. **Astra's B1 was collected twice (2026-09-20, no data from the first pass was kept).** The first
+   pass echoed only the model's `function_call` items back into the next turn, dropping the
+   `reasoning` item that produced them, which the API rejects. It failed on exactly the items where
+   the model happened to reason — a biased sample, not a random one — so all 38 items were
+   collected again after the fix. The failed attempts raised errors rather than returning silence,
+   so no record was written for them; the coverage rule would have withheld the arm in any case.
+3. **Results, for the record:** all four models answer 0 of 55 U items under B0. Pr1, Pr2 and Pr4
+   are met; **Pr3 is not** — Astra carries "cannot verify" into its verdict on 10 of 12 items,
+   where the other three carry it on 0 of 12. [Results](results/crossmodel_results.md).

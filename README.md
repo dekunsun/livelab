@@ -28,16 +28,28 @@ in DeepMind's Gemini paper) and reported its judgment every two simulated minute
    - **Option bias:** renaming and reordering the enum moved it 0 of 14.
 
    What remains: asked separately, it said *"atmosphere cannot be verified"* on 12 of 14 such items,
-   then reported the run as **NORMAL on all 12**.
-   - **Thinking longer:** Gemini 3.8 Live Extended Thinking, at HIGH, abstained **0 of 41** times
-     under three of the same framings. It named the missing evidence more precisely, including the
-     test that would settle the question, and then committed anyway.
+   then reported the run as **NORMAL on all 12**. Thinking longer changes nothing: Extended
+   Thinking at HIGH abstained **0 of 41** under three of the same framings, naming the missing
+   evidence more precisely each time and committing anyway.
+4. **Under the benchmark's contract this is universal; the remedy is not.** A
+   [registered cross-model study](docs/crossmodel_preregistration.md) put the same items to Claude
+   Opus 5 and GPT-6 Astra:
 
-   Across both models, **97 answers** on items where only `UNKNOWN` is supported, **0 abstentions**.
+   | Abstention where only `UNKNOWN` is supported | Gemini 3.8 Live | + Extended Thinking | Opus 5 | GPT-6 Astra |
+   | --- | --- | --- | --- | --- |
+   | the benchmark's own wording | 0/14 | 0/13 | **0/14** | **0/14** |
+   | one sentence defining when to answer `UNKNOWN` | 0/14 | 0/14 | **13/14** | **14/14** |
 
-**Implication:** "cannot verify" has to be a system state, computed from which sensors are
-installed and what each stage needs, or asked as its own question. It cannot be left to the
-model's verdict.
+   **0 of 55 under the contract as written, in every model.** One added sentence then moves two
+   families and not the third. Asked as its own question, all four say *"atmosphere cannot be
+   verified"* on exactly the same 12 of 14 items — and three of them commit to a verdict anyway on
+   12 of 12, while Astra carries it through on 10 of 12.
+   [Full results](docs/results/crossmodel_results.md).
+
+**Implication:** models perceive the gap alike and differ in whether their verdict is allowed to
+depend on it. So "cannot verify" has to be a system state, computed from which sensors are
+installed and what each stage needs, or asked as its own question — on Gemini because nothing else
+works, and everywhere else because a sentence in a prompt is not a guarantee.
 
 ### Which half of the thesis this tests
 

@@ -155,4 +155,26 @@ def test_responses_two_calls_echo_the_call_and_its_output():
     assert [c["name"] for c in res["calls"]] == ["report_verifiability", "report_assessment"]
     kinds = [i.get("type") or i.get("role") for i in seen[1]["input"]]
     assert kinds == ["user", "function_call", "function_call_output"]
+    # the whole output is echoed, reasoning items included, or the API rejects the call
+    assert seen[1]["input"][1] is not None
     assert seen[1]["tool_choice"] == {"type": "function", "name": "report_assessment"}
+
+
+def test_responses_echoes_reasoning_items_too():
+    """A function_call echoed without the reasoning item that produced it is rejected by the API."""
+    _, tools, required = variant_setup("B1")
+    seen = []
+
+    def post(url, headers, body):
+        seen.append(body)
+        if len(seen) == 1:
+            r = r_reply([("report_verifiability", {"atmosphere": "cannot_verify",
+                                                   "temperature": "verified", "gas_flow": "verified"})])
+            r["output"].insert(0, {"id": "rs_1", "type": "reasoning", "summary": []})
+            return r
+        return r_reply([("report_assessment", {"execution_state": "NORMAL"})])
+
+    asyncio.run(StandardAsker("openai_responses", "gpt-6-astra", key="k", post=post)(
+        "sys", tools, required, "events"))
+    assert [i.get("type") or i.get("role") for i in seen[1]["input"]] == \
+        ["user", "reasoning", "function_call", "function_call_output"]

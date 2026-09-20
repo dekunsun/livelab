@@ -190,7 +190,9 @@ def _assistant_turn(provider, response, calls):
     if provider == "anthropic":
         return [{"role": "assistant", "content": response.get("content") or []}]
     if provider == "openai_responses":
-        return [c["raw"] for c in calls if c.get("raw")]
+        # Every item, in order: a function_call echoed without the reasoning item that produced it
+        # is rejected, and picking items apart is how that happened once already.
+        return list(response.get("output") or [])
     return [(response.get("choices") or [{}])[0].get("message") or {}]
 
 
