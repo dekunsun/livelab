@@ -193,7 +193,9 @@ About 129 items × 2 models ≈ 258 calls at roughly 3k tokens each. **Cap: US$1
    reboiler at 330 °C under a column at 60–90 °C would be broken. A heater at 330 °C is ordinary.
 
    **What it affects.** Across the three models, the answers calling a fault-free run anomalous
-   cite a heater temperature in 12 of 12 (Opus 5), 37 of 37 (GPT-6 Astra) and 3 of 8 (Gemini).
+   cite a heater temperature in 11 of 12 (Opus 5), 37 of 37 (GPT-6 Astra) and 0 of 8 (Gemini).
+   (Corrected the same day. The first count, published briefly as 12, 37 and 3, matched `FT704`,
+   the reflux flow, as the heater `T704`; the pattern now requires a word boundary.)
    Evidence lists name several channels, so citing is not proof of cause. But the false-alert
    rates reported for this study (22%, 32%, 100%) cannot be read as the difficulty of real data;
    they are at least partly the cost of a wrong description. The same holds for detection on Full,

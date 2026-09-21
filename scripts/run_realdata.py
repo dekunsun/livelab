@@ -13,11 +13,14 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from livelab.backends import load_dotenv  # noqa: E402
 from livelab.probes import run_single_turn, variant_setup  # noqa: E402
-from livelab.realdata_prompt import SYSTEM_INSTRUCTION  # noqa: E402
+from livelab.realdata_prompt import SYSTEM_INSTRUCTION_V1, SYSTEM_INSTRUCTION_V2  # noqa: E402
 from livelab.standard_api import StandardAsker  # noqa: E402
 from scripts.run_probes import MODELS, PATIENCE_S, PROVIDER, real_connect  # noqa: E402
 
 RETRY_WAIT_S = 20
+# v1 is what the original study used, and writes where it always did; v2 is the corrected legend
+# (docs/realdata_v2_preregistration.md) and writes beside it, never over it.
+LEGENDS = {"v1": (SYSTEM_INSTRUCTION_V1, "realdata"), "v2": (SYSTEM_INSTRUCTION_V2, "realdata_v2")}
 
 
 async def main(argv=None):
@@ -25,10 +28,12 @@ async def main(argv=None):
     ap.add_argument("--backend", default="opus-5", choices=sorted(MODELS))
     ap.add_argument("--limit", type=int)
     ap.add_argument("--condition", nargs="*", choices=["full", "blind", "control"])
+    ap.add_argument("--legend", default="v1", choices=sorted(LEGENDS))
     args = ap.parse_args(argv)
     model = MODELS[args.backend]
     thinking = "HIGH" if "extended" in model else None
-    out_root = ROOT / "results" / "realdata" / model
+    instruction, results_dir = LEGENDS[args.legend]
+    out_root = ROOT / "results" / results_dir / model
     items = json.load(open(ROOT / "data/realdata/items.json"))["items"]
     if args.condition:
         items = [i for i in items if i["condition"] in args.condition]
@@ -58,7 +63,7 @@ async def main(argv=None):
         for attempt in range(3):
             try:
                 res = await asyncio.wait_for(
-                    ask(SYSTEM_INSTRUCTION, tools, required, it["prefix"]), 600)
+                    ask(instruction, tools, required, it["prefix"]), 600)
             except Exception as exc:  # noqa: BLE001
                 print(f"{key} attempt {attempt + 1} failed: {type(exc).__name__}: {str(exc)[:100]}",
                       flush=True)
@@ -75,7 +80,7 @@ async def main(argv=None):
             continue
         a = [c["args"] for c in res["calls"] if c["name"] == "report_assessment"][-1]
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps({"model": model, **{k: it[k] for k in
+        out.write_text(json.dumps({"model": model, "legend": args.legend, **{k: it[k] for k in
                                    ("experiment", "condition", "supported", "observing_sensor",
                                     "anomaly_label", "decision_time")},
                                    "removed": it.get("removed"), "calls": res["calls"],

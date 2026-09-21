@@ -60,3 +60,12 @@ def test_every_instrument_in_the_items_is_described():
 def test_the_old_legend_is_the_one_that_was_published():
     assert "along the column, reboiler to condenser" in rp.LEGEND_V1
     assert "FT703 reflux flow" in flat(rp.LEGEND_V1)
+
+
+def test_the_heater_pattern_does_not_match_the_reflux_flow():
+    """A first count matched FT704 (a flow) as T704 (a heater), and was published for an hour."""
+    from scripts.score_realdata import HEATER
+    for tag in ("T701", "T702", "T704", "T706", "T708"):
+        assert HEATER.search(f'"channel": "{tag}"'), tag
+    for tag in ("FT704", "T703", "T705", "T709", "T711", "T712", "FT703"):
+        assert not HEATER.search(f'"channel": "{tag}"'), tag
