@@ -91,15 +91,19 @@ repository's dataset README:
   list is paginated.
 - **How the "faults" arise.** During each print, flow rate (20–200%), lateral speed (20–200%),
   Z offset (−0.08 to 0.32 mm) and hotend temperature were resampled at random every 150 images,
-  about once a minute. Truth is therefore the setpoint, known exactly, not an annotator's
-  judgement.
-- **A built-in timescale.** The authors drop 15 images, about 6 s, after each change, "due to a
-  combination of software and mechanical delays" before the change is visible. That is a measured
-  lag between a command and its appearance on camera.
+  about once a minute. The logged setpoint is exact, but it is the answer to only one question:
+  *can the setting be read back from the picture?* Whether the deposit was actually defective
+  needs its own annotation, and whether a defect was caused by that setting needs more again.
+  *(Corrected the same day: this first said "truth is therefore the setpoint".)*
+- **A processing rule, not a measurement.** The authors drop 15 images, about 6 s, after each
+  change, "due to a combination of software and mechanical delays". That is how they cleaned the
+  data. It does not show that any given change becomes visible at 6 s.
 - **What the telemetry can and cannot show.** Hotend temperature is measured by a thermistor,
   so a hotend fault is visible in telemetry. Flow rate and Z offset are commanded values with no
-  sensor behind them. Withhold them and the camera is the only witness. That gives all four cells
-  of the information-structure design: telemetry-only, camera-only, both, and neither.
+  sensor behind them. Withholding them removes that field from the model's input. It does not by
+  itself show that the picture is enough to judge from. A normal control and an unobservable fault
+  are different cells, and a small setting change that stays normal belongs to neither.
+  *(Corrected: this first claimed all four cells of the information-structure design.)*
 - **Caveats stated by the authors.** Z offset is the noisiest label, and values below 0.08 mm
   include mislabels. Prints 183–191 contain large-scale failures or poor lighting and were excluded
   from their training. Those may be the closest thing here to real, unplanned failures.
@@ -134,5 +138,30 @@ matching the repository's MD5 checksums, kept under the gitignored `data/externa
 **What this means for the camera-only design.** The cell exists, but its signal may be too
 subtle in a single frame for a general model. A study built on this data should use the
 **extreme settings** (flow near 20% or near 200%, Z offset near its top), **sequences** rather
-than single frames, and a first check that a person can tell the conditions apart. Otherwise a
-null result would say more about the footage than about the model.
+than single frames, and a first, blind check that a person can tell the conditions apart. If
+people can and a model cannot, that is the model's limit on this task. Only if no reliable
+reference judgement can be made does the study fail to locate the model's ability.
+*(Corrected: this first said a null "would say more about the footage than about the model".)*
+
+### A third reading, and what it adds (2026-09-21)
+
+An independent audit ran the same checks further. It downloaded prints 76 and 190 as well,
+matched each against the repository's MD5, and counted the full archive at **56.52 GB** across 198
+files. It also opened the Lin et al. PDMS dataset and the KIT perovskite in-situ imaging dataset
+(Zenodo 7503391, CC BY 4.0). Checked again here: the 56.52 GB total, the sizes of prints 183–191
+(0.97 to 814 MB), and print 190's first frame.
+
+- **Print 190 is the strongest camera-only candidate in CAXTON.** Its log reads nominal on every
+  field: flow 100%, speed 100%, Z offset 0, hotend 204.65 °C against 205 °C. The frame shows a
+  large blob of material wrapped round the nozzle, with strings hanging from it. The log does not
+  show that. But the clip is 9 s long and the blob is there from the first frame, so it tests
+  visual recognition, not early warning. It is not an expert-confirmed fault label either.
+- **The PDMS images were set aside too quickly.** They are stills without telemetry, and so
+  useless for timing. But they show states a camera sees directly: a missing container, one
+  knocked over, an uncapped tube, a spill. And **63 identical images are labelled normal under one
+  task step and abnormal under another.** For example, a clear liquid is normal when the check is
+  "is the capped tube present" and abnormal when it is "does it hold coloured liquid". That is the
+  cleanest public test found of whether a model joins what it sees to what the protocol requires.
+  Splits must keep each image, and near-duplicates, on one side, and the answer-bearing fields
+  must never reach the prompt.
+
