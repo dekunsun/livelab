@@ -14,13 +14,27 @@ without an answer.
 
 ## Results
 
-| | Gemini 3.8 Live | Claude Opus 5 |
-| --- | --- | --- |
-| Detection on Full | 20/31 (65%) | 22/31 (71%) |
-| **Abstention on Blind** | **0/31 (0%)** | **4/31 (13%)** |
-| Over-abstention on Control | 0/37 | 0/37 |
-| **Called a fault-free run ANOMALOUS** | **8/37 (22%)** | **12/37 (32%)** |
-| Detection gap, Full − Blind | 6 points | 13 points |
+| | Gemini 3.8 Live | Claude Opus 5 | GPT-6 Astra* |
+| --- | --- | --- | --- |
+| Detection on Full | 20/31 (65%) | 22/31 (71%) | **30/31 (97%)** |
+| **Abstention on Blind** | **0/31 (0%)** | **4/31 (13%)** | **3/31 (10%)** |
+| Over-abstention on Control | 0/37 | 0/37 | 0/37 |
+| **Called a fault-free run ANOMALOUS** | **8/37 (22%)** | **12/37 (32%)** | **37/37 (100%)** |
+| Detection gap, Full − Blind | 6 points | 13 points | 10 points |
+
+\* an unregistered extension, added after the two registered models were scored
+(deviation 3). Its numbers are reported beside them and are not part of Pr1–Pr4.
+
+### The control is the whole point of the control
+
+Astra detects 97% of the real anomalies — the best number on this page, by a distance — and it
+called **every one of the 37 fault-free runs anomalous**. Across all 99 items it answered
+`ANOMALOUS` 94 times. It is not detecting; it is alarming.
+
+Reported without its guard, that 97% would have made Astra look like the strongest observer here,
+and the ranking would have been exactly backwards. This is what the N and A controls have been for
+in every study in this project, and it is the first time one of them has caught something this
+large.
 
 ## The registered predictions
 
