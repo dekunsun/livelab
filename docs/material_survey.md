@@ -110,3 +110,29 @@ What it cannot stand in for: these are deliberate parameter perturbations on a p
 failures in a scientific experiment. The benchmark can use it to answer *when a camera carries
 information telemetry does not*, and *whether a model uses it*. The lab-specific claim still
 needs lab footage, and AEGIS is the one to watch for that.
+
+### CAXTON, one print downloaded and looked at (2026-09-21)
+
+`print0.zip` (163.84 MB) and `caxton_dataset_filtered_no_outliers.csv` (116.12 MB), both
+matching the repository's MD5 checksums, kept under the gitignored `data/external/caxton/`.
+
+- **3,086 images in print0, 24 minutes of printing.** The measured capture interval is **0.46 s**
+  (about 2.2 Hz; the paper states 2.5 Hz) and very steady. Parameters change about every 150
+  images, roughly 69 s.
+- **The raw log carries glitches.** Z offset reads −2.32 or −2.54 mm for one to four images at a
+  time, far outside the stated range. These are the "incorrectly stored" values the filtered files
+  remove, so any use of this data has to filter the same way.
+- **Whether the picture carries the answer to a human eye: weakly, in single frames.** On a
+  contact sheet cropped around the nozzle, the way the authors crop, a speed change is obvious
+  (motion blur). A flow change is not obvious, even 36% against 100% at steady state. Frames are
+  dark, often blurred, and sometimes catch the nozzle between features. The information is there,
+  since the authors' network reaches 84% average accuracy, but that network needed about a
+  million training images. That judgement is the author's, who is not an expert in extrusion
+  printing, and it is exactly what an independent description of each frame, without the answer,
+  should test before any model is scored.
+
+**What this means for the camera-only design.** The cell exists, but its signal may be too
+subtle in a single frame for a general model. A study built on this data should use the
+**extreme settings** (flow near 20% or near 200%, Z offset near its top), **sequences** rather
+than single frames, and a first check that a person can tell the conditions apart. Otherwise a
+null result would say more about the footage than about the model.
