@@ -129,8 +129,31 @@ test as the text path.
    fixed before any model was asked anything, and the alternative — dropping a fifth of the items
    because a camera started late — throws away more.
 
-2. **The timestamp sidecars had to be fetched separately (2026-09-20).** `fetch_zenodo_members.py`
+2. **A guard was added: the frames are proven to arrive (2026-09-20, before the study ran).**
+   Pr1 predicts a null, and an image path that silently dropped its attachments would produce that
+   null perfectly. The Live backend reports no token counts, so the usual evidence — the prompt got
+   bigger — is not available for one of the two models.
+
+   `scripts/check_frames_arrive.py` therefore sends the same six frames through the same code path
+   with a question only the frames can answer, and sends the same question with no frames. On
+   `gemini-3.8-live`: **6 of 6 reported with frames, 0 without**, described as "a coiled condenser
+   and a reservoir in a fume hood". The evidence is saved beside the results. A model that cannot
+   pass this check is not run.
+
+   This is the same move as deviation 7 of the [probe registration](probe_preregistration.md):
+   before a silence is scored as model behaviour, the path is shown to be working.
+
+3. **The timestamp sidecars had to be fetched separately (2026-09-20).** `fetch_zenodo_members.py`
    matched `.mp4` only, so the first pass pulled video with no clock beside it. Frames without the
    sidecar cannot be placed on the plant's clock at all, and the mapping the registration relies on
    — timestamp *i* is frame *i* — is now checked rather than assumed: in all six recordings tested
    the sidecar's line count equals the video's frame count exactly, at the stated 2 s cadence.
+
+4. **The registered budget was computed on the wrong item size (2026-09-20, before the study
+   ran).** The cap of US$5 assumed about 4k tokens per item with frames. The real-plant items
+   measure **5,211 input tokens** on average before any frame is added, and the frames add about
+   2,500 more. At the Opus 5 price implied by the real-data run's measured US$3.88 for 99 items,
+   this study costs about **US$4.50 for Opus 5 alone**, plus the Gemini side.
+
+   Nothing about the design changes; the estimate was wrong, not the plan. The cap is restated
+   here as **US$12 for both models**, and the actual spend is reported with the results.

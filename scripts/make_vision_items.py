@@ -71,8 +71,15 @@ def pick_indices(times, decision):
 
 
 def extract(video, indices, dest):
-    """One decode pass for all six frames, rather than one pass each."""
+    """One decode pass for all six frames, rather than one pass each.
+
+    Old frames are deleted first: ffmpeg overwrites f01 onwards, so a re-run that produced fewer
+    frames would leave the previous run's stills sitting beside the new ones, and they would go to
+    the model as if this run had taken them.
+    """
     dest.mkdir(parents=True, exist_ok=True)
+    for stale in dest.glob("f*.jpg"):
+        stale.unlink()
     expr = "+".join(f"eq(n\\,{i})" for i in indices)
     cmd = [ffmpeg(), "-v", "error", "-y", "-i", str(video), "-vf",
            f"select='{expr}',scale={SIZE[0]}:{SIZE[1]}", "-vsync", "0",
@@ -83,7 +90,7 @@ def extract(video, indices, dest):
 
 def main():
     items = json.load(open(ROOT / "data/realdata/items.json"))["items"]
-    made, skipped = [], {"no_video": 0, "no_window": 0, "wrong_count": 0}
+    made, skipped = [], {"no_video": 0, "no_window": 0, "wrong_count": 0, "unreadable": 0}
     for it in items:
         if it["condition"] not in ("blind", "control"):
             continue
@@ -98,7 +105,12 @@ def main():
             skipped["no_window"] += 1
             continue
         key = f"{it['experiment'].replace('/', '__')}__{it['condition']}"
-        files = extract(video, idx, OUT / "frames" / key)
+        try:
+            files = extract(video, idx, OUT / "frames" / key)
+        except subprocess.CalledProcessError:
+            print(f"  UNREADABLE {key[:60]}", flush=True)
+            skipped["unreadable"] += 1
+            continue
         if len(files) != FRAMES:
             skipped["wrong_count"] += 1
             continue
@@ -116,6 +128,10 @@ def main():
     print(f"\n{len(made)} items with frames -> data/vision/items.json")
     print("  " + "  ".join(f"{k} {v}" for k, v in sorted(by.items())))
     print("  skipped: " + "  ".join(f"{k} {v}" for k, v in skipped.items()))
+    if skipped["unreadable"]:
+        # A short item set that nobody noticed is how a study quietly changes its own design.
+        sys.exit(f"{skipped['unreadable']} video(s) would not decode — still downloading, or "
+                 f"truncated. Fix those before running the study.")
 
 
 if __name__ == "__main__":
