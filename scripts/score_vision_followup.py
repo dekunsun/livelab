@@ -101,7 +101,11 @@ def main(argv=None):
                   "registration fixed as the bar.", ""]
 
     out = ROOT / "docs/results/vision_followup_results.md"
-    out.write_text("\n".join(lines) + "\n")
+    # The reading below the generated tables is written by hand; regenerating keeps it.
+    kept = ""
+    if out.exists() and "\n## Reading" in out.read_text():
+        kept = out.read_text()[out.read_text().index("\n## Reading") + 1:]
+    out.write_text("\n".join(lines) + "\n" + kept)
     print("\n".join(lines))
 
 

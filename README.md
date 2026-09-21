@@ -38,8 +38,12 @@ Three things sharpen it:
 - **A camera does not fix it.** With the plant's own camera added to the blind items, neither
   model said `UNKNOWN` more often. Gemini ignored the frames. Opus 5 called more runs anomalous
   with them: **+21 points** on blind items and **+38 points on fault-free runs**. Every changed
-  verdict went towards `ANOMALOUS`.
-  [Camera results](docs/results/vision_results.md)
+  verdict went towards `ANOMALOUS`. A registered follow-up found what the frames were doing, and it
+  was not showing anything. Photographs of a *different* normal run produced almost the same
+  shift. The sentence announcing a camera, with nothing attached, produced about half of it. Every
+  false alert, in every arm, rests on one telemetry reading that the camera cue tips over the line.
+  [Camera results](docs/results/vision_results.md) ·
+  [follow-up](docs/results/vision_followup_results.md)
 
 ![What three models answered on a real plant, by condition](docs/figures/realdata.png)
 
@@ -65,6 +69,7 @@ the predictions I lost — are in the same file.
 | Undersampling | Is observability set by the model or the sampling rate? | [registered](docs/undersampling_preregistration.md) | [by the sampling rate](docs/results/undersampling_results.md) |
 | Real plant | Does any of it survive real data? | [registered](docs/realdata_preregistration.md) | [yes, and it prices the simulator](docs/results/realdata_results.md) |
 | Camera | With an instrument group gone, does the plant's camera put it back? | [registered](docs/vision_preregistration.md) | [no: one model ignores it, one alarms at it](docs/results/vision_results.md) |
+| Camera follow-up | Was it the photographs, or the sentence announcing them? | [registered](docs/vision_followup_preregistration.md) | [half the words, half any photograph; not what they show](docs/results/vision_followup_results.md) |
 
 Detection and context effects, which the first study measures, are in
 [arm comparison](docs/results/arm_comparison.md): reference curves take detection from **0.50 to
@@ -145,12 +150,11 @@ reference curves) and **C-full** (+ micrographs).
   detection and false-alert numbers on this page as an upper bound on real-world behaviour. The
   abstention result is the one that carried across
   ([replication](docs/results/realdata_results.md)).
-- **The camera study cannot separate the photographs from the sentence that announces them.**
-  The frames arm adds six images *and* one line saying they are attached, so Opus 5's shift towards
-  `ANOMALOUS` may come from being told there is a camera. Two arms would separate the two causes:
-  the sentence with no images, and frames from a different run of the same plant. Neither has been
-  run. It is also one camera view and six frames per item
-  ([registration](docs/vision_preregistration.md)).
+- **The camera results are one model's behaviour on one plant.** The follow-up that explains
+  Opus 5's shift ran on Opus 5 only, with one camera view, six frames and one wording of the
+  announcement. That the camera "adds alarm, not information" is measured for that setting, not
+  claimed for cameras in general
+  ([follow-up registration](docs/vision_followup_preregistration.md)).
 - **Images are real; their pairing with a run is not.** See `data/images/manifest.csv` and
   `data/images/ATTRIBUTION.md`.
 - **The micrograph labels are not verified, and nothing rests on them.** A model assigned each
