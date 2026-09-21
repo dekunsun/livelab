@@ -158,8 +158,14 @@ def main():
     failed = []
     for i, name in enumerate(picked, 1):
         dest = out / Path(name).relative_to(Path(name).parts[0])
-        if dest.exists():
+        want = zf.getinfo(name).file_size
+        if dest.exists() and dest.stat().st_size == want:
             continue
+        if dest.exists():
+            # Existing is not the same as complete: a fetch killed before .part was introduced
+            # left a 100 MB file of 120 MB under the final name, and it would have decoded.
+            print(f"  [{i}/{len(picked)}] truncated ({dest.stat().st_size:,} of {want:,} bytes); "
+                  f"fetching again: {dest.relative_to(out)}", flush=True)
         dest.parent.mkdir(parents=True, exist_ok=True)
         part = dest.with_name(dest.name + ".part")     # an interrupted fetch must not look complete
         try:
