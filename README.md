@@ -46,6 +46,14 @@ in DeepMind's Gemini paper) and reported its judgment every two simulated minute
    12 of 12, while Astra carries it through on 10 of 12.
    [Full results](docs/results/crossmodel_results.md).
 
+5. **It replicates on a real plant.** The same question was put to 119 runs of a real batch
+   distillation column ([Zenodo 17395543](https://doi.org/10.5281/zenodo.17395543), CC BY, expert
+   annotations as truth). With the instrument group that carried the evidence removed, abstention
+   was **0 of 31** (Gemini) and **4 of 31** (Opus 5), and removing it moved the verdict by 6 and 13
+   points. The same runs also show what the simulator hides: on fault-free real runs these models
+   call an anomaly **22%** and **32%** of the time, against **0.00** in the simulator's full arm.
+   [Full results](docs/results/realdata_results.md).
+
 **Implication:** models perceive the gap alike and differ in whether their verdict is allowed to
 depend on it. So "cannot verify" has to be a system state, computed from which sensors are
 installed and what each stage needs, or asked as its own question — on Gemini because nothing else
@@ -114,6 +122,13 @@ reference curves) and **C-full** (+ micrographs).
 - **No safety claim.** An LLM is not a safety system; hard interlocks are.
 - **Telemetry dynamics are author-constructed.** Fault *types* cite published incidents
   (DeepMind arXiv 2608.26701; Anthropic MHS), but the curve shapes are the author's.
+- **The simulator flatters the models, and by how much is now measured.** Its reference bands come
+  from 100 normal runs of an identical process, which a real plant does not have. On real data the
+  same models score **0.65–0.71** detection against **0.90** here, and call a fault-free run
+  anomalous **22–32%** of the time against a false-alert rate of **0.00** in the full arm. Read the
+  detection and false-alert numbers on this page as an upper bound on real-world behaviour. The
+  abstention result is the one that carried across
+  ([replication](docs/results/realdata_results.md)).
 - **Images are real; their pairing with a run is not.** See `data/images/manifest.csv` and
   `data/images/ATTRIBUTION.md`.
 - **The micrograph labels are not verified, and nothing rests on them.** A model assigned each
