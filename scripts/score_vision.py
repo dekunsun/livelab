@@ -39,7 +39,9 @@ def points(hit, n):
 
 def main():
     root = ROOT / "results/vision"
-    models = sorted(p.name for p in root.glob("*") if p.is_dir()) if root.exists() else []
+    # a model is a folder holding the two arms; frames_arrived/ beside them is gate evidence
+    models = sorted(p.name for p in root.glob("*")
+                    if all((p / a).is_dir() for a in ARMS)) if root.exists() else []
     if not models:
         sys.exit("nothing to score yet: run scripts/run_vision.py first")
     registered = {it["item_id"]: it
