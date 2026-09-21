@@ -54,7 +54,7 @@ Three things sharpen it:
   [Camera results](docs/results/vision_results.md) ·
   [follow-up](docs/results/vision_followup_results.md)
 
-![What three models answered on a real plant, by condition](docs/figures/realdata.png)
+![What three models answered on a real plant, by condition, before and after correcting the instrument description](docs/figures/realdata.png)
 
 The figure is also why this benchmark carries control arms. On the real plant GPT-6 Astra detects
 **30 of 31** anomalies, the best number here — and calls **all 37** fault-free runs anomalous too.
@@ -109,7 +109,7 @@ can see, and real in-run imagery of them**, and the project's hard rule is that 
 must be real, never generated. That is the blocker, and
 [docs/design.md](docs/design.md) carries the design that would answer it.
 
-![What three models answered on a real plant, by condition](docs/figures/realdata.png)
+![What three models answered on a real plant, by condition, before and after correcting the instrument description](docs/figures/realdata.png)
 ![Detection, false alert and unsupported certainty per arm](docs/figures/arms.png)
 ![Answers at events where only UNKNOWN is supported](docs/figures/unknown.png)
 ![Pre-registered probe](docs/figures/probe.png)

@@ -189,41 +189,48 @@ CONDITIONS = [("full", "ANOMALOUS", "Full evidence"),
 
 
 def fig_realdata():
-    """What each model answered on a real plant, by condition. The control panel is the point."""
+    """What each model answered on a real plant, by condition, under both instrument legends.
+
+    V1 is the original run, whose legend described the instruments wrongly; V2 is the registered
+    rerun with it corrected (docs/realdata_v2_preregistration.md). Faded bars are V1, solid V2.
+    """
     rows = collections.defaultdict(lambda: collections.defaultdict(collections.Counter))
-    for model, _ in REAL_MODELS:
-        for f in (ROOT / "results/transients").parent.glob(f"realdata/{model}/*.json"):
-            d = json.loads(f.read_text())
-            said = [c["args"] for c in d["calls"] if c["name"] == "report_assessment"][-1]
-            rows[model][d["condition"]][said.get("execution_state")] += 1
+    for legend, folder in (("v1", "realdata"), ("v2", "realdata_v2")):
+        for model, _ in REAL_MODELS:
+            for f in (ROOT / "results" / folder / model).glob("*.json"):
+                d = json.loads(f.read_text())
+                said = [c["args"] for c in d["calls"] if c["name"] == "report_assessment"][-1]
+                rows[(model, legend)][d["condition"]][said.get("execution_state")] += 1
     if not rows:
         return
 
-    fig, axes = plt.subplots(1, 3, figsize=(11, 4.1), sharey=True)
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4.4), sharey=True)
     order = ["ANOMALOUS", "NORMAL", "UNKNOWN"]
+    width = 0.34
     for ax, (cond, correct, title) in zip(axes, CONDITIONS):
         for i, (model, label) in enumerate(REAL_MODELS):
-            counts = rows[model][cond]
-            total = sum(counts.values()) or 1
-            bottom = 0
-            for verdict in order:
-                v = counts.get(verdict, 0)
-                if not v:
-                    continue
-                share = v / total * 100
-                ax.bar(i, share, bottom=bottom, color=VERDICT_COLORS[verdict], width=0.62,
-                       edgecolor="white", linewidth=0.8,
-                       label=verdict if (ax is axes[0] and bottom == 0 or verdict not in
-                                         [t.get_label() for t in ax.containers]) else None)
-                if share >= 9:
-                    ax.text(i, bottom + share / 2, f"{v}", ha="center", va="center",
-                            color="white", fontsize=9, weight="bold")
-                bottom += share
-            ax.text(i, 103, f"{counts.get(correct, 0)}/{total}", ha="center", fontsize=8.5,
-                    color=VERDICT_COLORS[correct])
+            for legend, dx, alpha in (("v1", -0.19, 0.38), ("v2", 0.19, 1.0)):
+                counts = rows[(model, legend)][cond]
+                total = sum(counts.values()) or 1
+                bottom = 0
+                for verdict in order:
+                    v = counts.get(verdict, 0)
+                    if not v:
+                        continue
+                    share = v / total * 100
+                    ax.bar(i + dx, share, bottom=bottom, color=VERDICT_COLORS[verdict], alpha=alpha,
+                           width=width, edgecolor="white", linewidth=0.8)
+                    if share >= 12 and legend == "v2":
+                        ax.text(i + dx, bottom + share / 2, f"{v}", ha="center", va="center",
+                                color="white", fontsize=8, weight="bold")
+                    bottom += share
+                ax.text(i + dx, 102, f"{counts.get(correct, 0)}", ha="center", fontsize=8,
+                        color=VERDICT_COLORS[correct], alpha=1.0 if legend == "v2" else 0.6)
+                ax.text(i + dx, -7, legend, ha="center", fontsize=7, color="#777")
         ax.set_xticks(range(len(REAL_MODELS)),
                       [lab.replace(" 3.8", "\n3.8").replace("Claude ", "").replace("GPT-6 ", "GPT-6\n")
                        for _, lab in REAL_MODELS], fontsize=8.5)
+        ax.tick_params(axis="x", pad=14)
         ax.set_ylim(0, 112)
         ax.set_yticks([0, 50, 100], ["0", "50", "100%"])
         ax.set_title(f"{title}\nshould answer {correct}", fontsize=10,
@@ -231,14 +238,18 @@ def fig_realdata():
         style(ax)
     axes[0].set_ylabel("share of items", fontsize=9)
     handles = [plt.Rectangle((0, 0), 1, 1, color=VERDICT_COLORS[v]) for v in order]
-    fig.legend(handles, order, loc="lower center", ncol=3, frameon=False, fontsize=9,
-               bbox_to_anchor=(0.5, 0.055))
-    fig.suptitle("On a real distillation plant: one model detects almost everything, "
-                 "and alarms on everything too", fontsize=11)
+    handles += [plt.Rectangle((0, 0), 1, 1, color="#999", alpha=0.38),
+                plt.Rectangle((0, 0), 1, 1, color="#999")]
+    fig.legend(handles, order + ["v1: instruments described wrongly", "v2: corrected, rerun"],
+               loc="lower center", ncol=5, frameon=False, fontsize=8.5,
+               bbox_to_anchor=(0.5, 0.05))
+    fig.suptitle("On a real distillation plant: correcting the instrument description moved the "
+                 "verdicts, not the abstention", fontsize=11)
     fig.text(0.01, 0.005, "119 runs of a real batch distillation column (Zenodo 17395543, CC BY) \u00b7 "
              "truth from the plant's expert annotations \u00b7 31/31/37 items per condition \u00b7 "
-             "one run per item \u00b7 see docs/results/realdata_results.md", fontsize=7, color="#666")
-    fig.tight_layout(rect=(0, 0.15, 1, 0.9))
+             "one run per item per legend \u00b7 number above a bar = answers matching the supported one",
+             fontsize=7, color="#666")
+    fig.tight_layout(rect=(0, 0.14, 1, 0.95))
     fig.savefig(ROOT / "docs/figures/realdata.png", dpi=160)
 
 
