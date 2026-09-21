@@ -87,9 +87,12 @@ async def main(argv=None):
             a = [c["args"] for c in res["calls"] if c["name"] == "report_assessment"][-1]
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_text(json.dumps({"model": model, "arm": arm,
-                                       **{k: it[k] for k in ("item_id", "condition", "supported",
-                                                             "observing_sensor", "removed_group",
-                                                             "decision_time")},
+                                       # a control item has no removed group; .get keeps the
+                                       # record shape the same across conditions
+                                       **{k: it.get(k) for k in ("item_id", "condition",
+                                                                 "supported", "observing_sensor",
+                                                                 "removed_group", "decision_time",
+                                                                 "frame_span_s")},
                                        "frames": it["frames"] if frames else [],
                                        "calls": res["calls"], "spoken": res["spoken"],
                                        "usage": res["usage"]}, indent=1))
