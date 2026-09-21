@@ -202,3 +202,18 @@ Differences under three items are not interpreted.
      *should* and *missing* are now matched as whole words only.
    - **Transport.** Opus through the standard API, and Gemini through the same single-turn path
      with images as the camera study, which passed the frames-arrive check.
+
+2. **Pilot 2 has 4 nominal clips, not 6 (2026-09-21, before the review).** The rule "every
+   logged setting within 5% of nominal, on frames not seen before registration" leaves print 0 with
+   one stretch, frames 0–48 without 21–22. That has room for **4** non-overlapping 10-frame clips,
+   all from the first minute of the first layer. Six would need either a looser rule or more
+   downloads, and neither is registered, so the pool is 4. With the repeats, the review has **14
+   clips**: 9 flagged (8 plus one repeat) and 5 nominal (4 plus one repeat). Z offset, nominally 0,
+   is held within 0.02 mm, since a percentage of zero means nothing. Clips were chosen by
+   `scripts/make_pilot2_clips.py` from the logs alone, with a fixed seed. The key mapping clips to
+   prints stays out of the repository until the review is done.
+
+3. **The owner's checks for pilot 1 are drawn now (2026-09-21).** Fifteen items and fifteen
+   images were drawn at random with a fixed seed (`results/pilot1/audit_sample.json`). The label
+   check is **blind**. The reviewer sees the image, the step and the check, but not the label, and
+   says whether the check is met. Their answer is compared with the label afterwards.
