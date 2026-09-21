@@ -30,7 +30,7 @@ DATA = ROOT / "data/external/batch_distillation"
 BASE = "https://zenodo.org/api/records/22250958/files"
 ARCHIVES = {"image": "12_Batch_Distillation_Plant_M-202210_Image.zip",
             "audio": "11_Batch_Distillation_Plant_M-202210_Audio.zip"}
-CHUNK = 1 << 20
+CHUNK = 8 << 20        # each range is a fresh HTTPS connection; at 1 MB the handshakes dominated
 TIMEOUT_S = 120        # without this urllib waits on a dead socket forever
 RETRIES = 6
 BACKOFF_S = 5
@@ -129,6 +129,9 @@ def main():
                          "cannot be placed on the plant's clock")
     ap.add_argument("--conditions", nargs="*", default=["blind", "control"],
                     choices=["blind", "control", "full"])
+    ap.add_argument("--shard", default="0/1",
+                    help="k/n: take every n-th member starting at k, so n processes can fetch "
+                         "disjoint sets side by side without writing the same file")
     args = ap.parse_args()
 
     url = f"{BASE}/{ARCHIVES[args.archive]}/content"
@@ -146,6 +149,8 @@ def main():
           f"in phase {args.phase}")
     if args.limit:
         picked = picked[:args.limit]
+    k, n = (int(x) for x in args.shard.split("/"))
+    picked = picked[k::n]
     if args.list:
         for n in picked[:20]:
             print("   ", n, f"{zf.getinfo(n).file_size / 1e6:.1f} MB")
