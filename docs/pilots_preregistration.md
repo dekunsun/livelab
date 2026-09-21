@@ -166,4 +166,28 @@ Differences under three items are not interpreted.
 
 ## Deviations log
 
-None yet.
+1. **Pilot 1: 100 items, not about 80, and the details fixed before any model call
+   (2026-09-21).** Items were chosen by `scripts/make_pdms_items.py` from the annotation text
+   alone. The registered definition gives 30 pairs (60 items) plus 20 context-flip images asked
+   under two steps each (40 items): **100 items on 80 distinct images**. None of the 20 flip images
+   had to be set aside as contradictory, meaning the same step, phase and check with opposite
+   labels. None of the eight images named by the audit was drawn. The ids are committed in
+   `results/pilot1/items.json`.
+
+   Fixed now, before any model is asked:
+
+   - **Answer format.** One tool call, `report_inspection`, with `verdict` NORMAL, ABNORMAL or
+     UNKNOWN and a sentence of `observations`. **Accuracy** counts a verdict equal to the truth;
+     UNKNOWN is never correct, and the UNKNOWN rate is reported beside accuracy. In C0, UNKNOWN is
+     the right answer in spirit, since no picture is given. Pa1 is read on accuracy as registered.
+   - **Instruction.** It is the same in all three conditions except for one sentence about the
+     evidence: "No photograph is available" (C0), "The inspection camera's photograph is attached"
+     (C1), or "A description of the inspection camera's photograph follows, written by someone
+     who was not told what is being checked" (C2).
+   - **The describer** is `claude-opus-5`, given the image and a fixed instruction to list objects,
+     positions and visible states. It is given no task and no step. A description containing a
+     banned word is sent back once for a rewrite and then dropped, and drops are counted. Because
+     Opus is also a model under test, its own C1-against-C2 difference compares its vision under
+     task framing with its vision without it. Gemini's C2 uses Opus's eyes.
+   - **Transport.** Opus through the standard API, and Gemini through the same single-turn path
+     with images as the camera study, which passed the frames-arrive check.
