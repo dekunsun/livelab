@@ -193,3 +193,22 @@ def test_the_distillation_port_changes_nouns_and_not_the_contract():
     ]:
         assert sentence in v4 and sentence in ported, sentence
     assert "furnace" not in ported and "column" in ported
+
+
+def test_frames_reach_every_provider_with_the_same_text_beside_them():
+    """docs/vision_preregistration.md: the frames may be spelled differently, the evidence may not."""
+    from livelab.standard_api import user_turn
+    import base64, tempfile, os
+    fd, path = tempfile.mkstemp(suffix=".jpg")
+    os.write(fd, b"\xff\xd8\xff\xe0jpegbytes")
+    os.close(fd)
+    want = base64.b64encode(b"\xff\xd8\xff\xe0jpegbytes").decode()
+    turns = {p: user_turn(p, "the question", [path, path])
+             for p in ("anthropic", "openai_responses", "openai")}
+    for provider, turn in turns.items():
+        blob = json.dumps(turn)
+        assert blob.count(want) == 2, provider            # both frames, once each
+        assert turn["content"][-1].get("text") == "the question", provider
+        assert len(turn["content"]) == 3, provider        # frames first, then the question
+    assert user_turn("anthropic", "just text") == {"role": "user", "content": "just text"}
+    os.unlink(path)

@@ -10,11 +10,13 @@ Only what the study needs: one system instruction, one user turn, tool/function 
 fixed enum, and up to a few turns so a variant that wants two calls can make them.
 """
 import asyncio
+import base64
 import json
 import os
 import ssl
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
@@ -57,6 +59,27 @@ def schema_of(tool):
     passed through untouched, because that is what parity means here.
     """
     return json.loads(json.dumps(tool["parameters"]))
+
+
+def user_turn(provider, text, images=()):
+    """One user turn carrying text and, when the study calls for them, frames.
+
+    Each provider spells an image differently; what must not differ is the text beside it or the
+    order (frames first, then the question), so the same evidence reaches every model.
+    """
+    if not images:
+        return {"role": "user", "content": text}
+    b64 = [base64.b64encode(Path(p).read_bytes()).decode() for p in images]
+    if provider == "anthropic":
+        parts = [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg",
+                                              "data": d}} for d in b64]
+        return {"role": "user", "content": parts + [{"type": "text", "text": text}]}
+    if provider == "openai_responses":
+        parts = [{"type": "input_image", "image_url": f"data:image/jpeg;base64,{d}"} for d in b64]
+        return {"role": "user", "content": parts + [{"type": "input_text", "text": text}]}
+    parts = [{"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{d}"}}
+             for d in b64]
+    return {"role": "user", "content": parts + [{"type": "text", "text": text}]}
 
 
 def build_request(provider, model, instruction, tools, messages, force_tool=None, **extra):
@@ -206,8 +229,9 @@ class StandardAsker:
         self._post = post
         self.last_request = None          # committed verbatim as the parity evidence
 
-    async def __call__(self, instruction, tools, required, text):
-        calls, spoken, usage, messages = [], "", {}, [{"role": "user", "content": text}]
+    async def __call__(self, instruction, tools, required, text, images=()):
+        calls, spoken, usage = [], "", {}
+        messages = [user_turn(self.provider, text, images)]
         for _ in range(self.max_turns):
             missing = [r for r in required if r not in {c["name"] for c in calls}]
             if not missing:

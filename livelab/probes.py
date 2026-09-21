@@ -134,7 +134,7 @@ def p1_setup(item):
 
 
 async def run_single_turn(connect, instruction, tools, required, text, seed=0, max_reminders=2, model_id="gemini-3.8-live",
-                          thinking_level=None, patience=240):
+                          thinking_level=None, patience=240, images=()):
     """One Live session, one user turn; returns every function call made, what was said, and usage."""
     from google.genai import types
     config = types.LiveConnectConfig(response_modalities=["AUDIO"], system_instruction=instruction,
@@ -148,7 +148,8 @@ async def run_single_turn(connect, instruction, tools, required, text, seed=0, m
     cm = connect(config)
     session = await cm.__aenter__()
     try:
-        await session.send_client_content(turns={"role": "user", "parts": [{"text": text}]}, turn_complete=True)
+        parts = [{"inline_data": {"mime_type": m, "data": b}} for m, b in images] + [{"text": text}]
+        await session.send_client_content(turns={"role": "user", "parts": parts}, turn_complete=True)
         while True:
             stream = session.receive().__aiter__()
             while True:
