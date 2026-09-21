@@ -217,3 +217,13 @@ Differences under three items are not interpreted.
    images were drawn at random with a fixed seed (`results/pilot1/audit_sample.json`). The label
    check is **blind**. The reviewer sees the image, the step and the check, but not the label, and
    says whether the check is met. Their answer is compared with the label afterwards.
+
+4. **Who gives the reference judgements, and a second rater (2026-09-21, before any review).**
+   The reviewer for both pilots is the project owner. They have a background in materials, have
+   not used these instruments, and give their judgements as a non-expert. That is the level the
+   registration asked for: whether a state can be seen *without* expertise. Results will say so
+   and will not be presented as expert annotation. For pilot 1 only, **GPT-6 Astra** (not a model
+   in pilot 1) rates the same 15 labels and 15 descriptions blind, **after** the owner has
+   finished, so the owner never sees its answers. Agreement between the two is reported. A label
+   is marked *uncertain* only where both raters disagree with it. Labels are never changed. No
+   model rates pilot 2's clips, because that pilot asks what a person can see.
