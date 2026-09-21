@@ -47,6 +47,23 @@ Lessons:
    transcription. The failure lived in the gap between them, and stayed invisible for six hours.
    `scripts/diagnose_live_stream.py` now prints the whole stream; both logs are in
    `results/diagnostics/`.
+5. **When the prediction is a null, prove the new input arrives first.** The camera study predicted
+   that frames would change nothing, and an image path that dropped its attachments would have
+   produced that null exactly. The Live backend reports no token counts, so there was no "the
+   prompt got bigger" to check. Each model was sent the frames with a question only the frames
+   could answer, then the same question with none: 6 reported of 6, and 0 of 0. The result turned
+   out not to be null for one model, but the check is what lets either reading stand.
+6. **A file that exists is not a file that finished.** A fetch killed mid-transfer left 100 MB of a
+   120 MB video under its final name, and every later run would have skipped it. Whether that
+   failed loudly depended on where the encoder put the index. Downloads now land as `.part` and are
+   renamed only when complete. A file counts as done only if its size matches the archive's
+   record, and every video's frame count is checked against its timestamp file. That last check
+   found one recording in the source with 92 frames nobody can place in time.
+7. **Watch progress, not only liveness.** A wait loop that asked "is any fetcher alive?" would have
+   reported success with half the control videos missing, because the other fetcher was still
+   running. Twice, a loop that matched processes by name also matched its own command line and
+   would never have ended. The fixes: wait on explicit process ids, and finish with a check of
+   what actually landed.
 
 ## B. Contract ambiguity vs real model behaviour
 
