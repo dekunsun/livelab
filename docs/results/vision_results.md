@@ -120,6 +120,21 @@ reading for a flat result: *"Adding vision does not substitute for an instrument
 - **Neither model** said `UNKNOWN` more often when shown photographs. As everywhere in this
   project, another modality did not make a model say it cannot tell.
 
+### What the changed answers cite
+
+*Descriptive, from the saved answers, checked after scoring
+([vision_flips.md](vision_flips.md), `scripts/explain_vision_flips.py`).*
+
+Of the 15 verdicts the frames turned to `ANOMALOUS`, **14 never mention the photographs.** All 15
+cite the same telemetry channel instead: `T701`, the reboiler temperature, called implausible or a
+faulty sensor. On 13 of those items the answer *without* photographs had cited `T701` too, and
+called it normal. For example, the same reading of 321 to 330 °C is described as a "smooth monotonic
+heat-up" without photographs, and as "wildly inconsistent… a faulty sensor" with them.
+
+So the photographs did not add evidence. They changed how Opus read a number it already had. The
+[follow-up](../vision_followup_preregistration.md) tests whether any photographs do this, or
+only this run's.
+
 ### What this adds to the multimodal question
 
 This is the second measured case where vision did not help the judgment. In the simulated arm,
