@@ -9,6 +9,7 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -58,6 +59,24 @@ async def main(argv=None):
                                          tools, required, text, model_id=model,
                                          patience=PATIENCE_S, images=blobs)
 
+    def save_request_sample(arm):
+        """What this model was actually sent, once per arm, with the image bytes elided.
+
+        The same parity evidence the probes commit. Here it also answers the question a reader
+        of a null result will ask: was anything attached at all, and did the two arms differ in
+        anything besides the frames?
+        """
+        sample = out_root / f"request_sample_{arm}.json"
+        body = getattr(asker, "last_request", None) if model in PROVIDER else None
+        if sample.exists() or not body:
+            return
+        text = json.dumps(body)
+        for blob in re.findall(r'"[A-Za-z0-9+/]{200,}={0,2}"', text):
+            text = text.replace(blob, f'"<{len(blob) - 2} base64 chars elided>"')
+        sample.parent.mkdir(parents=True, exist_ok=True)
+        sample.write_text(json.dumps({"model": model, "arm": arm,
+                                      "request": json.loads(text)}, indent=1))
+
     _, tools, required = variant_setup("B0")
     done = failed = 0
     for n, it in enumerate(items, 1):
@@ -84,6 +103,7 @@ async def main(argv=None):
             if res is None:
                 failed += 1
                 continue
+            save_request_sample(arm)
             a = [c["args"] for c in res["calls"] if c["name"] == "report_assessment"][-1]
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_text(json.dumps({"model": model, "arm": arm,
