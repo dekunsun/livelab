@@ -193,5 +193,12 @@ Differences under three items are not interpreted.
      *unexpected* and *incorrect* are caught along with *expected* and *correct*. A first version
      matched whole words only and let both through; this was caught in a test before any
      description was written.
+   - **Two faults in the describer, found after 20 descriptions and before any model was
+     scored.** The 20 were discarded, and all 80 were rewritten under the corrected rules. First,
+     the instruction set no length, and Opus wrote about 400 words per image. Three calls hit the
+     1,024-token output limit, and the tool call came back with its text cut off. The instruction
+     now asks for at most 120 words, in keeping with the registration's own one-line example.
+     Second, the stem matching above caught *shoulder*, the shoulder of a bottle, as *should*.
+     *should* and *missing* are now matched as whole words only.
    - **Transport.** Opus through the standard API, and Gemini through the same single-turn path
      with images as the camera study, which passed the frames-arrive check.

@@ -53,8 +53,8 @@ DESCRIBE_INSTRUCTION = (
     "Describe what is visible in this photograph of laboratory equipment. List the objects, where "
     "they are, and their visible states: for example open or closed, capped or uncapped, upright "
     "or on its side, empty or holding liquid, and the liquid's colour. Report only what you can "
-    "see. Do not judge whether anything is correct, expected, missing or wrong. Call "
-    "write_description exactly once.")
+    "see. Do not judge whether anything is correct, expected, missing or wrong. Use at most 120 "
+    "words. Call write_description exactly once.")
 DESCRIBE = {
     "name": "write_description",
     "description": "Submit the description of the photograph.",
@@ -62,9 +62,10 @@ DESCRIBE = {
                    "required": ["text"]},
 }
 # Registered: a description using any of these is sent back once, then dropped.
-# Matched anywhere in a word, so "unexpected" and "incorrect" are caught as well.
-BANNED = re.compile(r"\w*(abnormal|anomal|error|wrong|missing|should|fail|correct|normal|expected)\w*",
-                    re.I)
+# Stems are matched inside words, so "unexpected" and "incorrect" are caught. "should" and
+# "missing" are whole words only: as a stem "should" matched "shoulder", a bottle's shoulder.
+BANNED = re.compile(r"\w*(abnormal|anomal|error|wrong|fail|correct|normal|expected)\w*"
+                    r"|\b(should|missing)\b", re.I)
 
 
 def asker_for(backend):
@@ -89,18 +90,26 @@ def asker_for(backend):
     return model, ask, None
 
 
-async def call(ask, *a, **kw):
+async def call(ask, system, tools, required, *a, **kw):
+    """Retry until the required tool comes back with every required field filled.
+
+    A call that names the tool but leaves a required argument out is a failed call, not an
+    answer, and is retried like a transport error. It is not one of the registered rewrites.
+    """
+    need = {t["name"]: t["parameters"]["required"] for t in tools}
     for attempt in range(3):
         try:
-            res = await asyncio.wait_for(ask(*a, **kw), 300)
+            res = await asyncio.wait_for(ask(system, tools, required, *a, **kw), 300)
         except Exception as exc:  # noqa: BLE001
             print(f"    attempt {attempt + 1} failed: {type(exc).__name__}: {str(exc)[:90]}",
                   flush=True)
             await asyncio.sleep(15 * (attempt + 1))
             continue
-        if res["calls"]:
-            return res
-        print(f"    attempt {attempt + 1}: no tool call", flush=True)
+        ok = [c for c in res["calls"] if c["name"] in required
+              and all(c["args"].get(f) not in (None, "") for f in need[c["name"]])]
+        if ok:
+            return res | {"calls": ok}
+        print(f"    attempt {attempt + 1}: no complete tool call", flush=True)
     return None
 
 
