@@ -25,13 +25,36 @@ VISION = ROOT / "data/vision"
 RETRY_WAIT_S = 20
 SEEN = ("\n\nSix photographs of the column, taken by the plant's camera at even intervals across "
         "the same window, are attached in time order.")
+# What each arm sends: (announce the photographs?, whose frames). The follow-up arms are registered
+# in docs/vision_followup_preregistration.md.
+ARMS = {"telemetry": (False, None), "frames": (True, "own"),
+        "sentence": (True, None), "other_frames": (True, "donor")}
+DONOR_SEED = 0
+
+
+def donor_map(items, seed=DONOR_SEED):
+    """item_id -> the control item whose frames it gets in the other_frames arm.
+
+    Footage of a column running normally, never from the item's own experiment. Fixed by a seed and
+    written out before the run, so the assignment cannot be chosen after seeing answers.
+    """
+    import random
+    controls = sorted((i for i in items if i["condition"] == "control"), key=lambda i: i["item_id"])
+    random.Random(seed).shuffle(controls)
+    out = {}
+    for k, it in enumerate(sorted(items, key=lambda i: i["item_id"])):
+        for step in range(len(controls)):
+            donor = controls[(k + step) % len(controls)]
+            if donor["experiment"] != it["experiment"]:
+                out[it["item_id"]] = donor["item_id"]
+                break
+    return out
 
 
 async def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--backend", default="opus-5", choices=sorted(MODELS))
-    ap.add_argument("--arm", nargs="*", default=["telemetry", "frames"],
-                    choices=["telemetry", "frames"])
+    ap.add_argument("--arm", nargs="*", default=["telemetry", "frames"], choices=sorted(ARMS))
     ap.add_argument("--limit", type=int)
     args = ap.parse_args(argv)
     model = MODELS[args.backend]
@@ -47,15 +70,15 @@ async def main(argv=None):
             sys.exit(f"Set {env} in livelab/.env (never commit it).")
         asker = StandardAsker(provider, model)
 
-        async def ask(text, frames):
-            return await asker(SYSTEM_INSTRUCTION + (SEEN if frames else ""), tools, required,
+        async def ask(text, frames, announce):
+            return await asker(SYSTEM_INSTRUCTION + (SEEN if announce else ""), tools, required,
                                text, images=frames)
     else:
         connect = real_connect(model)
 
-        async def ask(text, frames):
+        async def ask(text, frames, announce):
             blobs = [("image/jpeg", Path(f).read_bytes()) for f in frames]
-            return await run_single_turn(connect, SYSTEM_INSTRUCTION + (SEEN if frames else ""),
+            return await run_single_turn(connect, SYSTEM_INSTRUCTION + (SEEN if announce else ""),
                                          tools, required, text, model_id=model,
                                          patience=PATIENCE_S, images=blobs)
 
@@ -78,17 +101,29 @@ async def main(argv=None):
                                       "request": json.loads(text)}, indent=1))
 
     _, tools, required = variant_setup("B0")
+    all_items = json.load(open(VISION / "items.json"))["items"]
+    by_id = {i["item_id"]: i for i in all_items}
+    donors = donor_map(all_items)
+    if "other_frames" in args.arm:
+        record = out_root / "other_frames_donors.json"
+        record.parent.mkdir(parents=True, exist_ok=True)
+        if record.exists() and json.loads(record.read_text()) != donors:
+            sys.exit("the donor assignment differs from the one recorded before the run; refusing")
+        record.write_text(json.dumps(donors, indent=1))
     done = failed = 0
     for n, it in enumerate(items, 1):
         for arm in args.arm:
             out = out_root / arm / f"{it['item_id']}.json"
             if out.exists():
                 continue
-            frames = [str(VISION / f) for f in it["frames"]] if arm == "frames" else []
+            announce, source = ARMS[arm]
+            donor = donors[it["item_id"]] if source == "donor" else None
+            frames = ([str(VISION / f) for f in it["frames"]] if source == "own" else
+                      [str(VISION / f) for f in by_id[donor]["frames"]] if donor else [])
             res = None
             for attempt in range(3):
                 try:
-                    res = await asyncio.wait_for(ask(it["prefix"], frames), 900)
+                    res = await asyncio.wait_for(ask(it["prefix"], frames, announce), 900)
                 except Exception as exc:  # noqa: BLE001
                     print(f"{it['item_id'][:40]} {arm} attempt {attempt + 1} failed: "
                           f"{type(exc).__name__}: {str(exc)[:90]}", flush=True)
@@ -113,7 +148,9 @@ async def main(argv=None):
                                                                  "supported", "observing_sensor",
                                                                  "removed_group", "decision_time",
                                                                  "frame_span_s")},
-                                       "frames": it["frames"] if frames else [],
+                                       "frames": ([str(Path(f).relative_to(VISION))
+                                                   for f in frames]),
+                                       "announced": announce, "donor": donor,
                                        "calls": res["calls"], "spoken": res["spoken"],
                                        "usage": res["usage"]}, indent=1))
             done += 1
