@@ -35,6 +35,11 @@ Three things sharpen it:
 - **It is not about missing sensors specifically.** Give the model a single unexplained reading and
   nothing to confirm it, and abstention is **0 of 6**, in both models tested.
   [Undersampling results](docs/results/undersampling_results.md)
+- **A camera does not fix it.** With the plant's own camera added to the blind items, neither
+  model said `UNKNOWN` more often. Gemini ignored the frames. Opus 5 called more runs anomalous
+  with them: **+21 points** on blind items and **+38 points on fault-free runs**. Every changed
+  verdict went towards `ANOMALOUS`.
+  [Camera results](docs/results/vision_results.md)
 
 ![What three models answered on a real plant, by condition](docs/figures/realdata.png)
 
@@ -59,6 +64,7 @@ the predictions I lost — are in the same file.
 | Cross-model | Is it this family, or frontier models? | [registered](docs/crossmodel_preregistration.md) | [both, differently](docs/results/crossmodel_results.md) |
 | Undersampling | Is observability set by the model or the sampling rate? | [registered](docs/undersampling_preregistration.md) | [by the sampling rate](docs/results/undersampling_results.md) |
 | Real plant | Does any of it survive real data? | [registered](docs/realdata_preregistration.md) | [yes, and it prices the simulator](docs/results/realdata_results.md) |
+| Camera | With an instrument group gone, does the plant's camera put it back? | [registered](docs/vision_preregistration.md) | [no: one model ignores it, one alarms at it](docs/results/vision_results.md) |
 
 Detection and context effects, which the first study measures, are in
 [arm comparison](docs/results/arm_comparison.md): reference curves take detection from **0.50 to
@@ -67,17 +73,20 @@ micrographs — in-run detection comes from context, not from images.
 
 ### Which half of the thesis this tests
 
-The project began from two claims, and it has so far tested only the second.
+The project began from two claims. It has tested the second in full, and the first only in a weaker, practical form.
 
 | | Status |
 | --- | --- |
-| **Physical observability exceeds software observability**, so a lab agent needs eyes as well as telemetry | **Not tested here.** Every replay delivers exactly one image, after the run ends, and all five fault types leave a telemetry signature. Nothing in this benchmark is visible only to a camera, so it cannot show what a camera would add |
+| **Physical observability exceeds software observability**, so a lab agent needs eyes as well as telemetry | **Strong form not tested; weak form tested, and it failed.** No public dataset has faults that only a camera can see ([survey](docs/material_survey.md)), so the strong form is untested. The weak form asks whether a camera covers for a missing instrument. It was tested on 48 real-plant items, and the camera did not help: Gemini ignored it, and Opus 5 alarmed more on faulty and fault-free runs alike ([results](docs/results/vision_results.md)) |
 | **An agent cannot tell "I can't see it" from "nothing is wrong"** | **Tested, and this is the result above.** It holds across two families, seven framings and 97 items |
 
 The second is the first one's precondition: an agent that does not know it is blind will not be
-fixed by giving it eyes — it will report `NORMAL` with the same confidence, now about pixels too.
-But the first claim is the one the words "multimodal" and "live" promise, so it is stated here as
-open rather than implied as done. What it needs is not code: it needs **faults that only a camera
+fixed by giving it eyes — it will report with the same confidence, now about pixels too. That is
+now measured: given the plant's camera, neither model abstained more, and one of them called runs
+faulty more often, whether they were or not.
+
+But the strong form of the first claim is the one the words "multimodal" and "live" promise, so
+it is stated here as open rather than implied as done. What it needs is not code: it needs **faults that only a camera
 can see, and real in-run imagery of them**, and the project's hard rule is that physical imagery
 must be real, never generated. That is the blocker, and
 [docs/design.md](docs/design.md) carries the design that would answer it.
@@ -136,6 +145,12 @@ reference curves) and **C-full** (+ micrographs).
   detection and false-alert numbers on this page as an upper bound on real-world behaviour. The
   abstention result is the one that carried across
   ([replication](docs/results/realdata_results.md)).
+- **The camera study cannot separate the photographs from the sentence that announces them.**
+  The frames arm adds six images *and* one line saying they are attached, so Opus 5's shift towards
+  `ANOMALOUS` may come from being told there is a camera. Two arms would separate the two causes:
+  the sentence with no images, and frames from a different run of the same plant. Neither has been
+  run. It is also one camera view and six frames per item
+  ([registration](docs/vision_preregistration.md)).
 - **Images are real; their pairing with a run is not.** See `data/images/manifest.csv` and
   `data/images/ATTRIBUTION.md`.
 - **The micrograph labels are not verified, and nothing rests on them.** A model assigned each
