@@ -133,9 +133,11 @@ faulty sensor. On 13 of those items the answer *without* photographs had cited `
 called it normal. For example, the same reading of 321 to 330 °C is described as a "smooth monotonic
 heat-up" without photographs, and as "wildly inconsistent… a faulty sensor" with them.
 
-So the photographs did not add evidence. They changed how Opus read a number it already had. The
-[follow-up](../vision_followup_preregistration.md) tests whether any photographs do this, or
-only this run's.
+So the answers give telemetry reasons, not visual ones, while reading the same number differently
+once photographs are attached. A written reason is not proof of what moved the verdict, so this
+does not show the photographs were ignored. *(Corrected 2026-09-21: this first said "the
+photographs did not add evidence".)* The [follow-up](../vision_followup_preregistration.md)
+separates the photographs from the sentence announcing them.
 
 ### What this adds to the multimodal question
 

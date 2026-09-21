@@ -113,4 +113,13 @@ in half of them. **Cap: US$6.**
 
 ## Deviations log
 
-None yet.
+1. **Two parts of this registration were weaker than written (noted 2026-09-21, after the
+   results).** The reading table's second row says that if other runs' photographs do as much as
+   a run's own, "photographs raise suspicion regardless of their content". On fault-free items
+   that inference does not hold. Own and donor footage are both of a normal column and may carry
+   the same diagnostic information, so equal answers are what a model that reads pictures well
+   would also give. The content test lives on the blind items only, where the difference came to
+   2 items. Second, the reasoning paragraph's "the photographs did not supply evidence" rests on
+   the models' written reasons, which are not a record of what moved them. The predictions and
+   scoring stand as registered. What changes is how far the results are read
+   ([results](results/vision_followup_results.md)).

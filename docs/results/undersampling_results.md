@@ -6,6 +6,9 @@ same 20-minute window.
 
 ## The ground truth, before any model is asked
 
+*Onsets and durations were chosen by hand so that every class is populated; the counts
+below describe these twelve episodes, not a rate.*
+
 | Cadence | Events per item | Missed | Glimpsed | Resolved |
 | --- | --- | --- | --- | --- |
 | 120 s | 10 | 6 | 3 | 3 |
@@ -46,27 +49,22 @@ Prompt tokens per item, by events delivered: 10 events 2,728, 40 events 5,548, 2
 | Pr3 | false alerts at 5 s ≤ 2× those at 120 s (gemini-3.8-live) | 0 vs 0 | yes |
 | Pr4 | tokens per event rise with event count (gemini-3.8-live) | not recorded | — |
 
-
 ## What this settles about streaming
 
-This study and the [frame-cost measurement](frame_token_cost.md) answer one question between them,
-and neither answers it alone.
+> **Correction (2026-09-21).** This section first claimed that the cadence at which transients
+> become observable is, within a factor of two, the cadence at which streaming becomes cheaper
+> (a crossover at one frame every 63–108 s, and streaming 12× cheaper at 5 s). **That is
+> withdrawn.** The streaming cost was a flat list price for video input. It left out the per-turn
+> re-billing of accumulated context and the responses, and it was never held to the same answer
+> rate, accuracy or deadline as the per-frame route ([frame cost](frame_token_cost.md)). The two
+> ground-truth counts below are also not rates: the fault onsets were chosen by hand to fill each
+> class, and were not randomised against the sampling grid.
 
-| Cadence | Transients the evidence can support a judgment on | Send frames to Opus 5 | Stream to Gemini Live |
-| --- | --- | --- | --- |
-| every 120 s | **3 of 12** | $0.06 / h | $0.12 / h |
-| every 30 s | 6 of 12 | $0.25 / h | $0.12 / h |
-| every 5 s | **12 of 12** | $1.50 / h | $0.12 / h |
-
-Solving the measured token counts against the published per-minute price puts the crossover at
-**one frame every 63 s** (Opus 5) to **108 s** (Astra). Above that rate, sending frames is cheaper;
-below it, streaming is — by 12× at 5 s and 60× at 1 Hz.
-
-**So "a streaming API is unnecessary" is not a finding about streaming. It is a finding about the
-120-second cadence this benchmark chose** — and that cadence cannot see three quarters of the
-transients. The rate at which seconds-long failures become observable is, to within a factor of
-two, the rate at which streaming becomes the cheaper way to watch. The architecture question and
-the observability question have the same answer because they have the same parameter.
+What survives is the part about observability. **Sampling decides what evidence exists before any
+model is asked.** In these twelve constructed episodes, 3 are resolvable at 120 s and all 12 at
+5 s. How often that happens in a real lab depends on how fault onsets fall against the sampling
+grid, which this study fixed by hand rather than randomised. Which transport is cheapest at a
+given cadence is a separate question, and it is still open.
 
 What this does **not** establish: that a model *uses* the finer cadence well. At 5 s, where every
 transient is resolvable, the models detected 8 of 12 and 6 of 12. Sampling faster makes the

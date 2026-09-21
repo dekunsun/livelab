@@ -327,8 +327,9 @@ def main():
     fig_unknown(arms, unknown)
     fig_probe()
     fig_realdata()
-    fig_crossover()
-    print("wrote arms.png, unknown.png, probe.png, realdata.png, crossover.png")
+    # fig_crossover() is not drawn: its streaming cost was a list price that left out per-turn
+    # re-billing and responses, so the crossover it shows is withdrawn (frame_token_cost.md).
+    print("wrote arms.png, unknown.png, probe.png, realdata.png")
 
 
 if __name__ == "__main__":

@@ -189,3 +189,9 @@ or with themselves. None compared the plant description with the plant.
    channel names as well as things a camera shows, and `T704` sits inside `FT704`. Both counts
    were published or nearly published before a second method disagreed. Both are now pinned by a
    test against exactly that mistake.
+6. **A control has to be able to come out differently.** Swapping one normal run's footage for
+   another's cannot show whether a model reads pictures, because a model that reads them well
+   would answer both alike. The registration read equal answers as "suspicion regardless of
+   content", and so did the write-up, until a review pointed it out. The same review caught the
+   cost comparison: a flat list price for streaming against per-frame requests that answered every
+   frame is two different workloads, not two prices for one.

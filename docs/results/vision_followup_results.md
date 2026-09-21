@@ -56,12 +56,18 @@ On fault-free runs, counted in items out of 29:
 
 - **About half of the shift comes from the words alone.** The sentence with no photographs
   produced 6 of the 11 extra false alerts.
-- **The rest comes from photographs being attached, not from what they show.** Footage of a
-  different run gets to 10. This run's own footage adds 1 more item, which is below the three-item
-  difference this project does not interpret.
+- **Footage of a different normal run gets to 10, and this run's own to 11.** That is 1 item
+  apart, below the three-item rule. *(Corrected 2026-09-21: this bullet first said the rest comes
+  "from photographs being attached, not from what they show". On fault-free runs that cannot be
+  tested. The own and the donor footage are both of a normally running column and may carry the
+  same diagnostic information, so a model reading the pictures well could answer them alike. The
+  comparison that could show whether content matters is on the faulty items, where the own footage
+  shows a faulty run and the donor a normal one. There the difference is 2 items (+21 against +11
+  points), too few to read.)*
 - **Every false alert on a fault-free run, in all four arms, cites the same reading:** `T701`, the
-  reboiler temperature (9, 20, 15 and 19 of 29 alerts respectively). The camera cue does not bring
-  in new evidence. It moves a borderline reading of one channel over the line.
+  reboiler temperature (9, 20, 15 and 19 of 29 alerts respectively). The stated reasons are
+  telemetry. That does not prove the images played no part: reasons a model writes are not a
+  record of what moved it, in either direction.
 - **Opus never noticed the photographs were missing.** In the sentence arm it was told six
   photographs were attached and none were. None of its 48 answers mentions photographs at all:
   none claims to have seen them, and none says they are absent. The committed request confirms
@@ -83,13 +89,17 @@ between those arms are not interpreted.
 
 ### What it means
 
-For a lab adding a camera beside its instruments, with this model, the camera **adds alarm, not
-information**. What the camera showed made no measurable difference. Half the effect needs no
-photograph at all, only the statement that one exists. The other half needs a photograph, any
-photograph.
+For a lab adding a camera beside its instruments, with this model on this plant: **the
+announcement of a camera and the attachment of photographs both made Opus alarm more readily**,
+on faulty and fault-free runs alike, with no measured gain in telling them apart. Rewording the
+prompt could remove at most the part the sentence carries.
 
-Rewording the prompt would therefore remove at most half the problem. The rest comes from
-attaching images at all, which is the thing a camera integration does.
+What this study cannot say is whether Opus reads what the pictures show. The footage here carries
+little that the telemetry does not, and the one comparison that could test it is too small. The
+stronger test is to give the model footage that *should* change the answer, meaning frames
+independently judged to show the fault, and see whether its verdict moves the right way.
+*(Corrected 2026-09-21: this section first said the camera "adds alarm, not information" and that
+what it showed "made no measurable difference", which claimed more than the design can show.)*
 
 ### What this cannot show
 

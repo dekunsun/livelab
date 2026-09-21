@@ -42,6 +42,8 @@ def main():
 
     first = load(models[0])
     lines += ["## The ground truth, before any model is asked", "",
+              "*Onsets and durations were chosen by hand so that every class is populated; the counts",
+              "below describe these twelve episodes, not a rate.*", "",
               "| Cadence | Events per item | Missed | Glimpsed | Resolved |", "| --- | --- | --- | --- | --- |"]
     for c in CADENCES:
         at = [r for r in first if r["cadence_s"] == c]
@@ -106,7 +108,11 @@ def main():
 
     out = ROOT / "docs/results/undersampling_results.md"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text("\n".join(lines) + "\n")
+    # The section below the generated tables is written by hand; regenerating keeps it.
+    kept = ""
+    if out.exists() and "\n## What this settles" in out.read_text():
+        kept = out.read_text()[out.read_text().index("\n## What this settles") + 1:]
+    out.write_text("\n".join(lines) + "\n" + kept)
     print("\n".join(lines))
 
 

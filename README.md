@@ -44,13 +44,15 @@ Three things sharpen it:
 - **A camera does not fix it.** With the plant's own camera added to the blind items, neither
   model said `UNKNOWN` more often. Gemini ignored the frames. Opus 5 called more runs anomalous
   with them: **+21 points** on blind items and **+38 points on fault-free runs**. Every changed
-  verdict went towards `ANOMALOUS`. A registered follow-up found what the frames were doing, and it
-  was not showing anything. Photographs of a *different* normal run produced almost the same
-  shift. The sentence announcing a camera, with nothing attached, produced about half of it. Every
-  false alert, in every arm, rests on one telemetry reading that the camera cue tips over the line.
-  The camera runs described that channel wrongly (the correction above). But the real-plant rerun
-  shows Opus alerts on it under the correct description too, so the camera is tipping a reading
-  the model doubts either way. The camera studies themselves were not rerun.
+  verdict went towards `ANOMALOUS`. In a registered follow-up on fault-free runs, the sentence
+  announcing a camera, with nothing attached, produced about half of that shift. Photographs of a
+  *different* normal run produced about as much as the run's own. That comparison is weak: two
+  normal runs may carry the same diagnostic information, so a model reading the pictures well
+  could answer them alike. The informative comparison, on the faulty runs, differed by 2 items,
+  too few to read. So this shows that **the announcement and the photographs change how readily
+  one model alarms**. It does not show whether the model reads the pictures. The alerts cite one
+  telemetry channel that these runs described wrongly (the correction above). The camera studies
+  were not rerun with the corrected description.
   [Camera results](docs/results/vision_results.md) ·
   [follow-up](docs/results/vision_followup_results.md)
 
@@ -82,7 +84,7 @@ the predictions I lost — are in the same file.
 | Real plant | Does any of it survive real data? | [registered](docs/realdata_preregistration.md) | [yes, and it prices the simulator](docs/results/realdata_results.md) |
 | Real plant, rerun | Does it survive correcting the instrument description? | [registered](docs/realdata_v2_preregistration.md) | [abstention identical; false alerts are the models', not the description's](docs/results/realdata_v2_results.md) |
 | Camera | With an instrument group gone, does the plant's camera put it back? | [registered](docs/vision_preregistration.md) | [no: one model ignores it, one alarms at it](docs/results/vision_results.md) |
-| Camera follow-up | Was it the photographs, or the sentence announcing them? | [registered](docs/vision_followup_preregistration.md) | [half the words, half any photograph; not what they show](docs/results/vision_followup_results.md) |
+| Camera follow-up | Was it the photographs, or the sentence announcing them? | [registered](docs/vision_followup_preregistration.md) | [the announcement alone gives about half; content not testable on these runs](docs/results/vision_followup_results.md) |
 
 Detection and context effects, which the first study measures, are in
 [arm comparison](docs/results/arm_comparison.md): reference curves take detection from **0.50 to
@@ -165,7 +167,7 @@ reference curves) and **C-full** (+ micrographs).
   numbers as an upper bound. The abstention result is the one that carried across.
 - **The camera results are one model's behaviour on one plant.** The follow-up that explains
   Opus 5's shift ran on Opus 5 only, with one camera view, six frames and one wording of the
-  announcement. That the camera "adds alarm, not information" is measured for that setting, not
+  announcement. That the camera changed how readily Opus alarms is measured for that setting, not
   claimed for cameras in general
   ([follow-up registration](docs/vision_followup_preregistration.md)).
 - **Images are real; their pairing with a run is not.** See `data/images/manifest.csv` and
@@ -185,14 +187,21 @@ reference curves) and **C-full** (+ micrographs).
   target as a *monolayer*, and the micrographs include several TMDs. These judgments are therefore
   not claimed as results.
 - **"Scenario-unseen", not open-set.** Pretraining may include these failures.
-- **Nothing here needs a streaming API — and that is a statement about the cadence, not about
-  streaming.** Evidence arrives every 120 simulated seconds and each event is answered with one
-  function call, which is request/response. At that rate a Live session is not worth its cost: it
-  bills the whole accumulated context every turn, so a replay runs to 0.4M cumulative prompt tokens
-  against a 16k final context, and it has no prompt caching. **But 120 s is also the rate at which
-  9 of 12 transient faults cannot be judged at all.** The cadence that sees them is the cadence
-  where streaming starts paying — measured, in the same place:
-  ![Where streaming starts paying](docs/figures/crossover.png)
+- **Nothing here needs a streaming API, and that says nothing about streaming.** Three questions
+  are separate here: how often evidence is *sampled*, how it is *delivered* to the model, and
+  whether the model *uses* it.
+  - **Sampling:** in this benchmark evidence arrives every 120 simulated seconds and each event is
+    answered with one call, which is request/response. In twelve constructed transient episodes,
+    3 are resolvable at 120 s and all 12 at 5 s. Onsets were chosen by hand, so that is a
+    description of those episodes, not a rate
+    ([undersampling](docs/results/undersampling_results.md)).
+  - **Delivery:** the Live sessions here re-billed the whole accumulated context every turn,
+    because context compression was switched off on purpose so no evidence was silently dropped.
+    A replay reached 0.4M cumulative prompt tokens against a 16k final context. A comparison of
+    streaming against per-frame requests at matched answer rate, accuracy and deadline has
+    **not** been made. An earlier version of this page claimed a cost crossover, and it is
+    withdrawn ([why](docs/results/frame_token_cost.md)).
+  - **Use:** at 5 s, where every transient was resolvable, the models detected 8 and 6 of 12.
 
 ## How the wording was frozen
 
