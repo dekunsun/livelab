@@ -242,13 +242,82 @@ def fig_realdata():
     fig.savefig(ROOT / "docs/figures/realdata.png", dpi=160)
 
 
+FRAME_TOKENS = {"claude-opus-5": 417, "gpt-6-astra": 361}      # measured, 640x480
+INPUT_PRICE = {"claude-opus-5": 5.0, "gpt-6-astra": 10.0}      # USD per 1M input tokens
+LIVE_VIDEO_PER_HOUR = 0.12                                     # $0.002/min, flat in frame rate
+
+
+def fig_crossover():
+    """Where seeing a transient starts to cost less by streaming than by sending frames.
+
+    Both halves are measured in this project: what each cadence can resolve comes from the
+    undersampling ground truth, and tokens per frame from one request with and without a frame.
+    """
+    items = json.load(open(ROOT / "data/transients/items.json"))["items"]
+    resolvable = {}
+    for it in items:
+        c = it["cadence_s"]
+        n, r = resolvable.get(c, (0, 0))
+        resolvable[c] = (n + 1, r + (it["class"] == "resolved"))
+    cadences = sorted(resolvable, reverse=True)
+
+    fig, ax = plt.subplots(figsize=(8.4, 4.2))
+    ax2 = ax.twinx()
+    x = [1 / c for c in cadences]                              # frames per second
+    share = [resolvable[c][1] / resolvable[c][0] * 100 for c in cadences]
+    ax.plot(x, share, "-o", color="#2ca02c", lw=2.4, ms=7, zorder=3,
+            label="transients the evidence can support a judgment on")
+    for xi, yi, c in zip(x, share, cadences):
+        ax.annotate(f"{resolvable[c][1]}/{resolvable[c][0]}", (xi, yi), textcoords="offset points",
+                    xytext=(0, 10), ha="center", fontsize=9, color="#2ca02c")
+
+    fine = [1 / c for c in (120, 30, 5, 1)]
+    for model, tok in FRAME_TOKENS.items():
+        cost = [3600 * f * tok / 1e6 * INPUT_PRICE[model] for f in fine]
+        ax2.plot(fine, cost, "--", lw=1.8, label=f"send frames to {model}",
+                 color="#4c78a8" if "opus" in model else "#d9534f")
+    ax2.axhline(LIVE_VIDEO_PER_HOUR, color="#15191b", lw=1.8, ls=":",
+                label="stream video to Gemini Live ($0.002/min)")
+    # where per-frame stops being the cheaper option, solved from the measured token counts
+    cross = sorted(LIVE_VIDEO_PER_HOUR / (3600 * FRAME_TOKENS[m] / 1e6 * INPUT_PRICE[m])
+                   for m in FRAME_TOKENS)
+    ax2.axvspan(cross[0], cross[1], color="#15191b", alpha=0.07, zorder=0)
+    ax2.annotate(f"streaming becomes\ncheaper here\n(every {1 / cross[1]:.0f}\u2013{1 / cross[0]:.0f} s)",
+                 ((cross[0] * cross[1]) ** 0.5, 12), ha="center", fontsize=8.5, color="#15191b")
+
+    ax.set_xscale("log")
+    ax2.set_yscale("log")
+    ax.set_xticks(fine, ["every\n120 s", "every\n30 s", "every\n5 s", "every\n1 s"], fontsize=9)
+    ax.set_ylim(0, 118)
+    ax.set_ylabel("% of transients resolvable", color="#2ca02c", fontsize=9)
+    ax2.set_ylabel("cost of one hour of watching (log)", fontsize=9)
+    ax2.set_ylim(0.03, 30)
+    ax2.set_yticks([0.1, 1, 10], ["$0.10", "$1", "$10"])
+    style(ax)
+    for spine in ("top",):
+        ax2.spines[spine].set_visible(False)
+    h1, l1 = ax.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax.legend(h1 + h2, l1 + l2, fontsize=8, frameon=False, loc="lower right",
+              bbox_to_anchor=(0.99, 0.02))
+    fig.suptitle("The rate that sees a transient is the rate where streaming starts paying",
+                 fontsize=11)
+    fig.text(0.01, 0.01, "Left: this project's undersampling ground truth, 12 transient faults. Right: "
+             "measured tokens per 640\u00d7480 frame \u00d7 list price, image only.\n"
+             "See docs/results/undersampling_results.md and frame_token_cost.md",
+             fontsize=7, color="#666")
+    fig.tight_layout(rect=(0, 0.08, 1, 0.94))
+    fig.savefig(ROOT / "docs/figures/crossover.png", dpi=160)
+
+
 def main():
     arms, n, cards, unknown = arms_data()
     fig_arms(arms, n, cards)
     fig_unknown(arms, unknown)
     fig_probe()
     fig_realdata()
-    print("wrote docs/figures/arms.png, unknown.png, probe.png, realdata.png")
+    fig_crossover()
+    print("wrote arms.png, unknown.png, probe.png, realdata.png, crossover.png")
 
 
 if __name__ == "__main__":

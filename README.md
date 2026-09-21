@@ -153,12 +153,14 @@ reference curves) and **C-full** (+ micrographs).
   target as a *monolayer*, and the micrographs include several TMDs. These judgments are therefore
   not claimed as results.
 - **"Scenario-unseen", not open-set.** Pretraining may include these failures.
-- **Nothing here needs a streaming API.** Evidence arrives every 120 simulated seconds and each
-  event is answered with one function call, which is a request/response protocol. A Live session
-  was used because the study is about a live-lab model, and it was paid for: the Live API bills the
-  whole accumulated context every turn, so a replay costs about 0.4M cumulative prompt tokens
-  against a 16k final context, and it has no prompt caching. Streaming would earn its cost only for
-  events shorter than the sampling interval — see the open question above.
+- **Nothing here needs a streaming API — and that is a statement about the cadence, not about
+  streaming.** Evidence arrives every 120 simulated seconds and each event is answered with one
+  function call, which is request/response. At that rate a Live session is not worth its cost: it
+  bills the whole accumulated context every turn, so a replay runs to 0.4M cumulative prompt tokens
+  against a 16k final context, and it has no prompt caching. **But 120 s is also the rate at which
+  9 of 12 transient faults cannot be judged at all.** The cadence that sees them is the cadence
+  where streaming starts paying — measured, in the same place:
+  ![Where streaming starts paying](docs/figures/crossover.png)
 
 ## How the wording was frozen
 
