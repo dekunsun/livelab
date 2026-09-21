@@ -189,5 +189,9 @@ Differences under three items are not interpreted.
      banned word is sent back once for a rewrite and then dropped, and drops are counted. Because
      Opus is also a model under test, its own C1-against-C2 difference compares its vision under
      task framing with its vision without it. Gemini's C2 uses Opus's eyes.
+   - **Banned words match inside words.** The registered list is matched as word stems, so that
+     *unexpected* and *incorrect* are caught along with *expected* and *correct*. A first version
+     matched whole words only and let both through; this was caught in a test before any
+     description was written.
    - **Transport.** Opus through the standard API, and Gemini through the same single-turn path
      with images as the camera study, which passed the frames-arrive check.

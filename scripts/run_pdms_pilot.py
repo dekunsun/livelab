@@ -62,8 +62,9 @@ DESCRIBE = {
                    "required": ["text"]},
 }
 # Registered: a description using any of these is sent back once, then dropped.
-BANNED = re.compile(r"\b(abnormal\w*|anomal\w*|errors?|wrong\w*|missing|should|fail\w*|correct\w*|"
-                    r"normal\w*|expected)\b", re.I)
+# Matched anywhere in a word, so "unexpected" and "incorrect" are caught as well.
+BANNED = re.compile(r"\w*(abnormal|anomal|error|wrong|missing|should|fail|correct|normal|expected)\w*",
+                    re.I)
 
 
 def asker_for(backend):
