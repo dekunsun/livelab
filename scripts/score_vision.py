@@ -55,7 +55,9 @@ def main():
 
     verdicts = []
     for model in models:
-        arms = {a: load(model, a) for a in ARMS}
+        # Only items in the current item set: a result left over from an item that was later
+        # dropped (deviation 5) must not be scored as if it were still part of the study.
+        arms = {a: {i: r for i, r in load(model, a).items() if i in registered} for a in ARMS}
         paired = sorted(set(arms["telemetry"]) & set(arms["frames"]))
         lines += [f"## {model}", "",
                   "| Arm | Answered | Coverage |", "| --- | --- | --- |"]

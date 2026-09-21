@@ -114,3 +114,13 @@ def test_a_short_frame_window_is_declared(lab):
         lab.add(f"b{k}", "blind", "NORMAL", "NORMAL", group="pressure",
                 span=900 if k < 4 else 1200)
     assert "4 of these items have frames over less than the full 20" in lab()
+
+
+def test_a_result_for_an_item_no_longer_in_the_set_is_not_scored(lab, tmp_path):
+    for k in range(10):
+        lab.add(f"b{k}", "blind", "NORMAL", "NORMAL", group="pressure")
+    write(tmp_path, "m", "telemetry", "dropped", "blind", "ANOMALOUS")
+    write(tmp_path, "m", "frames", "dropped", "blind", "ANOMALOUS")
+    text = lab()
+    assert "10 items answered in both arms" in text
+    assert "| Detection on blind (ANOMALOUS) | 0/10 (0%) | 0/10 (0%) | +0 points |" in text

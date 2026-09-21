@@ -44,6 +44,14 @@ def frame_times(txt_path):
     return out
 
 
+def frame_count(video):
+    """Frames in the video stream, counted without decoding them."""
+    p = subprocess.run([ffmpeg(), "-v", "error", "-stats", "-i", str(video), "-map", "0:v:0",
+                        "-c", "copy", "-f", "null", "-"], capture_output=True, text=True)
+    m = re.findall(r"frame=\s*(\d+)", p.stderr)
+    return int(m[-1]) if m else -1
+
+
 def pick_indices(times, decision):
     """Frame indices ending at the decision time, spread over as much of the window as the
     recording covers.
@@ -88,9 +96,14 @@ def extract(video, indices, dest):
     return sorted(dest.glob("f*.jpg"))
 
 
+def key_of(it):
+    return f"{it['experiment'].replace('/', '__')}__{it['condition']}"
+
+
 def main():
     items = json.load(open(ROOT / "data/realdata/items.json"))["items"]
-    made, skipped = [], {"no_video": 0, "no_window": 0, "wrong_count": 0, "unreadable": 0}
+    made, skipped = [], {"no_video": 0, "clock_mismatch": 0, "no_window": 0, "wrong_count": 0,
+                         "unreadable": 0}
     for it in items:
         if it["condition"] not in ("blind", "control"):
             continue
@@ -100,11 +113,18 @@ def main():
             skipped["no_video"] += 1
             continue
         times = frame_times(txt)
+        if frame_count(video) != len(times):
+            # The whole design rests on timestamp i being frame i. One recording in the dataset has
+            # 92 more frames than timestamps, and there is no way to know where the extra ones sit,
+            # so any frame taken from it could be from the wrong minute. Deviation 5.
+            print(f"  CLOCK MISMATCH {key_of(it)[:60]}", flush=True)
+            skipped["clock_mismatch"] += 1
+            continue
         idx, span = pick_indices(times, datetime.strptime(it["decision_time"], "%H:%M:%S"))
         if len(idx) < FRAMES:
             skipped["no_window"] += 1
             continue
-        key = f"{it['experiment'].replace('/', '__')}__{it['condition']}"
+        key = key_of(it)
         try:
             files = extract(video, idx, OUT / "frames" / key)
         except subprocess.CalledProcessError:

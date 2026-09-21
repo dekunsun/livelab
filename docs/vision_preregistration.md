@@ -157,3 +157,12 @@ test as the text path.
 
    Nothing about the design changes; the estimate was wrong, not the plan. The cap is restated
    here as **US$12 for both models**, and the actual spend is reported with the results.
+
+5. **One control recording is dropped because its clock and its frames disagree (2026-09-20,
+   before its item ran).** Every video was checked the same way: the frames in the stream against
+   the timestamps in the sidecar. 48 of 49 agree exactly. One control recording
+   (`acetone+butan-1-ol+methanol/operating_point_006/train_normal_experiment_001`) has **1,261
+   frames and 1,169 timestamps**. The file is complete — the surplus is in the source — but with 92
+   frames unaccounted for there is no way to say which minute a given frame shows, so no frame
+   from it can be placed at a decision time. The check is now a rule in `make_vision_items.py`,
+   not a hand exclusion. Control goes from 30 to 29; blind is unchanged at 19. **48 items.**
