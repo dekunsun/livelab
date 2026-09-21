@@ -23,6 +23,8 @@ MEDIA = ROOT / "data/external/batch_distillation/media/image/Operation"
 OUT = ROOT / "data/vision"
 FRAMES = 6
 WINDOW_S = 1200
+MIN_SPAN_S = 600        # half the telemetry window; deviation 1 of the registration
+TOL_S = 30              # a frame further than this from its target is refused, not used
 SIZE = (640, 480)
 CLOCK = re.compile(r"(\d{2})-(\d{2})-(\d{2})")
 
@@ -43,17 +45,29 @@ def frame_times(txt_path):
 
 
 def pick_indices(times, decision):
-    """Frame indices evenly across the window that ends at the decision time."""
+    """Frame indices ending at the decision time, spread over as much of the window as the
+    recording covers.
+
+    Returns (indices, span_s). Four of the nineteen recordings start after the window does —
+    the camera was switched on a couple of minutes into it — so the frames span the intersection
+    of the two rather than the full 20 minutes, and the span is carried into the item so a reader
+    can see which items saw less. Under MIN_SPAN_S the item is dropped instead.
+    """
     if not times:
-        return []
-    start = decision - timedelta(seconds=WINDOW_S)
-    wanted = [start + timedelta(seconds=WINDOW_S * k / (FRAMES - 1)) for k in range(FRAMES)]
+        return [], 0.0
+    start = max(decision - timedelta(seconds=WINDOW_S), times[0])
+    span = (decision - start).total_seconds()
+    if span < MIN_SPAN_S or decision > times[-1] + timedelta(seconds=TOL_S):
+        return [], span
+    wanted = [start + timedelta(seconds=span * k / (FRAMES - 1)) for k in range(FRAMES)]
     idx = []
     for w in wanted:
         j = min(range(len(times)), key=lambda i: abs((times[i] - w).total_seconds()))
-        if abs((times[j] - w).total_seconds()) <= 30:      # the recording must actually cover it
+        if abs((times[j] - w).total_seconds()) <= TOL_S:
             idx.append(j)
-    return idx
+    if len(set(idx)) != len(idx):      # never send the same frame twice as if it were two looks
+        return [], span
+    return idx, span
 
 
 def extract(video, indices, dest):
@@ -79,7 +93,7 @@ def main():
             skipped["no_video"] += 1
             continue
         times = frame_times(txt)
-        idx = pick_indices(times, datetime.strptime(it["decision_time"], "%H:%M:%S"))
+        idx, span = pick_indices(times, datetime.strptime(it["decision_time"], "%H:%M:%S"))
         if len(idx) < FRAMES:
             skipped["no_window"] += 1
             continue
@@ -90,8 +104,9 @@ def main():
             continue
         made.append(it | {"item_id": key,
                           "frames": [str(f.relative_to(OUT)) for f in files],
-                          "frame_times": [times[i].strftime("%H:%M:%S") for i in idx]})
-        print(f"  {key[:60]:62} {len(files)} frames", flush=True)
+                          "frame_times": [times[i].strftime("%H:%M:%S") for i in idx],
+                          "frame_span_s": round(span)})
+        print(f"  {key[:56]:58} {len(files)} frames over {round(span):4}s", flush=True)
 
     (OUT / "items.json").write_text(json.dumps({"frames_per_item": FRAMES, "size": list(SIZE),
                                                 "window_s": WINDOW_S, "items": made}, indent=1))

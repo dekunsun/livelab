@@ -99,6 +99,9 @@ def main():
     ap.add_argument("--list", action="store_true", help="only print what would be fetched")
     ap.add_argument("--limit", type=int, help="fetch at most this many members")
     ap.add_argument("--cam", default="Cam0", help="one camera view; the plant records three")
+    ap.add_argument("--ext", default="mp4,txt",
+                    help="the video and its timestamp sidecar; frames without the sidecar "
+                         "cannot be placed on the plant's clock")
     ap.add_argument("--conditions", nargs="*", default=["blind", "control"],
                     choices=["blind", "control", "full"])
     args = ap.parse_args()
@@ -110,8 +113,9 @@ def main():
     zf = zipfile.ZipFile(fh)
     names = zf.namelist()
     keys = wanted_experiments(args.conditions)
+    exts = tuple("." + e.strip().lstrip(".") for e in args.ext.split(","))
     picked = [n for n in names
-              if f"/{args.phase}/" in n and n.endswith(".mp4") and args.cam in n
+              if f"/{args.phase}/" in n and n.endswith(exts) and args.cam in n
               and any(k in n for k in keys)]
     print(f"{len(names):,} members in the archive; {len(picked)} match {len(keys)} experiments "
           f"in phase {args.phase}")
@@ -131,9 +135,11 @@ def main():
         if dest.exists():
             continue
         dest.parent.mkdir(parents=True, exist_ok=True)
-        with zf.open(name) as src, open(dest, "wb") as f:
+        part = dest.with_name(dest.name + ".part")     # an interrupted fetch must not look complete
+        with zf.open(name) as src, open(part, "wb") as f:
             while chunk := src.read(1 << 20):
                 f.write(chunk)
+        part.rename(dest)
         print(f"  [{i}/{len(picked)}] {dest.relative_to(out)} "
               f"{dest.stat().st_size / 1e6:.1f} MB", flush=True)
     print(f"transferred {fh.bytes_read / 1e9:.2f} GB in {fh.requests} range requests "

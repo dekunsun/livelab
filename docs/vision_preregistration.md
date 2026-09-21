@@ -113,4 +113,24 @@ test as the text path.
 
 ## Deviations log
 
-None yet.
+1. **The frames span the recording, not always the full 20 minutes (2026-09-20, before any model
+   ran).** Four of the nineteen blind recordings begin *after* the telemetry window does — the
+   camera was switched on 2 to 7 minutes into it. Under the registered rule (six frames evenly
+   across the whole window, each within 30 s of its target) those four items lose a frame or two
+   and would be dropped, taking blind from 19 to 15.
+
+   Instead the six frames now span the **intersection** of the telemetry window and the recording,
+   still ending at the decision time, and an item is dropped if that intersection is shorter than
+   **10 minutes** — none is. Each item records its `frame_span_s`, so which items saw less is
+   visible rather than buried.
+
+   What it costs: in those four items the frames cover 13 to 17 of the 20 minutes the telemetry
+   covers, so the two arms are not looking at exactly the same stretch of time. The threshold was
+   fixed before any model was asked anything, and the alternative — dropping a fifth of the items
+   because a camera started late — throws away more.
+
+2. **The timestamp sidecars had to be fetched separately (2026-09-20).** `fetch_zenodo_members.py`
+   matched `.mp4` only, so the first pass pulled video with no clock beside it. Frames without the
+   sidecar cannot be placed on the plant's clock at all, and the mapping the registration relies on
+   — timestamp *i* is frame *i* — is now checked rather than assumed: in all six recordings tested
+   the sidecar's line count equals the video's frame count exactly, at the stated 2 s cadence.
