@@ -1,0 +1,116 @@
+# Pre-registration: when an instrument is missing, does a camera put it back?
+
+Status: **registered 2026-09-20, before any frame was extracted or any model was asked.** One video
+was fetched beforehand to prove the pipeline decodes; nothing was looked at except a single frame
+to confirm the camera view. Changes after this date are logged at the end.
+
+## Why this, and not the question the survey killed
+
+The [material survey](material_survey.md) settled that no public, licensed dataset contains lab
+failures that a camera can see and telemetry cannot. That blocks the project's strongest claim, and
+the README says so.
+
+It does not block the question a plant engineer actually has. **Instruments fail, are not fitted, or
+are taken out for service.** The real-plant study measured what models do when the instrument group
+that carried the evidence is gone: they keep ruling — abstention 0, 4 and 3 of 31
+([results](results/realdata_results.md)). The next question is whether a camera watching the same
+run compensates.
+
+This is also the question worth asking about multimodality in a lab. The field's default assumption
+is that adding vision helps. This benchmark has already measured one case where it did not: in the
+simulated arm, reference curves plus micrographs did no better than reference curves alone, both at
+0.90 detection.
+
+## The question
+
+**Q: With the instrument group that carried the evidence removed, do frames from the plant's own
+camera restore the judgment that the missing instruments supported?**
+
+## Data
+
+The same real-plant items as the [real-data study](realdata_preregistration.md), restricted to
+experiments whose Operation phase has video (Zenodo 17395543, CC BY 4.0):
+
+| | Items | Notes |
+| --- | --- | --- |
+| **Blind** (observing instrument group removed) | **20** of 31 | pressure 12, temperature 5, flow 3 |
+| **Control** (fault-free run) | **30** of 37 | |
+
+Video is `Cam0`, 1920×1080, **one frame every two seconds**, with wall-clock timestamps in a `.txt`
+beside each file, so a decision time maps to a frame exactly. The camera views the column top: the
+condenser coil, the glass, the reflux and distillate lines.
+
+## Conditions
+
+Each item is run **twice**, and is its own control:
+
+| Arm | Delivered |
+| --- | --- |
+| **telemetry** | the window's telemetry with the instrument group removed — already collected |
+| **telemetry + frames** | the same text, plus **6 frames** evenly spaced across the same 20-minute window, downscaled to 640×480 |
+
+Six frames at 640×480 cost about 2.5k extra tokens per item, measured
+([frame cost](results/frame_token_cost.md)). Control items get frames in the same way, so the
+presence of video never signals which condition an item is.
+
+Truth is unchanged and still the dataset's expert annotations: `ANOMALOUS` is supported for blind
+items, `NORMAL` for controls. **Abstention is not scored as correct here** — the question is
+whether the camera restores a judgment, not whether the model hedges.
+
+## Measures
+
+- **Detection on blind, with frames minus without** — the headline, paired per item.
+- **False alerts on control, with frames minus without** — the guard: a camera that makes every run
+  look wrong is not compensating for anything.
+- **Abstention**, reported for completeness.
+- **By removed group** — pressure / temperature / flow. **Exploratory only:** with 12, 5 and 3
+  items, no comparison between groups is interpreted, and none is predicted.
+
+## Predictions (registered)
+
+| # | Prediction |
+| --- | --- |
+| **Pr1** | Detection on blind rises by **fewer than 10 points** with frames — the camera does not compensate |
+| **Pr2** | False alerts on control rise by fewer than 10 points — the camera does not manufacture alarms either |
+| **Pr3** | Abstention stays ≤ 10% in both arms: another modality does not make a model say it cannot tell |
+
+**Pr1 predicts a null, and the reason is stated so it can be wrong for a reason.** The camera sees
+the column top; most annotated anomalies are setpoint and actuator manipulations whose visible
+consequence is a change in boiling or reflux rate, against no baseline of what that run should look
+like. If detection does rise, the interesting follow-up is whether it rises where the camera can
+plausibly see the missing quantity — flow — and that is the exploratory split above.
+
+## How results will be read
+
+| Outcome | Reading |
+| --- | --- |
+| Detection rises materially, controls flat | A camera compensates for missing instruments. The strongest multimodal result this project could produce, and the one that would justify the word in its title |
+| Detection flat | Adding vision does not substitute for an instrument. Together with the simulated arm, that is two measured cases against the field's default assumption |
+| Detection rises and control false alerts rise as much | The camera raises suspicion, not accuracy. Reported as such, never as detection |
+| Coverage below 90% | Not read, as everywhere else |
+
+## Models
+
+`gemini-3.8-live` (native multimodal) and `claude-opus-5` (image input), both already characterised
+on the telemetry-only arm, so a difference is about the frames. The standard-API backend does not
+send images yet; that is the one piece of code this study needs, and it will carry the same parity
+test as the text path.
+
+## Budget
+
+50 items × 2 arms × 2 models = 200 calls, about 4k tokens each with frames. **Cap: US$5.**
+
+## What this cannot show
+
+- **One camera view.** The plant records three; only `Cam0` is used, and it sees the column top.
+  A negative result is about this view, not about cameras.
+- **Six frames.** Sampling the window more finely might show more; six was chosen for cost before
+  any result was seen.
+- **Not the strong claim.** Nothing here tests whether a camera sees failures telemetry cannot —
+  that needs footage of camera-only faults, which no public dataset has.
+- **The blind condition is structural** — deviations 1 and 2 of the
+  [real-data registration](realdata_preregistration.md) apply unchanged.
+
+## Deviations log
+
+None yet.
