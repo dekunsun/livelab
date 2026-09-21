@@ -180,12 +180,75 @@ def fig_probe():
     fig.savefig(ROOT / "docs/figures/probe.png", dpi=160)
 
 
+REAL_MODELS = [("gemini-3.8-live", "Gemini 3.8 Live"),
+               ("claude-opus-5", "Claude Opus 5"),
+               ("gpt-6-astra", "GPT-6 Astra")]
+CONDITIONS = [("full", "ANOMALOUS", "Full evidence"),
+              ("blind", "UNKNOWN", "Evidence removed"),
+              ("control", "NORMAL", "Fault-free run")]
+
+
+def fig_realdata():
+    """What each model answered on a real plant, by condition. The control panel is the point."""
+    rows = collections.defaultdict(lambda: collections.defaultdict(collections.Counter))
+    for model, _ in REAL_MODELS:
+        for f in (ROOT / "results/transients").parent.glob(f"realdata/{model}/*.json"):
+            d = json.loads(f.read_text())
+            said = [c["args"] for c in d["calls"] if c["name"] == "report_assessment"][-1]
+            rows[model][d["condition"]][said.get("execution_state")] += 1
+    if not rows:
+        return
+
+    fig, axes = plt.subplots(1, 3, figsize=(11, 4.1), sharey=True)
+    order = ["ANOMALOUS", "NORMAL", "UNKNOWN"]
+    for ax, (cond, correct, title) in zip(axes, CONDITIONS):
+        for i, (model, label) in enumerate(REAL_MODELS):
+            counts = rows[model][cond]
+            total = sum(counts.values()) or 1
+            bottom = 0
+            for verdict in order:
+                v = counts.get(verdict, 0)
+                if not v:
+                    continue
+                share = v / total * 100
+                ax.bar(i, share, bottom=bottom, color=VERDICT_COLORS[verdict], width=0.62,
+                       edgecolor="white", linewidth=0.8,
+                       label=verdict if (ax is axes[0] and bottom == 0 or verdict not in
+                                         [t.get_label() for t in ax.containers]) else None)
+                if share >= 9:
+                    ax.text(i, bottom + share / 2, f"{v}", ha="center", va="center",
+                            color="white", fontsize=9, weight="bold")
+                bottom += share
+            ax.text(i, 103, f"{counts.get(correct, 0)}/{total}", ha="center", fontsize=8.5,
+                    color=VERDICT_COLORS[correct])
+        ax.set_xticks(range(len(REAL_MODELS)),
+                      [lab.replace(" 3.8", "\n3.8").replace("Claude ", "").replace("GPT-6 ", "GPT-6\n")
+                       for _, lab in REAL_MODELS], fontsize=8.5)
+        ax.set_ylim(0, 112)
+        ax.set_yticks([0, 50, 100], ["0", "50", "100%"])
+        ax.set_title(f"{title}\nshould answer {correct}", fontsize=10,
+                     color=VERDICT_COLORS[correct])
+        style(ax)
+    axes[0].set_ylabel("share of items", fontsize=9)
+    handles = [plt.Rectangle((0, 0), 1, 1, color=VERDICT_COLORS[v]) for v in order]
+    fig.legend(handles, order, loc="lower center", ncol=3, frameon=False, fontsize=9,
+               bbox_to_anchor=(0.5, 0.055))
+    fig.suptitle("On a real distillation plant: one model detects almost everything, "
+                 "and alarms on everything too", fontsize=11)
+    fig.text(0.01, 0.005, "119 runs of a real batch distillation column (Zenodo 17395543, CC BY) \u00b7 "
+             "truth from the plant's expert annotations \u00b7 31/31/37 items per condition \u00b7 "
+             "one run per item \u00b7 see docs/results/realdata_results.md", fontsize=7, color="#666")
+    fig.tight_layout(rect=(0, 0.15, 1, 0.9))
+    fig.savefig(ROOT / "docs/figures/realdata.png", dpi=160)
+
+
 def main():
     arms, n, cards, unknown = arms_data()
     fig_arms(arms, n, cards)
     fig_unknown(arms, unknown)
     fig_probe()
-    print("wrote docs/figures/arms.png, unknown.png, probe.png")
+    fig_realdata()
+    print("wrote docs/figures/arms.png, unknown.png, probe.png, realdata.png")
 
 
 if __name__ == "__main__":

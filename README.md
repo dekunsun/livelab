@@ -76,6 +76,7 @@ can see, and real in-run imagery of them**, and the project's hard rule is that 
 must be real, never generated. That is the blocker, and
 [docs/design.md](docs/design.md) carries the design that would answer it.
 
+![What three models answered on a real plant, by condition](docs/figures/realdata.png)
 ![Detection, false alert and unsupported certainty per arm](docs/figures/arms.png)
 ![Answers at events where only UNKNOWN is supported](docs/figures/unknown.png)
 ![Pre-registered probe](docs/figures/probe.png)
