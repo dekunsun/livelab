@@ -12,9 +12,13 @@ data/realdata/ATTRIBUTION.md (CC BY 4.0).
   ./.venv/bin/python scripts/fetch_zenodo_members.py --archive image --phase Operation
 """
 import argparse
+import http.client
 import io
 import json
+import ssl
 import sys
+import time
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -27,6 +31,9 @@ BASE = "https://zenodo.org/api/records/22250958/files"
 ARCHIVES = {"image": "12_Batch_Distillation_Plant_M-202210_Image.zip",
             "audio": "11_Batch_Distillation_Plant_M-202210_Audio.zip"}
 CHUNK = 1 << 20
+TIMEOUT_S = 120        # without this urllib waits on a dead socket forever
+RETRIES = 6
+BACKOFF_S = 5
 
 
 class HttpFile(io.RawIOBase):
@@ -40,17 +47,35 @@ class HttpFile(io.RawIOBase):
     def __init__(self, url):
         self.url, self.pos = url, 0
         self._cache = (0, b"")
-        with urllib.request.urlopen(urllib.request.Request(url, method="HEAD"), context=_CTX) as r:
+        with urllib.request.urlopen(urllib.request.Request(url, method="HEAD"), context=_CTX,
+                                   timeout=TIMEOUT_S) as r:
             self.size = int(r.headers["content-length"])
         self.requests = self.bytes_read = 0
 
     def _fetch(self, start, length):
+        """One range request, retried.
+
+        A multi-gigabyte fetch issues thousands of these, so a single timed-out connection is a
+        matter of when, not whether. The first attempt at this took two hours and then died on one
+        `Errno 60` with nothing to show for the transfer that preceded it.
+        """
         end = min(start + length, self.size) - 1
         if start > end:
             return b""
         req = urllib.request.Request(self.url, headers={"Range": f"bytes={start}-{end}"})
-        with urllib.request.urlopen(req, context=_CTX) as r:
-            data = r.read()
+        for attempt in range(RETRIES):
+            try:
+                with urllib.request.urlopen(req, context=_CTX, timeout=TIMEOUT_S) as r:
+                    data = r.read()
+                break
+            except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.HTTPException,
+                    ssl.SSLError) as exc:
+                if attempt == RETRIES - 1:
+                    raise
+                wait = BACKOFF_S * 2 ** attempt
+                print(f"    range {start}+{length} failed ({type(exc).__name__}); "
+                      f"retry {attempt + 1}/{RETRIES - 1} in {wait}s", flush=True)
+                time.sleep(wait)
         self.requests += 1
         self.bytes_read += len(data)
         return data
@@ -130,20 +155,33 @@ def main():
 
     out = DATA / "media" / args.archive
     out.mkdir(parents=True, exist_ok=True)
+    failed = []
     for i, name in enumerate(picked, 1):
         dest = out / Path(name).relative_to(Path(name).parts[0])
         if dest.exists():
             continue
         dest.parent.mkdir(parents=True, exist_ok=True)
         part = dest.with_name(dest.name + ".part")     # an interrupted fetch must not look complete
-        with zf.open(name) as src, open(part, "wb") as f:
-            while chunk := src.read(1 << 20):
-                f.write(chunk)
+        try:
+            with zf.open(name) as src, open(part, "wb") as f:
+                while chunk := src.read(1 << 20):
+                    f.write(chunk)
+        except Exception as exc:      # noqa: BLE001 - one bad member must not lose the whole run
+            part.unlink(missing_ok=True)
+            failed.append((name, f"{type(exc).__name__}: {exc}"))
+            print(f"  [{i}/{len(picked)}] FAILED {dest.relative_to(out)}: "
+                  f"{type(exc).__name__}", flush=True)
+            continue
         part.rename(dest)
         print(f"  [{i}/{len(picked)}] {dest.relative_to(out)} "
               f"{dest.stat().st_size / 1e6:.1f} MB", flush=True)
     print(f"transferred {fh.bytes_read / 1e9:.2f} GB in {fh.requests} range requests "
           f"-> {out.relative_to(ROOT)}")
+    if failed:
+        # Re-running picks these up: whatever landed is kept, and only the gaps are fetched.
+        for name, why in failed:
+            print(f"  missing: {name} ({why})")
+        sys.exit(f"{len(failed)} of {len(picked)} members did not transfer; run again")
 
 
 if __name__ == "__main__":
