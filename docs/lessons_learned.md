@@ -178,3 +178,14 @@ or with themselves. None compared the plant description with the plant.
 3. **Correct in public, and keep what was published.** The old legend is kept byte-exact, the
    results pages carry the correction at the top, and a rerun under the fixed legend is a new
    registered study rather than an overwrite.
+4. **A correction is a hypothesis too, so test it.** The legend was wrong, and fixing it was
+   right. But the correction also claimed the wrong legend explained the false alerts, and the
+   rerun refuted that for two of the three models. Told correctly that T701 is a heater, Opus and
+   Astra alerted on it just as often, with a new and physically coherent argument. Had the
+   correction's claim been left untested, the project would have traded one unverified
+   explanation for another, and it would have looked like diligence.
+5. **Count with patterns that cannot match the wrong thing.** Twice in one day a keyword count was
+   wrong because its pattern matched text it was not meant to: "reflux" and "condensate" are
+   channel names as well as things a camera shows, and `T704` sits inside `FT704`. Both counts
+   were published or nearly published before a second method disagreed. Both are now pinned by a
+   test against exactly that mistake.

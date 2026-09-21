@@ -2,12 +2,12 @@
 
 > **Correction (2026-09-21).** The plant description the models read in this study was wrong:
 > it called five heater temperatures column temperatures, swapped reflux and distillate, and
-> called the cooling-water flow a ratio. The false alerts below cite a heater temperature in 11 of
-> 12 (Opus 5), 37 of 37 (Astra) and 0 of 8 (Gemini) cases. **The false-alert and detection rates
-> on this page are not a measure of real-data difficulty**, and the abstention result is measured
-> against answers made under the same wrong description. Details and what still holds:
-> [deviation 5](../realdata_preregistration.md). A rerun under the corrected description is a new
-> registered study; these numbers stay as they were.
+> called the cooling-water flow a ratio ([deviation 5](../realdata_preregistration.md)). A
+> registered rerun under the corrected description
+> ([results](realdata_v2_results.md)) left abstention on Blind exactly unchanged (0, 4 and 3 of
+> 31). Opus 5's and Astra's false alerts did not fall (12 → 13, 37 → 36): they alert on the
+> heater even when it is described correctly. Gemini's fell, 8 → 3, and its detection fell from
+> 20 to 10 of 31. The numbers below are the original run and stay as they were.
 
 Registered before any item was built: [realdata_preregistration.md](../realdata_preregistration.md).
 Collected 2026-09-20 on [Zenodo 17395543](https://doi.org/10.5281/zenodo.17395543) — 119

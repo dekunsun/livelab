@@ -18,10 +18,10 @@ cannot tell: 7 abstentions out of 2,134 judgments where nothing else was support
 | The same wording, four models | 55 | **0** |
 | A real plant, with the observing instruments removed, three models† | 93 | **7** |
 
-† **Correction (2026-09-21):** the real-plant runs gave the models a wrong description of the
-plant's instruments. It called five heater temperatures column temperatures, and swapped reflux
-and distillate. This row stands as collected, but it was measured under that description; a
-rerun under the corrected one is pending. [What it affects](docs/realdata_preregistration.md)
+† **Correction (2026-09-21):** the real-plant runs first gave the models a wrong description of
+the plant's instruments: five heater temperatures were called column temperatures, and reflux and
+distillate were swapped. A registered rerun with the description corrected gave **the same 0, 4
+and 3 abstentions**. [Both runs side by side](docs/results/realdata_v2_results.md)
 
 The sensor that would show it is not installed, or the excursion is shorter than the sampling
 interval — and the answer is `NORMAL` or `ANOMALOUS` anyway. The models are not confused about what
@@ -36,7 +36,7 @@ Three things sharpen it:
   [Cross-model results](docs/results/crossmodel_results.md)
 - **It is not an artefact of the simulator, as far as tested.** Put to 119 runs of a real
   distillation plant with the plant's own expert annotations as truth, abstention was **0, 4 and 3
-  of 31**. Those runs used the wrong instrument description noted above; a rerun is pending.
+  of 31**, and exactly the same again after correcting the instrument description (noted above).
   [Real-plant results](docs/results/realdata_results.md)
 - **It is not about missing sensors specifically.** Give the model a single unexplained reading and
   nothing to confirm it, and abstention is **0 of 6**, in both models tested.
@@ -48,8 +48,9 @@ Three things sharpen it:
   was not showing anything. Photographs of a *different* normal run produced almost the same
   shift. The sentence announcing a camera, with nothing attached, produced about half of it. Every
   false alert, in every arm, rests on one telemetry reading that the camera cue tips over the line.
-  That reading looked implausible because this project described it wrongly (the correction
-  above). The comparisons between arms hold; the absolute rates do not measure the plant.
+  The camera runs described that channel wrongly (the correction above). But the real-plant rerun
+  shows Opus alerts on it under the correct description too, so the camera is tipping a reading
+  the model doubts either way. The camera studies themselves were not rerun.
   [Camera results](docs/results/vision_results.md) ·
   [follow-up](docs/results/vision_followup_results.md)
 
@@ -57,9 +58,10 @@ Three things sharpen it:
 
 The figure is also why this benchmark carries control arms. On the real plant GPT-6 Astra detects
 **30 of 31** anomalies, the best number here — and calls **all 37** fault-free runs anomalous too.
-Reported without its control, that 97% would have ranked it first. The control caught it; the
-cause turned out to be partly this project's. In 36 of those 37 fault-free runs, Astra cites the
-heater temperature that the instrument description had wrongly called a column temperature.
+Reported without its control, that 97% would have ranked it first. It is not an artefact of the
+instrument description: rerun with that description corrected, Astra detects 31 of 31 and still
+calls 36 of 37 fault-free runs anomalous. It is alarmed by one heater running far hotter than the
+vessel it heats, which the plant's experts treat as normal.
 
 **Implication:** "cannot verify" has to be a system state, computed from which sensors are
 installed and what each stage needs, or asked as its own question. It cannot be left to the
@@ -78,6 +80,7 @@ the predictions I lost — are in the same file.
 | Cross-model | Is it this family, or frontier models? | [registered](docs/crossmodel_preregistration.md) | [both, differently](docs/results/crossmodel_results.md) |
 | Undersampling | Is observability set by the model or the sampling rate? | [registered](docs/undersampling_preregistration.md) | [by the sampling rate](docs/results/undersampling_results.md) |
 | Real plant | Does any of it survive real data? | [registered](docs/realdata_preregistration.md) | [yes, and it prices the simulator](docs/results/realdata_results.md) |
+| Real plant, rerun | Does it survive correcting the instrument description? | [registered](docs/realdata_v2_preregistration.md) | [abstention identical; false alerts are the models', not the description's](docs/results/realdata_v2_results.md) |
 | Camera | With an instrument group gone, does the plant's camera put it back? | [registered](docs/vision_preregistration.md) | [no: one model ignores it, one alarms at it](docs/results/vision_results.md) |
 | Camera follow-up | Was it the photographs, or the sentence announcing them? | [registered](docs/vision_followup_preregistration.md) | [half the words, half any photograph; not what they show](docs/results/vision_followup_results.md) |
 
@@ -153,14 +156,13 @@ reference curves) and **C-full** (+ micrographs).
 - **No safety claim.** An LLM is not a safety system; hard interlocks are.
 - **Telemetry dynamics are author-constructed.** Fault *types* cite published incidents
   (DeepMind arXiv 2608.26701; Anthropic MHS), but the curve shapes are the author's.
-- **How far the simulator flatters the models is not yet measured.** Its reference bands come
-  from 100 normal runs of an identical process, which a real plant does not have. The real-plant
-  replication was meant to price that: it reported 0.65–0.71 detection against 0.90, and 22–32%
-  false alerts against 0.00. Those runs used a wrong description of the plant's instruments,
-  and most of the false alerts cite the channel it described worst
-  ([deviation 5](docs/realdata_preregistration.md)). A rerun under the corrected description is
-  pending. Until then, read this
-  page's detection and false-alert numbers as an upper bound, without a measured size for the gap.
+- **The simulator flatters the models, and by how much is measured.** Its reference bands come
+  from 100 normal runs of an identical process, which a real plant does not have. On the real
+  plant, with the instruments described correctly, the same three models reach **0.32, 0.55 and
+  1.00** detection against 0.90 here. They call a fault-free run anomalous **8%, 35% and 97%** of
+  the time, against 0.00 in the full arm here
+  ([rerun](docs/results/realdata_v2_results.md)). Read this page's detection and false-alert
+  numbers as an upper bound. The abstention result is the one that carried across.
 - **The camera results are one model's behaviour on one plant.** The follow-up that explains
   Opus 5's shift ran on Opus 5 only, with one camera view, six frames and one wording of the
   announcement. That the camera "adds alarm, not information" is measured for that setting, not

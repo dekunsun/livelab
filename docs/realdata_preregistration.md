@@ -210,3 +210,12 @@ About 129 items × 2 models ≈ 258 calls at roughly 3k tokens each. **Cap: US$1
    old one is kept byte-exact as `LEGEND_V1`, and runners still use it, so the two can never mix in
    one results directory. A rerun under V2 is a new registered study, with both versions reported;
    nothing is overwritten.
+
+   **Outcome of the rerun (2026-09-21, same day).** The [registered rerun](realdata_v2_preregistration.md)
+   under the corrected legend left abstention on Blind **exactly unchanged**, 0, 4 and 3 of 31. It
+   did **not** remove Opus's or Astra's false alerts, 12 → 13 and 37 → 36. Told correctly that the
+   channel is a heater, both still alert on it, now arguing that the heater is far hotter than the
+   vessel it heats. The sentence above saying the false-alert rates were "at least partly the cost
+   of a wrong description" is therefore **not supported** for those two models. Gemini's false
+   alerts did fall, 8 → 3, but its V1 alerts cited no heater, so not through the channel this
+   deviation named ([results](results/realdata_v2_results.md)).
