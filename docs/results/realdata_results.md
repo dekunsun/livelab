@@ -1,5 +1,14 @@
 # Real-plant replication: the finding holds, and the simulator was flattering the models
 
+> **Correction (2026-09-21).** The plant description the models read in this study was wrong:
+> it called five heater temperatures column temperatures, swapped reflux and distillate, and
+> called the cooling-water flow a ratio. The false alerts below cite a heater temperature in 12 of
+> 12 (Opus 5), 37 of 37 (Astra) and 3 of 8 (Gemini) cases. **The false-alert and detection rates
+> on this page are not a measure of real-data difficulty**, and the abstention result is measured
+> against answers made under the same wrong description. Details and what still holds:
+> [deviation 5](../realdata_preregistration.md). A rerun under the corrected description is a new
+> registered study; these numbers stay as they were.
+
 Registered before any item was built: [realdata_preregistration.md](../realdata_preregistration.md).
 Collected 2026-09-20 on [Zenodo 17395543](https://doi.org/10.5281/zenodo.17395543) — 119
 experiments on a real batch distillation plant, CC BY 4.0, 18 channels at 1 Hz. **Truth is the

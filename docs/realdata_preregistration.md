@@ -169,3 +169,42 @@ About 129 items × 2 models ≈ 258 calls at roughly 3k tokens each. **Cap: US$1
 4. **The ported instruction is committed** at `livelab/realdata_prompt.py`, before any run;
    `python -m livelab.realdata_prompt --diff` prints what changed against v4. A test asserts the
    contract sentences are byte-identical.
+
+5. **The plant description the models read was wrong (found 2026-09-21, after every real-plant
+   result was published).** The ported instruction's tag legend (deviation 4) was written by me,
+   not taken from the dataset, and it was wrong in four places:
+
+   | Tag | The legend said | The dataset's annotations say |
+   | --- | --- | --- |
+   | T701–T712 | temperatures along the column, reboiler to condenser | T701, T702, T704, T706 and T708 are **heater** temperatures, which run at 300–500 °C. T703 is the reboiler vessel. The rest are column sections, not in order |
+   | FT703 / FT704 | reflux / distillate | **distillate / reflux**, swapped |
+   | FYI702 | flow ratio | **cooling-water** flow |
+   | PDI702 | a column pressure difference | the **buffer vessel's** pressure difference |
+
+   Each correction was checked against a second source before being accepted. The five heater
+   temperatures carry the same numbers as the five heaters in the plant's actuator log (H701,
+   H702, H704, H706, H708). The flows fit the physics only one way round: under the dataset's
+   labelling, reflux is about twice distillate and exceeds it in 78% of events, as it should in a
+   batch column. Under the legend's labelling, the column would be running at a reflux ratio of
+   0.5. The table with sources is `data/realdata/tags.csv`.
+
+   **How it was found.** In the camera study, every false alert on a fault-free run cited T701 as
+   an implausible "reboiler" temperature. Opus's reasoning was correct *given the legend*: a
+   reboiler at 330 °C under a column at 60–90 °C would be broken. A heater at 330 °C is ordinary.
+
+   **What it affects.** Across the three models, the answers calling a fault-free run anomalous
+   cite a heater temperature in 12 of 12 (Opus 5), 37 of 37 (GPT-6 Astra) and 3 of 8 (Gemini).
+   Evidence lists name several channels, so citing is not proof of cause. But the false-alert
+   rates reported for this study (22%, 32%, 100%) cannot be read as the difficulty of real data;
+   they are at least partly the cost of a wrong description. The same holds for detection on Full,
+   and for the `ANOMALOUS` answers on Blind that abstention is measured against.
+
+   **What it does not affect.** Every arm and condition in every real-plant study received the same
+   legend, so paired comparisons within a study hold as comparisons: the camera's effect, and the
+   follow-up's decomposition of it. The simulated benchmark and the probes used a different
+   instruction and are untouched.
+
+   **What happens next.** The corrected legend is `LEGEND_V2` in `livelab/realdata_prompt.py`. The
+   old one is kept byte-exact as `LEGEND_V1`, and runners still use it, so the two can never mix in
+   one results directory. A rerun under V2 is a new registered study, with both versions reported;
+   nothing is overwritten.

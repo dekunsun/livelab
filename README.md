@@ -16,7 +16,12 @@ cannot tell: 7 abstentions out of 2,134 judgments where nothing else was support
 | --- | ---: | ---: |
 | Simulated benchmark, Gemini 3.8 Live, three arms | 1,986 | **0** |
 | The same wording, four models | 55 | **0** |
-| A real plant, with the observing instruments removed, three models | 93 | **7** |
+| A real plant, with the observing instruments removed, three models† | 93 | **7** |
+
+† **Correction (2026-09-21):** the real-plant runs gave the models a wrong description of the
+plant's instruments. It called five heater temperatures column temperatures, and swapped reflux
+and distillate. This row stands as collected, but it was measured under that description; a
+rerun under the corrected one is pending. [What it affects](docs/realdata_preregistration.md)
 
 The sensor that would show it is not installed, or the excursion is shorter than the sampling
 interval — and the answer is `NORMAL` or `ANOMALOUS` anyway. The models are not confused about what
@@ -29,8 +34,9 @@ Three things sharpen it:
   every model abstains **0 of 55**. One added sentence defining when to answer `UNKNOWN` then moves
   Opus 5 to 13/14 and GPT-6 Astra to 14/14 — and Gemini by nothing, at any thinking level.
   [Cross-model results](docs/results/crossmodel_results.md)
-- **It is not an artefact of the simulator.** Put to 119 runs of a real distillation plant with the
-  plant's own expert annotations as truth, abstention was **0, 4 and 3 of 31**.
+- **It is not an artefact of the simulator, as far as tested.** Put to 119 runs of a real
+  distillation plant with the plant's own expert annotations as truth, abstention was **0, 4 and 3
+  of 31**. Those runs used the wrong instrument description noted above; a rerun is pending.
   [Real-plant results](docs/results/realdata_results.md)
 - **It is not about missing sensors specifically.** Give the model a single unexplained reading and
   nothing to confirm it, and abstention is **0 of 6**, in both models tested.
@@ -42,6 +48,8 @@ Three things sharpen it:
   was not showing anything. Photographs of a *different* normal run produced almost the same
   shift. The sentence announcing a camera, with nothing attached, produced about half of it. Every
   false alert, in every arm, rests on one telemetry reading that the camera cue tips over the line.
+  That reading looked implausible because this project described it wrongly (the correction
+  above). The comparisons between arms hold; the absolute rates do not measure the plant.
   [Camera results](docs/results/vision_results.md) ·
   [follow-up](docs/results/vision_followup_results.md)
 
@@ -49,7 +57,9 @@ Three things sharpen it:
 
 The figure is also why this benchmark carries control arms. On the real plant GPT-6 Astra detects
 **30 of 31** anomalies, the best number here — and calls **all 37** fault-free runs anomalous too.
-Reported without its control, that 97% would have ranked it first.
+Reported without its control, that 97% would have ranked it first. The control caught it; the
+cause turned out to be partly this project's. In 36 of those 37 fault-free runs, Astra cites the
+heater temperature that the instrument description had wrongly called a column temperature.
 
 **Implication:** "cannot verify" has to be a system state, computed from which sensors are
 installed and what each stage needs, or asked as its own question. It cannot be left to the
@@ -143,13 +153,14 @@ reference curves) and **C-full** (+ micrographs).
 - **No safety claim.** An LLM is not a safety system; hard interlocks are.
 - **Telemetry dynamics are author-constructed.** Fault *types* cite published incidents
   (DeepMind arXiv 2608.26701; Anthropic MHS), but the curve shapes are the author's.
-- **The simulator flatters the models, and by how much is now measured.** Its reference bands come
-  from 100 normal runs of an identical process, which a real plant does not have. On real data the
-  same models score **0.65–0.71** detection against **0.90** here, and call a fault-free run
-  anomalous **22–32%** of the time against a false-alert rate of **0.00** in the full arm. Read the
-  detection and false-alert numbers on this page as an upper bound on real-world behaviour. The
-  abstention result is the one that carried across
-  ([replication](docs/results/realdata_results.md)).
+- **How far the simulator flatters the models is not yet measured.** Its reference bands come
+  from 100 normal runs of an identical process, which a real plant does not have. The real-plant
+  replication was meant to price that: it reported 0.65–0.71 detection against 0.90, and 22–32%
+  false alerts against 0.00. Those runs used a wrong description of the plant's instruments,
+  and most of the false alerts cite the channel it described worst
+  ([deviation 5](docs/realdata_preregistration.md)). A rerun under the corrected description is
+  pending. Until then, read this
+  page's detection and false-alert numbers as an upper bound, without a measured size for the gap.
 - **The camera results are one model's behaviour on one plant.** The follow-up that explains
   Opus 5's shift ran on Opus 5 only, with one camera view, six frames and one wording of the
   announcement. That the camera "adds alarm, not information" is measured for that setting, not

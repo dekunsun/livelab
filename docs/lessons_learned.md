@@ -159,3 +159,22 @@ Product implications:
   itself.
 - Asked as its own question, verifiability was answered correctly 91% of the time. The information
   exists, but it has to be asked for separately.
+
+## G. The error that was mine
+
+**A plausible model answer can be the symptom of a harness bug.** In the camera study, every false
+alert on a fault-free run cited one channel, T701, as an impossible "reboiler" temperature of
+330 °C. Opus was reasoning correctly from what it had been told. The plant description I wrote
+when porting the instruction called T701–T712 column temperatures in order. Five of them are
+heater temperatures, and it also swapped reflux and distillate. I had written that legend from the
+tag names instead of from the dataset's annotations, which name every sensor's feature of
+interest. It survived four studies because every check I ran compared the models with each other
+or with themselves. None compared the plant description with the plant.
+
+1. **Take the description of an instrument from its documentation, never from its name.** A
+   one-line legend is a claim about physics, and it is part of the item.
+2. **When every error cites the same input, read that input before reading the model.** The
+   concentration on T701 was the signal, and it pointed at the harness.
+3. **Correct in public, and keep what was published.** The old legend is kept byte-exact, the
+   results pages carry the correction at the top, and a rerun under the fixed legend is a new
+   registered study rather than an overwrite.
