@@ -7,57 +7,63 @@ current sensors actually support, and what remains unknowable during a physical 
 > current experiment is going wrong, distinguish physical failure from scientific evidence, and
 > know when the available sensors are insufficient to tell.
 
-## Headline result
+## The finding
 
-Gemini 3.8 Live watched 38 simulated CVD growth runs (MoS₂ on SiO₂/Si, following the TMD workflow
-in DeepMind's Gemini paper) and reported its judgment every two simulated minutes.
+**Asked to watch an experiment under this benchmark's contract, models almost never say they
+cannot tell: 7 abstentions out of 2,134 judgments where nothing else was supported.**
 
-1. **Context fixes detection.** Adding normal-run reference curves raised detection from
-   **0.50 to 0.90** and cut false alerts from **0.83 to 0.00–0.11**. Reference curves alone
-   (C-context) did as well as reference curves plus micrographs (C-full). In-run detection comes
-   from context, not from images.
-2. **Nothing fixes calibration.** At the **1,986** events (662 per arm) where the evidence could
-   not support a judgment, because a sensor needed to verify the stage was not installed, the model
-   answered `UNKNOWN` **0 times**. Unsupported certainty stayed at **0.37** in every arm.
-3. **It knows, but its verdict does not change.** A
-   [pre-registered probe](docs/probe_preregistration.md) ruled out three explanations:
-   - **Knowledge:** the model mostly knows which sensors can see which faults (81% balanced
-     accuracy).
-   - **Convention:** an explicit instruction to answer `UNKNOWN` in exactly this situation moved it
-     0 of 14.
-   - **Option bias:** renaming and reordering the enum moved it 0 of 14.
+| Where only `UNKNOWN` is supported | Judgments | Abstentions |
+| --- | ---: | ---: |
+| Simulated benchmark, Gemini 3.8 Live, three arms | 1,986 | **0** |
+| The same wording, four models | 55 | **0** |
+| A real plant, with the observing instruments removed, three models | 93 | **7** |
 
-   What remains: asked separately, it said *"atmosphere cannot be verified"* on 12 of 14 such items,
-   then reported the run as **NORMAL on all 12**. Thinking longer changes nothing: Extended
-   Thinking at HIGH abstained **0 of 41** under three of the same framings, naming the missing
-   evidence more precisely each time and committing anyway.
-4. **Under the benchmark's contract this is universal; the remedy is not.** A
-   [registered cross-model study](docs/crossmodel_preregistration.md) put the same items to Claude
-   Opus 5 and GPT-6 Astra:
+The sensor that would show it is not installed, or the excursion is shorter than the sampling
+interval — and the answer is `NORMAL` or `ANOMALOUS` anyway. The models are not confused about what
+they can see: asked as its own question, all four say *"atmosphere cannot be verified"* on exactly
+the same 12 of 14 items, and then rule on all 12.
 
-   | Abstention where only `UNKNOWN` is supported | Gemini 3.8 Live | + Extended Thinking | Opus 5 | GPT-6 Astra |
-   | --- | --- | --- | --- | --- |
-   | the benchmark's own wording | 0/14 | 0/13 | **0/14** | **0/14** |
-   | one sentence defining when to answer `UNKNOWN` | 0/14 | 0/14 | **13/14** | **14/14** |
+Three things sharpen it:
 
-   **0 of 55 under the contract as written, in every model.** One added sentence then moves two
-   families and not the third. Asked as its own question, all four say *"atmosphere cannot be
-   verified"* on exactly the same 12 of 14 items — and three of them commit to a verdict anyway on
-   12 of 12, while Astra carries it through on 10 of 12.
-   [Full results](docs/results/crossmodel_results.md).
+- **It is not a prompt problem, and not only a Gemini problem.** Under the benchmark's own wording
+  every model abstains **0 of 55**. One added sentence defining when to answer `UNKNOWN` then moves
+  Opus 5 to 13/14 and GPT-6 Astra to 14/14 — and Gemini by nothing, at any thinking level.
+  [Cross-model results](docs/results/crossmodel_results.md)
+- **It is not an artefact of the simulator.** Put to 119 runs of a real distillation plant with the
+  plant's own expert annotations as truth, abstention was **0, 4 and 3 of 31**.
+  [Real-plant results](docs/results/realdata_results.md)
+- **It is not about missing sensors specifically.** Give the model a single unexplained reading and
+  nothing to confirm it, and abstention is **0 of 6**, in both models tested.
+  [Undersampling results](docs/results/undersampling_results.md)
 
-5. **It replicates on a real plant.** The same question was put to 119 runs of a real batch
-   distillation column ([Zenodo 17395543](https://doi.org/10.5281/zenodo.17395543), CC BY, expert
-   annotations as truth). With the instrument group that carried the evidence removed, abstention
-   was **0 of 31** (Gemini) and **4 of 31** (Opus 5), and removing it moved the verdict by 6 and 13
-   points. The same runs also show what the simulator hides: on fault-free real runs these models
-   call an anomaly **22%** and **32%** of the time, against **0.00** in the simulator's full arm.
-   [Full results](docs/results/realdata_results.md).
+![What three models answered on a real plant, by condition](docs/figures/realdata.png)
 
-**Implication:** models perceive the gap alike and differ in whether their verdict is allowed to
-depend on it. So "cannot verify" has to be a system state, computed from which sensors are
-installed and what each stage needs, or asked as its own question — on Gemini because nothing else
-works, and everywhere else because a sentence in a prompt is not a guarantee.
+The figure is also why this benchmark carries control arms. On the real plant GPT-6 Astra detects
+**30 of 31** anomalies, the best number here — and calls **all 37** fault-free runs anomalous too.
+Reported without its control, that 97% would have ranked it first.
+
+**Implication:** "cannot verify" has to be a system state, computed from which sensors are
+installed and what each stage needs, or asked as its own question. It cannot be left to the
+model's verdict — on Gemini because nothing else works, and elsewhere because a sentence in a
+prompt is not a guarantee.
+
+## How it was tested
+
+Every study below was **registered before it ran**, and each registration's deviations — including
+the predictions I lost — are in the same file.
+
+| Study | What it asks | Registration | Result |
+| --- | --- | --- | --- |
+| Benchmark | Does context or imagery fix detection? Does confidence track observability? | [design](docs/design.md) | 38 replays × 3 arms, [6,728 events](docs/results/arm_comparison.md) |
+| `UNKNOWN` probe | Is it knowledge, convention, or option bias? | [registered](docs/probe_preregistration.md) | none of the three — [findings](docs/results/probe_findings.md) |
+| Cross-model | Is it this family, or frontier models? | [registered](docs/crossmodel_preregistration.md) | [both, differently](docs/results/crossmodel_results.md) |
+| Undersampling | Is observability set by the model or the sampling rate? | [registered](docs/undersampling_preregistration.md) | [by the sampling rate](docs/results/undersampling_results.md) |
+| Real plant | Does any of it survive real data? | [registered](docs/realdata_preregistration.md) | [yes, and it prices the simulator](docs/results/realdata_results.md) |
+
+Detection and context effects, which the first study measures, are in
+[arm comparison](docs/results/arm_comparison.md): reference curves take detection from **0.50 to
+0.90** and false alerts from **0.83 to 0.00**, and curves alone do as well as curves plus
+micrographs — in-run detection comes from context, not from images.
 
 ### Which half of the thesis this tests
 
