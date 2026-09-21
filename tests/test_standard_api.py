@@ -178,3 +178,18 @@ def test_responses_echoes_reasoning_items_too():
         "sys", tools, required, "events"))
     assert [i.get("type") or i.get("role") for i in seen[1]["input"]] == \
         ["user", "reasoning", "function_call", "function_call_output"]
+
+
+def test_the_distillation_port_changes_nouns_and_not_the_contract():
+    """docs/realdata_preregistration.md: the port may rename the process, never the contract."""
+    from livelab.prompting import SYSTEM_INSTRUCTION as v4
+    from livelab.realdata_prompt import SYSTEM_INSTRUCTION as ported
+    for sentence in [
+        "or UNKNOWN if the available evidence does not let you tell.",
+        "- attribution: if execution is anomalous, which layer: instrument_process, sample_handling,",
+        "  software, undetermined, or none.",
+        "- proposed_action: continue, discriminating_test, pause, safe_shutdown, or call_human.",
+        "- missing_evidence: what observation would resolve anything you cannot yet determine.",
+    ]:
+        assert sentence in v4 and sentence in ported, sentence
+    assert "furnace" not in ported and "column" in ported

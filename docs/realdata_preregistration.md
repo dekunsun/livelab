@@ -131,4 +131,28 @@ About 129 items × 2 models ≈ 258 calls at roughly 3k tokens each. **Cap: US$1
 
 ## Deviations log
 
-None yet.
+1. **The guard could not be built on this data, and the blind condition is structural instead
+   (2026-09-20, before any model ran).** Two attempts failed for reasons worth recording:
+
+   - A **within-run baseline** marks 15 of 18 channels as departing. This is a *batch*
+     distillation: temperatures climb through the whole run as the light component leaves, so a
+     global baseline reads the normal trajectory as an anomaly.
+   - A **paired-twin baseline**, using the dataset's own fault-free run at the same operating
+     point, fails on alignment. Paired runs differ in length — 3,526 against 4,879 samples in one
+     case, 8,414 against 4,110 in another — so an index-aligned difference measures the
+     misalignment: one temperature channel read z = 122 from that alone. Resampling both runs onto
+     a common progress axis would work, and would be a rule of ours shaping the very thing the
+     study is meant to take from the experts.
+
+   So the blind condition removes **the whole instrument group** the observing sensor belongs to —
+   temperature, flow, pressure or level — read off the plant's tag list rather than off the data.
+
+2. **What that costs the claim.** "Only `UNKNOWN` is supported" is now an argument from the
+   instrument list, not a proof: the column couples groups, and a temperature anomaly may leave a
+   trace in pressure. A model that answers `ANOMALOUS` in the blind condition is therefore not
+   necessarily wrong, and **abstention on blind is a lower bound**. This is weaker than the
+   simulated study, where the cascade could be proven, and it is reported as such.
+
+3. **The ported instruction is committed** at `livelab/realdata_prompt.py`, before any run;
+   `python -m livelab.realdata_prompt --diff` prints what changed against v4. A test asserts the
+   contract sentences are byte-identical.
