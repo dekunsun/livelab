@@ -153,6 +153,19 @@ About 129 items × 2 models ≈ 258 calls at roughly 3k tokens each. **Cap: US$1
    necessarily wrong, and **abstention on blind is a lower bound**. This is weaker than the
    simulated study, where the cascade could be proven, and it is reported as such.
 
-3. **The ported instruction is committed** at `livelab/realdata_prompt.py`, before any run;
+3. **A third model was added after the first two were scored (2026-09-20).** The registration
+   names `gemini-3.8-live` and `claude-opus-5`. `gpt-6-astra` was added **after** their results were
+   read, which is exactly the move pre-registration exists to discipline, so the reason and the
+   limits are recorded here:
+
+   - The decision is about **generality, not about a better number**. The measures, items, truth
+     and prompt are unchanged and were fixed before any model ran; nothing is re-scored.
+   - What prompted it: the finding that these models call a fault-free real run anomalous 22% and
+     32% of the time rests on **two** models. A third either shows it is general or shows it is not.
+   - Predictions Pr1–Pr4 are **not** restated for it. They were registered against the two named
+     models and stand as scored; astra is reported beside them and its numbers are labelled as an
+     unregistered extension.
+
+4. **The ported instruction is committed** at `livelab/realdata_prompt.py`, before any run;
    `python -m livelab.realdata_prompt --diff` prints what changed against v4. A test asserts the
    contract sentences are byte-identical.
