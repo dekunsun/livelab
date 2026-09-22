@@ -40,8 +40,7 @@ Flip images with **both** steps right: C0 0/20, C1 14/20, C2 12/20.
 ## Reading, against the rules fixed before the run
 
 *The tables above are generated and unedited. This section was written after the results were
-known. **It is provisional.** The registration requires the project owner to check 15 labels and
-15 descriptions against their images, and that has not been done yet.*
+known, and completed after the owner's checks (below).*
 
 ### The picture is used (Pa1, Pa2 met)
 
@@ -94,7 +93,45 @@ not by wrong answers. Neither model shows a specific blindness to the step.
 Opus 5: **US$2.52** for 300 calls, plus about **US$0.81** for the 80 descriptions (their usage was
 not stored, so this is estimated from a sample call). Gemini reports no usage. The cap was US$8.
 
-### Still to do before this is read as final
+### The owner's checks, and a second rater
 
-- **The owner's check of 15 labels and 15 descriptions** against their images, drawn at random.
-  If labels fail it, the C1 errors and the C2 false alarms both need rereading.
+The project owner checked 15 labels and 15 descriptions against their images. They have a
+background in materials, have not used these instruments, and judge as a non-expert. The label
+check was blind: they saw the step and the check, never the label. GPT-6 Astra, which took no part
+in pilot 1, then rated the same 30 blind, after the owner had finished. The owner's records were
+committed before Astra ran (`results/review_raw/`, `results/pilot1/second_rater/`).
+
+| Check | Owner | Astra |
+| --- | --- | --- |
+| Labels: agree / disagree / cannot tell | **14 / 0 / 1** | 9 / 3 / 3 |
+| Descriptions with errors that would change a judgement | **8 of 15** | 1 of 15 |
+| Descriptions carrying a judgement | 0 | 0 |
+
+**The labels stand.** The registered rule marks a label uncertain only where both raters disagree
+with it, and no label met that. The owner disagreed with none.
+
+**The descriptions are where C2 went wrong.** Eight of the fifteen have an error the owner judged
+would change the answer, and they cluster on the very details the checks ask about:
+
+- red liquid plainly visible in a tube is described as "no liquid" or "darker below" (images
+  1534, 1537, 1555);
+- a mould is described as "a cylindrical roller" or "a white cylindrical part" (0625, 0984);
+- a bottle with a spout cap is described as uncapped (0719).
+
+This settles the question the first reading left open. C2's false alarms came from the describer
+misreading the scene, not from lenient labels. That sharpens Pa3's reading. The loss is not
+"text is worse than pictures". It is that **a description written without knowing the check
+misses or misreads the details the check depends on**, while the same model, looking at the
+picture with the check in hand, did better. This is still not a comparison with a specialist
+vision pipeline.
+
+**The second rater errs in the direction of the models under test.** All three of Astra's label
+disagreements call an abnormal scene fine. The owner agreed with the label on two of those and
+could not tell on the third. On descriptions, Astra called seven of the owner's eight
+judgement-changing errors minor or absent. So a model used as the reference would have passed
+exactly the failures this pilot is looking for. That is the case, now measured once, for keeping
+the reference human here and a model only as a cross-check. Owner and Astra agree on 9 of 15
+labels and 8 of 15 description ratings.
+
+Astra's check cost about 30 calls. Its usage is in the records; the spend is small next to the
+cap.
