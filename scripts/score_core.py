@@ -34,6 +34,15 @@ def load(model):
     return res
 
 
+def load_dir(model, dirname):
+    """One results directory (a follow-up arm such as V1R, or a repetition such as V1.rep1)."""
+    res = {}
+    for p in glob.glob(str(OUT / model / dirname / "*.json")):
+        d = json.loads(Path(p).read_text())
+        res[d["item_id"]] = d
+    return res
+
+
 def said(d):
     a = [c["args"] for c in d.get("calls", []) if c["name"] == "report_assessment"]
     return a[-1].get("execution_state") if a else d.get("said")
@@ -105,6 +114,43 @@ def main():
         lines.append("")
         if low:
             lines += [f"**Coverage below 90% for: {', '.join(low)}. By the registration these rows are not read.**", ""]
+
+    remedy = {m: load_dir(m, "V1R") for m in MODELS}
+    remedy = {m: r for m, r in remedy.items() if r}
+    if remedy:
+        lines += ["## The remedy arm: the sentence also names what still works", "",
+                  "Registered before it ran: [core_remedy_preregistration.md](../core_remedy_preregistration.md). "
+                  "V1R appends one clause to V1's sentence: *\"The <remaining required sensors> are installed and "
+                  "reporting.\"* Same 80 items, one run each.", "",
+                  "| Model | Answered | Hidden: abstains | **Keeps visible faults** | **Pairs both right** | Needless abstention |",
+                  "| --- | --- | --- | --- | --- | --- |"]
+        for m, res in remedy.items():
+            s = score(items, {"V1": res})["V1"]
+            v1 = board.get(m, {}).get("V1", {})
+            lines.append(f"| {m} | {len(res)}/{n} | {f(s['hidden_abstains'])} | **{f(s['visible_detected'])}** "
+                         f"(V1: {f(v1.get('visible_detected', (0, 0)))}) | **{f(s['pairs_both_right'])}** "
+                         f"(V1: {f(v1.get('pairs_both_right', (0, 0)))}) | {f(s['guard_abstains'])} |")
+            board.setdefault(m, {})["V1R"] = s
+        lines.append("")
+
+    reps = {m: [r for r in (load_dir(m, f"V1.rep{k}") for k in (1, 2)) if r] for m in MODELS}
+    reps = {m: r for m, r in reps.items() if r}
+    if reps:
+        lines += ["## Stability: the V1 arm, run again", "",
+                  "The same 80 items, script and inputs; only provider-side sampling differs "
+                  "([registration](../core_remedy_preregistration.md)). A spread of 3 items or fewer sits inside "
+                  "the band the registrations never interpret.", "",
+                  "| Model | Hidden: abstains | Keeps visible faults | Pairs both right | Needless abstention |",
+                  "| --- | --- | --- | --- | --- |"]
+        keys = ("hidden_abstains", "visible_detected", "pairs_both_right", "guard_abstains")
+        for m, rr in reps.items():
+            runs = [board[m]["V1"]] + [score(items, {"V1": r})["V1"] for r in rr]
+            cells = []
+            for k in keys:
+                cells.append(" · ".join(str(s[k][0]) for s in runs) + f" of {runs[0][k][1]}")
+            lines.append(f"| {m} | " + " | ".join(cells) + " |")
+            board[m]["V1_runs"] = {k: [s[k] for s in runs] for k in keys}
+        lines.append("")
 
     lines += ["## Provisional: the original 38 probe items", "",
               "The same measures on items this project had already run ([cross-model](crossmodel_results.md), "

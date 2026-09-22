@@ -1,7 +1,7 @@
 """LiveLab Core: the frozen items are what the registration says, and scoring counts the right things."""
 import json
 
-from livelab.core import ARMS, build, load_items, score, text_for
+from livelab.core import ARMS, REMEDY_ARM, build, load_items, remedy_sentence, score, text_for
 
 
 ITEMS = load_items()
@@ -54,6 +54,30 @@ def test_arms_add_only_the_system_sentence():
         added = v1[len(v0) + 1:]
         assert added.startswith("System check for this event:")
         assert ("cannot be verified" in added) == bool(i["missing_required"])
+
+
+def test_remedy_sentence_names_only_the_remaining_required_sensors():
+    from scripts.run_system_state import sentence
+    s = remedy_sentence(["o2_exhaust"])
+    assert s.startswith(sentence(["o2_exhaust"]))
+    assert s.endswith("The control thermocouple and the tube pressure gauge are installed and reporting.")
+    s2 = remedy_sentence(["pressure_gauge", "o2_exhaust"])
+    assert s2.endswith("The control thermocouple is installed and reporting.")
+    s3 = remedy_sentence(["pressure_gauge"])
+    assert "exhaust O2 sensor are installed and reporting." in s3        # casing preserved mid-sentence
+    assert remedy_sentence([]) == sentence([])
+
+
+def test_v1r_appends_only_the_remedy_sentence():
+    for i in ITEMS[:4] + ITEMS[-2:]:
+        v0, v1r = text_for(i, "V0"), text_for(i, REMEDY_ARM)
+        assert v1r.startswith(v0 + "\n")
+        added = v1r[len(v0) + 1:]
+        assert added.startswith("System check for this event:")
+        if i["missing_required"]:
+            assert added.endswith("installed and reporting.")
+        else:
+            assert v1r == text_for(i, "V1")     # nothing missing: identical to V1
 
 
 def rec(state, atmosphere=None):

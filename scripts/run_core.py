@@ -18,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from livelab.backends import load_dotenv  # noqa: E402
-from livelab.core import ARMS, load_items, setup_for, text_for  # noqa: E402
+from livelab.core import ALL_ARMS, ARMS, load_items, setup_for, text_for  # noqa: E402
 from livelab.probes import run_single_turn  # noqa: E402
 from livelab.standard_api import StandardAsker  # noqa: E402
 from scripts.run_probes import MODELS, PATIENCE_S, PROVIDER, real_connect  # noqa: E402
@@ -45,7 +45,9 @@ def spent(model):
 async def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--backend", required=True, choices=sorted(MODELS))
-    ap.add_argument("--arm", nargs="*", default=list(ARMS), choices=ARMS)
+    ap.add_argument("--arm", nargs="*", default=list(ARMS), choices=ALL_ARMS)
+    ap.add_argument("--rep", type=int, default=0,
+                    help="repetition number: 0 is the original run; N>0 saves to <arm>.repN alongside it")
     ap.add_argument("--limit", type=int, help="only the first N items (smoke test)")
     ap.add_argument("--cap", type=float, default=15.0, help="stop once this model's spend passes this many USD")
     args = ap.parse_args(argv)
@@ -72,7 +74,8 @@ async def main(argv=None):
 
     for it in items:
         for arm in args.arm:
-            dest = OUT / model / arm / f"{it['item_id']}.json"
+            dirname = arm if args.rep == 0 else f"{arm}.rep{args.rep}"
+            dest = OUT / model / dirname / f"{it['item_id']}.json"
             if dest.exists():
                 continue
             cost = spent(model)

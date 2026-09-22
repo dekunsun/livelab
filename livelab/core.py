@@ -40,6 +40,8 @@ N_NORMAL = 10               # no fault, every sensor installed
 N_FULL = 10                 # a fault, every sensor installed
 ONSET_S = (2400, 2700)      # growth runs 2519-3239 s at 120 s events
 ARMS = ("V0", "V1", "B1")   # nothing added / the system states the gap / asked to judge verifiability first
+REMEDY_ARM = "V1R"          # V1's sentence plus what still works (docs/core_remedy_preregistration.md)
+ALL_ARMS = ARMS + (REMEDY_ARM,)
 ABSTAIN = {"UNKNOWN", "CANNOT_VERIFY"}
 COMMITTED = {"NORMAL", "ANOMALOUS"}
 
@@ -129,6 +131,18 @@ def system_sentence(missing):
     return sentence(missing)
 
 
+def remedy_sentence(missing):
+    """V1's sentence, plus one clause naming the required sensors that remain installed."""
+    from scripts.run_system_state import REQUIRED, sentence, words
+    base = sentence(missing)
+    if not missing:
+        return base
+    remaining = [s for s in REQUIRED if s not in missing]
+    text = words(remaining)
+    verb = "is" if len(remaining) == 1 else "are"
+    return f"{base} {text[0].upper()}{text[1:]} {verb} installed and reporting."
+
+
 def text_for(item, arm):
     from .probes import prefix_message
     text = prefix_message(item["replay_id"], item["k"], DATA / "replays")
@@ -136,6 +150,8 @@ def text_for(item, arm):
         return text
     if arm == "V1":
         return text + "\n" + system_sentence(item["missing_required"])
+    if arm == REMEDY_ARM:
+        return text + "\n" + remedy_sentence(item["missing_required"])
     raise ValueError(arm)
 
 
