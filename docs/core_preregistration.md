@@ -121,6 +121,11 @@ account and its Live backend reports no usage. **Cap: US$15 per metered model**,
 
 ## Deviations log
 
-1. **2026-09-22, Opus 5 run.** The Anthropic account ran out of credit mid-run; 6 calls failed with a
+1. **2026-09-22, Opus 5.5 added.** Run as a new leaderboard row under the registered suite. Its
+   API refuses forced tool calls (`tool_choice` types "tool" and "any": "not supported for this
+   model"), so its requests carry `tool_choice: auto` where every other model's carry `any`. The
+   instruction, item text and schema are unchanged; an unanswered item is excluded and counted
+   against coverage, as everywhere else.
+2. **2026-09-22, Opus 5 run.** The Anthropic account ran out of credit mid-run; 6 calls failed with a
    billing error and were not saved. After a top-up the same script, unchanged, filled them. No answer
    was recorded twice or altered.

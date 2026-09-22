@@ -24,6 +24,9 @@ OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 MAX_TOKENS = 1024
 TIMEOUT_S = 120
+# Models whose API dropped forced tool calls: tool_choice "tool" and "any" are refused
+# (measured 2026-09-22 on claude-opus-5-5), so these get "auto" and rely on the instruction.
+NO_FORCED_TOOL_CHOICE = {"claude-opus-5-5"}
 
 
 def _ssl_context():
@@ -93,8 +96,11 @@ def build_request(provider, model, instruction, tools, messages, force_tool=None
             "tools": [{"name": t["name"], "description": t["description"],
                        "input_schema": schema_of(t)} for t in tools],
         }
-        body["tool_choice"] = ({"type": "tool", "name": force_tool} if force_tool
-                               else {"type": "any"})
+        if model in NO_FORCED_TOOL_CHOICE:
+            body["tool_choice"] = {"type": "auto"}
+        else:
+            body["tool_choice"] = ({"type": "tool", "name": force_tool} if force_tool
+                                   else {"type": "any"})
     elif provider == "openai_responses":
         # gpt-6-astra refuses function tools on /v1/chat/completions unless reasoning_effort is
         # "none". That is an intervention, not a default, and the registration keeps each model at

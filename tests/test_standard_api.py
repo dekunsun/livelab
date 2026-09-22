@@ -212,3 +212,11 @@ def test_frames_reach_every_provider_with_the_same_text_beside_them():
         assert len(turn["content"]) == 3, provider        # frames first, then the question
     assert user_turn("anthropic", "just text") == {"role": "user", "content": "just text"}
     os.unlink(path)
+
+
+def test_models_without_forced_tool_choice_get_auto():
+    from livelab.standard_api import build_request
+    body = build_request("anthropic", "claude-opus-5-5", "sys", 
+                         [{"name": "t", "description": "d", "parameters": {"type": "object", "properties": {}}}],
+                         [{"role": "user", "content": "x"}], force_tool="t")
+    assert body["tool_choice"] == {"type": "auto"}
