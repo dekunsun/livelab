@@ -126,4 +126,9 @@ S+L: 100 items × 2 models, text only. **Cap: US$3.**
 
 ## Deviations log
 
-None yet.
+1. **S+L's sentence when S could not judge (2026-09-21, before S+L ran).** The registered sentence
+   has an agreement count that does not exist when S answers UNKNOWN, which happens for 1 of the
+   100 items. For that item the sentence reads: *"An inspection classifier trained on this
+   laboratory's past photographs could not judge this check: it had too few similar past
+   photographs."* S's own results were computed before this was written, and are committed with
+   it.
