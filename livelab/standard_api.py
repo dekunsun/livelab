@@ -85,7 +85,7 @@ def user_turn(provider, text, images=()):
     return {"role": "user", "content": parts + [{"type": "text", "text": text}]}
 
 
-def build_request(provider, model, instruction, tools, messages, force_tool=None, **extra):
+def build_request(provider, model, instruction, tools, messages, force_tool=None, tool_choice=None, **extra):
     """The literal request body. Pure, so a test and a committed artifact can both check it."""
     if provider == "anthropic":
         body = {
@@ -96,7 +96,7 @@ def build_request(provider, model, instruction, tools, messages, force_tool=None
             "tools": [{"name": t["name"], "description": t["description"],
                        "input_schema": schema_of(t)} for t in tools],
         }
-        if model in NO_FORCED_TOOL_CHOICE:
+        if model in NO_FORCED_TOOL_CHOICE or tool_choice == "auto":
             body["tool_choice"] = {"type": "auto"}
         else:
             body["tool_choice"] = ({"type": "tool", "name": force_tool} if force_tool
@@ -228,8 +228,9 @@ def _assistant_turn(provider, response, calls):
 class StandardAsker:
     """One provider, one model, one item per call. The Live backends' counterpart."""
 
-    def __init__(self, provider, model, key=None, post=_post, max_turns=3):
+    def __init__(self, provider, model, key=None, post=_post, max_turns=3, tool_choice=None):
         self.provider, self.model, self.max_turns = provider, model, max_turns
+        self.tool_choice = tool_choice    # "auto" lifts forced calls (Anthropic only)
         self.key = key or os.environ.get(
             "ANTHROPIC_API_KEY" if provider == "anthropic" else "OPENAI_API_KEY", "")
         self._post = post
@@ -243,7 +244,8 @@ class StandardAsker:
             if not missing:
                 break
             body = build_request(self.provider, self.model, instruction, tools, messages,
-                                 force_tool=missing[0] if len(required) > 1 else None)
+                                 force_tool=missing[0] if len(required) > 1 else None,
+                                 tool_choice=self.tool_choice)
             self.last_request = body
             response = await asyncio.to_thread(self._post, url_for(self.provider),
                                                _headers(self.provider, self.key), body)

@@ -153,6 +153,24 @@ def main():
             board[m]["V1_runs"] = {k: [s[k] for s in runs] for k in keys}
         lines.append("")
 
+    auto = {m: load_dir(m, "V1.auto") for m in ALL_MODELS}
+    auto = {m: r for m, r in auto.items() if r}
+    if auto:
+        lines += ["## Control: forced versus unforced function calls", "",
+                  "Registered before it ran: [core_toolchoice_preregistration.md](../core_toolchoice_preregistration.md). "
+                  "The V1 arm with `tool_choice: auto`, which lets the model write before it calls the function, "
+                  "against its forced runs. Opus 5.5 can only run unforced.", "",
+                  "| Model | Answered | Hidden: abstains | **Keeps visible faults** | **Pairs both right** | Needless abstention | Median text before the call (chars) |",
+                  "| --- | --- | --- | --- | --- | --- | --- |"]
+        for m, res in auto.items():
+            s_ = score(items, {"V1": res})["V1"]
+            spoken = sorted(len(d.get("spoken") or "") for d in res.values())
+            med = spoken[len(spoken) // 2] if spoken else 0
+            lines.append(f"| {m} (auto) | {len(res)}/{n} | {f(s_['hidden_abstains'])} | **{f(s_['visible_detected'])}** "
+                         f"| **{f(s_['pairs_both_right'])}** | {f(s_['guard_abstains'])} | {med} |")
+            board.setdefault(m, {})["V1_auto"] = s_
+        lines.append("")
+
     lines += ["## Provisional: the original 38 probe items", "",
               "The same measures on items this project had already run ([cross-model](crossmodel_results.md), "
               "[system state](system_state_results.md)). The visible-fault control there is two items, "

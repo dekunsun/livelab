@@ -48,6 +48,8 @@ async def main(argv=None):
     ap.add_argument("--arm", nargs="*", default=list(ARMS), choices=ALL_ARMS)
     ap.add_argument("--rep", type=int, default=0,
                     help="repetition number: 0 is the original run; N>0 saves to <arm>.repN alongside it")
+    ap.add_argument("--tool-choice", choices=["forced", "auto"], default="forced",
+                    help="auto lifts forced function calls (Anthropic); results go to <arm>.auto")
     ap.add_argument("--limit", type=int, help="only the first N items (smoke test)")
     ap.add_argument("--cap", type=float, default=15.0, help="stop once this model's spend passes this many USD")
     args = ap.parse_args(argv)
@@ -67,7 +69,7 @@ async def main(argv=None):
         env = "ANTHROPIC_API_KEY" if provider == "anthropic" else "OPENAI_API_KEY"
         if not os.environ.get(env):
             sys.exit(f"Set {env} in livelab/.env (never commit it).")
-        asker = StandardAsker(provider, model)
+        asker = StandardAsker(provider, model, tool_choice="auto" if args.tool_choice == "auto" else None)
     else:
         connect = real_connect(model)
     askers = {arm: ask_for(arm) for arm in args.arm}
@@ -75,6 +77,8 @@ async def main(argv=None):
     for it in items:
         for arm in args.arm:
             dirname = arm if args.rep == 0 else f"{arm}.rep{args.rep}"
+            if args.tool_choice == "auto":
+                dirname += ".auto"
             dest = OUT / model / dirname / f"{it['item_id']}.json"
             if dest.exists():
                 continue
@@ -101,7 +105,8 @@ async def main(argv=None):
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(json.dumps({"model": model, "arm": arm, "item_id": it["item_id"],
                                         "role": it["role"], "truth": it["truth"], "text_tail": text[-400:],
-                                        "calls": res["calls"], "usage": res.get("usage")}, indent=1))
+                                        "calls": res["calls"], "spoken": res.get("spoken", ""),
+                                        "tool_choice": args.tool_choice, "usage": res.get("usage")}, indent=1))
             said = [c["args"] for c in res["calls"] if c["name"] == "report_assessment"][-1].get("execution_state")
             print(f"[{arm}] {it['item_id']:32} {it['role']:7} truth {it['truth']:9} -> {said}", flush=True)
     cost = spent(model)

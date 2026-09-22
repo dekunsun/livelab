@@ -220,3 +220,11 @@ def test_models_without_forced_tool_choice_get_auto():
                          [{"name": "t", "description": "d", "parameters": {"type": "object", "properties": {}}}],
                          [{"role": "user", "content": "x"}], force_tool="t")
     assert body["tool_choice"] == {"type": "auto"}
+
+
+def test_tool_choice_auto_override_lifts_forcing():
+    from livelab.standard_api import build_request
+    tools = [{"name": "t", "description": "d", "parameters": {"type": "object", "properties": {}}}]
+    msgs = [{"role": "user", "content": "x"}]
+    assert build_request("anthropic", "claude-opus-5", "s", tools, msgs)["tool_choice"] == {"type": "any"}
+    assert build_request("anthropic", "claude-opus-5", "s", tools, msgs, tool_choice="auto")["tool_choice"] == {"type": "auto"}
