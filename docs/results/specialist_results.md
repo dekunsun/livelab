@@ -8,7 +8,7 @@ Registered before the specialist was built: [specialist_preregistration.md](../s
 | N: gemini-3.8-live, sees the photograph | **74** | 1 | 41 | 33 | 14 | — |
 | S: specialist (near-duplicates at 0.97 excluded) | **65** | 1 | 39 | 26 | 6 | ≈ $0 (local) |
 | S: specialist (near-duplicates at 0.90 excluded) | **67** | 1 | 44 | 23 | 6 | ≈ $0 (local) |
-| S+L: claude-opus-5, sees S's verdict | **20** | 52 | 17 | 3 | 0 | $0.0079 |
+| S+L: claude-opus-5, sees S's verdict | **23** | 68 | 17 | 6 | 0 | $0.0079 |
 | S+L: gemini-3.8-live, sees S's verdict | **51** | 18 | 32 | 19 | 0 | — |
 
 S trains on 2,474 annotations after removing the 80 test images and 88 near-duplicate images (2,295 and 193 at the stricter threshold). On this machine's CPU it takes 22 ms to embed an image and 0.05 ms to classify it.
@@ -26,7 +26,7 @@ S trains on 2,474 annotations after removing the 80 test images and 88 near-dupl
 | --- | --- | --- | --- |
 | Ps1 | S at least as accurate as the better N model (74) | 65 | **no** |
 | Ps2 | At 10% of training data S falls below 74 | 31 | yes |
-| Ps3 | S+L within 5 points of S, both models | 20 and 51 against 65 | **no** |
+| Ps3 | S+L within 5 points of S, both models | 23 and 51 against 65 | **no** |
 | Ps4 | S both-steps-right on flip images at least Gemini's (14) | 6 | **no** |
 
 ## Reading, against the rules fixed before the run
@@ -34,9 +34,8 @@ S trains on 2,474 annotations after removing the 80 test images and 88 near-dupl
 *The tables above are generated and unedited. This section was written after the results were
 known.*
 
-**Opus 5's S+L is not read.** Anthropic credit ran out after 79 of its 100 items, and 79% is
-below the 90% coverage this project reads. Its row counts the 21 missing items as wrong, and it
-is shown only for completeness. Ps3 is judged on Gemini alone until the remaining items run.
+**Opus 5's S+L ran in two parts.** Anthropic credit ran out after 79 of its 100 items. The
+remaining 21 ran after a top-up, with the same script and inputs, and all 100 answered.
 
 ### Ps1 not met: the general model beat the specialist in the specialist's best case
 
@@ -65,7 +64,7 @@ native model needed none. For a lab, that is the trade in one line: a specialist
 nothing to run (22 ms to embed an image on a laptop CPU, against about US$0.01 an inspection for
 Opus 5), and costs thousands of labelled photographs to build.
 
-### Ps3 not met, for Gemini: handing the verdict to a language model lost accuracy
+### Ps3 not met, for either model: handing the verdict to a language model lost accuracy
 
 Given only the classifier's verdict and vote count, Gemini got **51**, against S's 65. The
 registered reading for this direction is that *the pipeline's weak joint is the hand-off*, and
@@ -75,6 +74,10 @@ the records show how:
   wrong. It had no picture, so it had nothing to correct S with.
 - **It abstained where S's vote was weak.** Seventeen UNKNOWNs, almost all on 3-to-2 votes. S was
   right on 14 of those 17.
+
+**Opus 5 did the same, more strictly: 23 right, 68 UNKNOWN.** It also never overrode the
+classifier. It abstained on **every one** of the 64 items where S's vote was 3 to 2, and followed S
+only when four or five neighbours agreed. S was right on 42 of the items Opus declined.
 
 So the language model added no information, and it turned a weak but better-than-chance signal
 into silence. That abstention is not unreasonable: a 3-to-2 vote is weak evidence. But it cost
