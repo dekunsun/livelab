@@ -65,10 +65,24 @@ instrument description: rerun with that description corrected, Astra detects 31 
 calls 36 of 37 fault-free runs anomalous. It is alarmed by one heater running far hotter than the
 vessel it heats, which the plant's experts treat as normal.
 
-**Implication:** "cannot verify" has to be a system state, computed from which sensors are
-installed and what each stage needs, or asked as its own question. It cannot be left to the
-model's verdict — on Gemini because nothing else works, and elsewhere because a sentence in a
-prompt is not a guarantee.
+**Implication, now tested:** "cannot verify" has to be a system state, computed from which
+sensors are installed and what each stage needs, and not left to the model. A registered test on
+the same items ([system state](docs/results/system_state_results.md)) handed that state to the
+models per event:
+
+- **It fixes the failure for two of three models.** Told "the atmosphere cannot be verified with
+  the installed sensors", Opus 5 and Astra abstained on **14 of 14** items where they had
+  abstained on 0, with no extra abstention on normal runs. No prompt wording in phase one did
+  this. Gemini moved to 4 of 14.
+- **It also over-reaches.** On the two runs where a sensor was missing but pressure had already
+  caught the fault, the stated state made **every model drop every one of those anomalies**: 4 of
+  6 reported before, 0 of 6 after. Only Astra, given the state as a structured field instead of a
+  sentence, kept both.
+
+So the system should state what cannot be verified **and keep its own anomaly rules running on
+what can**, so that a finding the evidence supports is never dropped because another part of the
+picture is dark. For a model that ignores the state, as Gemini did, the system has to decide
+rather than inform.
 
 ## When the picture does carry the answer
 
@@ -133,6 +147,7 @@ the predictions I lost — are in the same file.
 | Real plant | Does any of it survive real data? | [registered](docs/realdata_preregistration.md) | [yes, and it prices the simulator](docs/results/realdata_results.md) |
 | Real plant, rerun | Does it survive correcting the instrument description? | [registered](docs/realdata_v2_preregistration.md) | [abstention identical; false alerts are the models', not the description's](docs/results/realdata_v2_results.md) |
 | Camera | With an instrument group gone, does the plant's camera put it back? | [registered](docs/vision_preregistration.md) | [no: one model ignores it, one alarms at it](docs/results/vision_results.md) |
+| System state | If the system says a condition cannot be verified, do models abstain, and only there? | [registered](docs/system_state_preregistration.md) | [two of three do; all three over-reach](docs/results/system_state_results.md) |
 | Pilot 1, PDMS stills | When the picture carries the answer, is it used together with the protocol step? | [registered](docs/pilots_preregistration.md) | [yes; a task-blind description is not a substitute](docs/results/pilot1_results.md) |
 | Specialist | Native multimodal, or a vision model trained on the lab's own photographs, alone or feeding an LLM? | [registered](docs/specialist_preregistration.md) | [Gemini beat the specialist; the hand-off was worst](docs/results/specialist_results.md) |
 | Pilot 2, CAXTON video | Can a person see a printing failure without the log? | [registered](docs/pilots_preregistration.md) | [yes, but no clean normal control: stopped](docs/results/pilot2_results.md) |
@@ -315,7 +330,8 @@ compact JSON.
 - the real-plant replication and its rerun under a corrected instrument description;
 - the camera study and its follow-up;
 - pilot 1 (PDMS stills), pilot 2 (CAXTON video, stopped at its registered condition), and the
-  specialist comparison.
+  specialist comparison;
+- the system-state test of the project's own recommendation.
 
 **Not done:**
 
