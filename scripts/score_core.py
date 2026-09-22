@@ -18,6 +18,7 @@ from livelab.core import ABSTAIN, ARMS, COMMITTED, FAMILIES, load_items, score  
 OUT = ROOT / "results/core"
 PAGE = ROOT / "docs/results/core_leaderboard.md"
 MODELS = ("gemini-3.8-live", "claude-opus-5", "gpt-6-astra")
+ALL_MODELS = MODELS + ("claude-opus-5-5",)      # rows added after the registered three
 
 
 def f(p):
@@ -133,7 +134,7 @@ def main():
             board.setdefault(m, {})["V1R"] = s
         lines.append("")
 
-    reps = {m: [r for r in (load_dir(m, f"V1.rep{k}") for k in (1, 2)) if r] for m in MODELS}
+    reps = {m: [r for r in (load_dir(m, f"V1.rep{k}") for k in (1, 2)) if r] for m in ALL_MODELS}
     reps = {m: r for m, r in reps.items() if r}
     if reps:
         lines += ["## Stability: the V1 arm, run again", "",

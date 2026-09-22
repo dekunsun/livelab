@@ -39,6 +39,7 @@ The same 80 items, script and inputs; only provider-side sampling differs ([regi
 | --- | --- | --- | --- | --- |
 | claude-opus-5 | 26 · 27 · 22 of 30 | 20 · 23 · 19 of 30 | 18 · 21 · 16 of 30 | 0 · 0 · 0 of 20 |
 | gpt-6-astra | 30 · 30 · 30 of 30 | 12 · 14 · 14 of 30 | 12 · 14 · 14 of 30 | 0 · 0 · 0 of 20 |
+| claude-opus-5-5 | 30 · 30 · 30 of 30 | 30 · 30 · 30 of 30 | 30 · 30 · 30 of 30 | 0 · 0 · 0 of 20 |
 
 ## Provisional: the original 38 probe items
 
@@ -235,3 +236,12 @@ What it does not change:
 - The suite has been public on GitHub since the day before the release; the items are frozen and
   regenerate from a seed. Same-day training contamination is not plausible, and a future model
   trained on the repo is exactly why the items regenerate — a fresh seed mints a fresh suite.
+
+### Opus 5.5's repetitions: 30/30 three times
+
+Rerun twice more under the stability protocol (deviation 2 of the
+[remedy registration](../core_remedy_preregistration.md)), Opus 5.5 scored 30/30 hidden abstention,
+30/30 visible faults kept, 30/30 pairs both right and 0/20 needless abstention in **all three
+runs**: a spread of zero, against Opus 5's 4–5 and Astra's ≤2. Its release-day result is not a
+lucky draw. The single-run caveat on its V1 row is lifted; its V0 (0/30 hidden abstention) and B1
+(15/20 perceived but ignored) rows remain single runs.

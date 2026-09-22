@@ -90,7 +90,7 @@ models per event:
   **wording does not close the gap; the system's own anomaly rules have to**
   ([remedy and stability](docs/results/core_leaderboard.md)). **Opus 5.5, run on its release
   day, is the first model that does both at once**: told the gap, it abstained on all 30 hidden
-  twins and kept all 30 visible faults. Left to infer the gap itself, it too abstained on none —
+  twins and kept all 30 visible faults, in each of three identical runs. Left to infer the gap itself, it too abstained on none —
   so the system still has to state it.
 
 So the system should state what cannot be verified **and keep its own anomaly rules running on
