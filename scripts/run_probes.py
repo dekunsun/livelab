@@ -21,11 +21,11 @@ from livelab.probes import (CONTROL_MODEL, PROBE_VERSION, call_path_healthy, cal
 from livelab.standard_api import StandardAsker  # noqa: E402
 
 MODELS = {"gemini": "gemini-3.8-live", "gemini-extended": "gemini-3.8-live-extended-thinking",
-          "opus-5": "claude-opus-5", "sonnet-5": "claude-sonnet-5", "astra": "gpt-6-astra",
-          "sol": "gpt-5.6-sol"}
+          "opus-5": "claude-opus-5", "opus-5.5": "claude-opus-5-5", "sonnet-5": "claude-sonnet-5",
+          "astra": "gpt-6-astra", "sol": "gpt-5.6-sol"}
 # Request/response providers, and the cheaper model on the same provider that acts as the control
 # when a request comes back silent (docs/crossmodel_preregistration.md).
-PROVIDER = {"claude-opus-5": "anthropic", "claude-sonnet-5": "anthropic",
+PROVIDER = {"claude-opus-5": "anthropic", "claude-opus-5-5": "anthropic", "claude-sonnet-5": "anthropic",
             "gpt-6-astra": "openai_responses", "gpt-5.6-sol": "openai"}
 CONTROL_FOR = {"anthropic": "claude-haiku-4-5-20251001", "openai": "gpt-5.6-luna",
                "openai_responses": "gpt-5.6-luna"}
