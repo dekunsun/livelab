@@ -8,6 +8,7 @@ What the suite measures and how to run it: [core.md](../core.md). Registered bef
 
 | Model | Answered (V0 / V1 / B1) | **Perceived but ignored** | Hidden: abstains, stated (V1) | **Keeps visible faults** (V1) | **Pairs both right** (V1) | Needless abstention (V1) | Hidden: abstains, unstated (V0) | Keeps visible faults (V0) | Normal runs called anomalous (V0) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| gemini-3.8-live | 80 / 80 / 80 of 80 | **20/20** | 20/30 | **12/30** | **10/30** | 0/20 | 0/30 | 17/30 | 0/10 |
 | claude-opus-5 | 80 / 80 / 80 of 80 | **19/20** | 26/30 | **20/30** | **18/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 | gpt-6-astra | 80 / 80 / 80 of 80 | **0/20** | 30/30 | **12/30** | **12/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 
@@ -15,6 +16,7 @@ By family, exploratory and not interpreted (ten pairs each): pairs both right un
 
 | Model | leak_lp | block_lp | leak_ap |
 | --- | --- | --- | --- |
+| gemini-3.8-live | 3/10 pairs, 4/10 kept | 1/10 pairs, 1/10 kept | 6/10 pairs, 7/10 kept |
 | claude-opus-5 | 4/10 pairs, 4/10 kept | 4/10 pairs, 6/10 kept | 10/10 pairs, 10/10 kept |
 | gpt-6-astra | 2/10 pairs, 2/10 kept | 6/10 pairs, 6/10 kept | 4/10 pairs, 4/10 kept |
 
@@ -31,10 +33,11 @@ The same measures on items this project had already run ([cross-model](crossmode
 ## Reading, against the rules fixed before the run
 
 *The tables above are generated and unedited. This section was written after the results were
-known.* Claude Opus 5 and GPT-6 Astra have run the suite; Gemini has not. Opus 5's run stopped
+known.* All three registered models have run the suite. Opus 5's run stopped
 once when the Anthropic account ran out of credit: 6 calls failed with a billing error and were
 not saved. After a top-up the same script with the same inputs filled them, and all 240 answered.
-Astra answered all 240 in one run, for US$11.88.
+Astra answered all 240 in one run, for US$11.88. Gemini 3.8 Live answered all 240 in one run; its
+Live backend reports no usage, so its spend is on the owner's Google account and not measured here.
 
 ### The registered predictions, for Opus 5
 
@@ -86,7 +89,7 @@ twins, and then reported NORMAL or ANOMALOUS on 19 of those 20 (12 of 12 on the 
 | Pc5 | Needless abstention under V1 ≤ 2 of 20 | 0 of 20 | yes |
 | Pc6 | Hidden abstention under V0 ≤ 3 of 30 | 0 of 30 | yes |
 
-**Pc2 is undecided at one of two.** Astra meets its part and Opus 5 does not, so Gemini decides it.
+After Astra alone, Pc2 stood at one of two, with Gemini to decide it.
 
 ### Astra carries "cannot verify" all the way through, including where it should not
 
@@ -110,3 +113,47 @@ is missing. That is the case for keeping the system's own anomaly rules running 
 Opus 5's family pattern does not repeat. Astra dropped faults in all three families, including 6
 of the 10 where oxygen shows the leak, so the reading that Opus treats oxygen as the atmosphere's
 own instrument is at best specific to Opus. Families remain exploratory.
+
+### The registered predictions, for Gemini 3.8 Live
+
+| # | Prediction (Gemini's part) | Observed | Met |
+| --- | --- | --- | --- |
+| Pc1 | Perceived but ignored ≥ 50% | 20 of 20 | yes |
+| Pc2 | Keeps at most 15 of 30 visible faults under V1 | 12 of 30 | yes |
+| Pc3 | Hidden abstention under V1 below 15 of 30 | 20 of 30 | **no** |
+| Pc4 | At most 20 of 30 pairs both right under V1 | 10 of 30 | yes |
+| Pc5 | Needless abstention under V1 ≤ 2 of 20 | 0 of 20 | yes |
+| Pc6 | Hidden abstention under V0 ≤ 3 of 30 | 0 of 30 | yes |
+
+### The six predictions across all three models
+
+| # | Met? |
+| --- | --- |
+| Pc1 | **yes**, all three parts |
+| Pc2 | **yes**: Astra and Gemini keep at most 15 of 30; Opus 5 keeps 20 |
+| Pc3 | **no**: Opus 5 and Astra meet it; Gemini abstains on 20 of 30 hidden twins, not fewer than 15 |
+| Pc4 | **yes**: no model gets more than 18 of 30 pairs both right |
+| Pc5 | **yes**: no model abstains where nothing is missing |
+| Pc6 | **yes**: no model abstains on a hidden twin unless told |
+
+By the registered reading, Pc2 holding means the over-reach is real at thirty pairs, and the
+second product principle (detection never depends on the model) stands on evidence rather than two
+items. Pc3 failing for Gemini means that on these items it responds to a stated gap more than it
+did on the probe items (4 of 14 there).
+
+### Gemini meets Pc2 for a different reason
+
+The registration counted visible faults kept under V1. For Opus 5 and Astra that count is the
+over-reach alone: both reported all 30 with nothing added, and every one they lost moved to
+UNKNOWN after being described. Gemini did not start from 30. With nothing added it reported 17 of
+the 30 visible faults and called the other 13 NORMAL; in 5 of those 13 it noted the pressure
+creeping up and judged it normal. Under V1, none of the 18 it did not report mentions the reading
+changing. Paired item by item, the sentence moved its answers in every direction:
+of the 17 it had caught, 7 stayed ANOMALOUS, 5 became UNKNOWN and 5 NORMAL; of the 13 it had
+missed, 5 became ANOMALOUS. On 7 of the 30 hidden twins it answered ANOMALOUS under V1 and cited the
+missing sensor itself as the anomaly.
+
+So Pc2 holds as registered, and the reading is stated with this attached: **the see-then-withhold
+over-reach is shown in two models, Opus 5 and Astra.** Gemini's low count comes mostly from missing
+the fault in the first place and from answers that shift with the added sentence. For a monitoring
+system the consequence is the same, since all three keep at most 20 of 30, but the mechanism is not.
