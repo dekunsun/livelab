@@ -77,10 +77,10 @@ models per event:
 - **It also over-reaches.** On the two runs where a sensor was missing but pressure had already
   caught the fault, the stated state made every model drop both: 4 of 6 reported before, 0 of 6
   after. Two items could not carry that, so [LiveLab Core](docs/results/core_leaderboard.md)
-  enlarged the control to 30 matched pairs. There, **Opus 5 dropped a third of the visible
-  faults, not all of them**: 30 of 30 reported with nothing added, 20 of 30 with the sentence.
-  In every one of the ten it dropped, it named the rising pressure first, then withheld the
-  verdict because the oxygen sensor was missing.
+  enlarged the control to 30 matched pairs. There, with nothing added, Opus 5 and Astra each
+  reported all 30 visible faults. With the sentence, **Opus 5 dropped 10 and Astra 18**. In all
+  28, the model first described the reading rising, then withheld the verdict because a sensor
+  was missing. Neither got more than 18 of 30 pairs right.
 
 So the system should state what cannot be verified **and keep its own anomaly rules running on
 what can**, so that a finding the evidence supports is never dropped because another part of the
@@ -153,7 +153,7 @@ the predictions I lost — are in the same file.
 | System state | If the system says a condition cannot be verified, do models abstain, and only there? | [registered](docs/system_state_preregistration.md) | [two of three do; all three over-reach on two items](docs/results/system_state_results.md) |
 | Pilot 1, PDMS stills | When the picture carries the answer, is it used together with the protocol step? | [registered](docs/pilots_preregistration.md) | [yes; a task-blind description is not a substitute](docs/results/pilot1_results.md) |
 | Specialist | Native multimodal, or a vision model trained on the lab's own photographs, alone or feeding an LLM? | [registered](docs/specialist_preregistration.md) | [Gemini beat the specialist; the hand-off was worst](docs/results/specialist_results.md) |
-| **LiveLab Core** | With a sensor missing, can a model tell "the gap hides the fault" from "the fault shows on what remains"? 30 matched pairs, packaged as a suite for any model | [registered](docs/core_preregistration.md) | [Opus 5: drops a third of visible faults once told, not all](docs/results/core_leaderboard.md); [how to run it](docs/core.md) |
+| **LiveLab Core** | With a sensor missing, can a model tell "the gap hides the fault" from "the fault shows on what remains"? 30 matched pairs, packaged as a suite for any model | [registered](docs/core_preregistration.md) | [once told, Opus 5 drops 10 of 30 visible faults and Astra 18, each after describing them](docs/results/core_leaderboard.md); [how to run it](docs/core.md) |
 | Pilot 2, CAXTON video | Can a person see a printing failure without the log? | [registered](docs/pilots_preregistration.md) | [yes, but no clean normal control: stopped](docs/results/pilot2_results.md) |
 | Camera follow-up | Was it the photographs, or the sentence announcing them? | [registered](docs/vision_followup_preregistration.md) | [the announcement alone gives about half; content not testable on these runs](docs/results/vision_followup_results.md) |
 
@@ -346,7 +346,7 @@ compact JSON.
 
 **Not done:**
 
-- **LiveLab Core** on Gemini and Astra. Opus 5 has run it
+- **LiveLab Core** on Gemini. Opus 5 and Astra have run it
   ([leaderboard](docs/results/core_leaderboard.md));
 - **camera-only failures in live footage.** No public, licensed dataset found has them with a
   normal control ([survey](docs/material_survey.md)). The AEGIS liquid-handling set, if released,

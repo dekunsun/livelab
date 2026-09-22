@@ -9,12 +9,14 @@ What the suite measures and how to run it: [core.md](../core.md). Registered bef
 | Model | Answered (V0 / V1 / B1) | **Perceived but ignored** | Hidden: abstains, stated (V1) | **Keeps visible faults** (V1) | **Pairs both right** (V1) | Needless abstention (V1) | Hidden: abstains, unstated (V0) | Keeps visible faults (V0) | Normal runs called anomalous (V0) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | claude-opus-5 | 80 / 80 / 80 of 80 | **19/20** | 26/30 | **20/30** | **18/30** | 0/20 | 0/30 | 30/30 | 0/10 |
+| gpt-6-astra | 80 / 80 / 80 of 80 | **0/20** | 30/30 | **12/30** | **12/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 
 By family, exploratory and not interpreted (ten pairs each): pairs both right under V1, and visible faults kept under V1.
 
 | Model | leak_lp | block_lp | leak_ap |
 | --- | --- | --- | --- |
 | claude-opus-5 | 4/10 pairs, 4/10 kept | 4/10 pairs, 6/10 kept | 10/10 pairs, 10/10 kept |
+| gpt-6-astra | 2/10 pairs, 2/10 kept | 6/10 pairs, 6/10 kept | 4/10 pairs, 4/10 kept |
 
 ## Provisional: the original 38 probe items
 
@@ -29,9 +31,10 @@ The same measures on items this project had already run ([cross-model](crossmode
 ## Reading, against the rules fixed before the run
 
 *The tables above are generated and unedited. This section was written after the results were
-known.* Only Claude Opus 5 has run the suite. Its run stopped once when the Anthropic account ran
-out of credit: 6 calls failed with a billing error and were not saved. After a top-up the same
-script with the same inputs filled them, and all 240 answered.
+known.* Claude Opus 5 and GPT-6 Astra have run the suite; Gemini has not. Opus 5's run stopped
+once when the Anthropic account ran out of credit: 6 calls failed with a billing error and were
+not saved. After a top-up the same script with the same inputs filled them, and all 240 answered.
+Astra answered all 240 in one run, for US$11.88.
 
 ### The registered predictions, for Opus 5
 
@@ -45,7 +48,7 @@ script with the same inputs filled them, and all 240 answered.
 | Pc6 | Hidden abstention under V0 ≤ 3 of 30 | 0 of 30 | yes |
 
 Pc2 is registered across three models (at least two of three keep at most 15). Opus 5 does not
-meet its part, so Pc2 now holds only if Gemini and Astra both do.
+meet its part.
 
 ### Stating the gap costs Opus 5 one visible fault in three, not all of them
 
@@ -71,3 +74,39 @@ indirect. That is a hypothesis for a registered follow-up, not a finding.
 
 Asked first whether the atmosphere can be verified, Opus 5 said it cannot on 20 of the 30 hidden
 twins, and then reported NORMAL or ANOMALOUS on 19 of those 20 (12 of 12 on the probe items).
+
+### The registered predictions, for Astra
+
+| # | Prediction (Astra's part) | Observed | Met |
+| --- | --- | --- | --- |
+| Pc1 | Perceived but ignored ≤ 30% | 0 of 20 | yes |
+| Pc2 | Keeps at most 15 of 30 visible faults under V1 | 12 of 30 | yes |
+| Pc3 | Hidden abstention under V1 ≥ 24 of 30 | 30 of 30 | yes |
+| Pc4 | At most 20 of 30 pairs both right under V1 | 12 of 30 | yes |
+| Pc5 | Needless abstention under V1 ≤ 2 of 20 | 0 of 20 | yes |
+| Pc6 | Hidden abstention under V0 ≤ 3 of 30 | 0 of 30 | yes |
+
+**Pc2 is undecided at one of two.** Astra meets its part and Opus 5 does not, so Gemini decides it.
+
+### Astra carries "cannot verify" all the way through, including where it should not
+
+Astra is the one model here that does what it says. Asked for verifiability first, it said the
+atmosphere could not be verified on 20 of the 30 hidden twins, and answered UNKNOWN on all 20.
+Told by the system, it abstained on all 30 hidden twins. The cost is on the visible twins: it
+dropped 18 of the 30 faults the remaining sensor was showing, against none with nothing added.
+
+Like Opus 5, it sees the fault first. In all 18, its evidence names the reading moving: "pressure
+has risen progressively … despite essentially constant temperature and argon flow", "exhaust
+oxygen has risen progressively to 25.7 ppm; this is concerning". Then it answers UNKNOWN.
+**Across both models, all 28 dropped faults were described before they were dropped.** The
+failure is not in seeing; it is in what the model lets a stated gap override.
+
+The two models differ in kind, not only in degree. Opus 5 ignores its own "cannot verify" when
+left to itself (19 of 20) and over-applies the system's (10 of 30 dropped). Astra never ignores it
+and over-applies it more (18 of 30). On this suite, **neither gets more than 18 of 30 pairs both
+right**, so no model tested can be trusted to separate "hidden" from "visible" once told a sensor
+is missing. That is the case for keeping the system's own anomaly rules running on what remains.
+
+Opus 5's family pattern does not repeat. Astra dropped faults in all three families, including 6
+of the 10 where oxygen shows the leak, so the reading that Opus treats oxygen as the atmosphere's
+own instrument is at best specific to Opus. Families remain exploratory.
