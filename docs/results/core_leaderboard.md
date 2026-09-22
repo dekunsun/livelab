@@ -12,6 +12,8 @@ What the suite measures and how to run it: [core.md](../core.md). Registered bef
 | claude-opus-5 | 80 / 80 / 80 of 80 | **19/20** | 26/30 | **20/30** | **18/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 | gpt-6-astra | 80 / 80 / 80 of 80 | **0/20** | 30/30 | **12/30** | **12/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 | claude-opus-5-5 | 80 / 80 / 80 of 80 | **15/20** | 30/30 | **30/30** | **30/30** | 0/20 | 0/30 | 30/30 | 0/10 |
+| gemini-3.1-pro-preview | 63 / 63 / 62 of 80 | **20/20** | 30/30 | **27/30** | **27/30** | 0/3 | 0/30 | 30/30 | 0/3 |
+| gemini-3.8-flash | 54 / 54 / 53 of 80 | **16/16** | 27/27 | **20/27** | **20/27** | — | 0/27 | 27/27 | — |
 
 By family, exploratory and not interpreted (ten pairs each): pairs both right under V1, and visible faults kept under V1.
 
@@ -21,6 +23,10 @@ By family, exploratory and not interpreted (ten pairs each): pairs both right un
 | claude-opus-5 | 4/10 pairs, 4/10 kept | 4/10 pairs, 6/10 kept | 10/10 pairs, 10/10 kept |
 | gpt-6-astra | 2/10 pairs, 2/10 kept | 6/10 pairs, 6/10 kept | 4/10 pairs, 4/10 kept |
 | claude-opus-5-5 | 10/10 pairs, 10/10 kept | 10/10 pairs, 10/10 kept | 10/10 pairs, 10/10 kept |
+| gemini-3.1-pro-preview | 10/10 pairs, 10/10 kept | 10/10 pairs, 10/10 kept | 7/10 pairs, 7/10 kept |
+| gemini-3.8-flash | 9/10 pairs, 9/10 kept | 8/10 pairs, 8/10 kept | 3/7 pairs, 3/7 kept |
+
+**Coverage below 90% for: gemini-3.1-pro-preview, gemini-3.8-flash. By the registration these rows are not read.**
 
 ## The remedy arm: the sentence also names what still works
 
@@ -40,6 +46,23 @@ The same 80 items, script and inputs; only provider-side sampling differs ([regi
 | claude-opus-5 | 26 · 27 · 22 of 30 | 20 · 23 · 19 of 30 | 18 · 21 · 16 of 30 | 0 · 0 · 0 of 20 |
 | gpt-6-astra | 30 · 30 · 30 of 30 | 12 · 14 · 14 of 30 | 12 · 14 · 14 of 30 | 0 · 0 · 0 of 20 |
 | claude-opus-5-5 | 30 · 30 · 30 of 30 | 30 · 30 · 30 of 30 | 30 · 30 · 30 of 30 | 0 · 0 · 0 of 20 |
+
+## Control: forced versus unforced function calls
+
+Registered before it ran: [core_toolchoice_preregistration.md](../core_toolchoice_preregistration.md). The V1 arm with `tool_choice: auto`, which lets the model write before it calls the function, against its forced runs. Opus 5.5 can only run unforced.
+
+| Model | Answered | Hidden: abstains | **Keeps visible faults** | **Pairs both right** | Needless abstention | Median text before the call (chars) |
+| --- | --- | --- | --- | --- | --- | --- |
+| claude-opus-5 (auto, 3 runs) | 80 · 80 · 80 of 80 | 29 · 28 · 28 of 30 | **24 · 26 · 26 of 30** | **23 · 25 · 24 of 30** | 0 · 0 · 0 of 20 | 0 |
+
+## Hand-off: Live narrates, Flash judges
+
+Registered before it ran: [core_gemini_preregistration.md](../core_gemini_preregistration.md), arm D. The judge (gemini-3.8-flash) sees only gemini-3.8-live's spoken description of the readings plus the system's V1 sentence, never the telemetry.
+
+| Arm | Answered | Hidden: abstains | **Keeps visible faults** | **Pairs both right** | Needless abstention |
+| --- | --- | --- | --- | --- | --- |
+| Live → Flash (hand-off) | 1/80 | — | **1/1** | **—** | — |
+| Flash on raw telemetry (V1) | — | 27/27 | 20/27 | 20/27 | — |
 
 ## Provisional: the original 38 probe items
 
@@ -245,3 +268,28 @@ Rerun twice more under the stability protocol (deviation 2 of the
 runs**: a spread of zero, against Opus 5's 4–5 and Astra's ≤2. Its release-day result is not a
 lucky draw. The single-run caveat on its V1 row is lifted; its V0 (0/30 hidden abstention) and B1
 (15/20 perceived but ignored) rows remain single runs.
+
+## Reading: forced versus unforced calls, against the rules fixed before the run
+
+*Written after the results were known* ([registration](../core_toolchoice_preregistration.md)).
+
+| # | Prediction | Observed (three unforced runs) | Met |
+| --- | --- | --- | --- |
+| Pt1 | Opus 5 unforced keeps at most 23/30 visible faults | 24 · 26 · 26 | **no** |
+| Pt2 | Hidden abstention at least 21/30 | 29 · 28 · 28 | yes |
+| Pt3 | Needless abstention ≤ 2/20 | 0 · 0 · 0 | yes |
+
+The first unforced run (24) fell in the registered ambiguous band, so it was rerun twice. All
+three unforced runs sit **above every forced run** (visible kept 24–26 against 19–23; pairs both
+right 23–25 against 16–21; the ranges do not overlap), and **below Opus 5.5 in every run** (30).
+
+**The call mode is real and partial.** Freeing Opus 5 from the forced call raised it by about 3–5
+items on every headline count, and it did so without writing anything before the call (0
+characters in all 240 unforced answers), so the mechanism is not visible reasoning. Of the distance
+from forced Opus 5 (~21 visible faults kept) to Opus 5.5 (30), roughly **4 items are the call mode
+and roughly 5 are the model**. Opus 5.5's result is therefore partly confounded: it remains the only
+model at 30/30, in three runs out of three, but about half of its advantage over its predecessor on
+this measure would be available to Opus 5 simply by not forcing the call.
+
+For builders this is the more useful half: **do not force the function call** on a judgment like
+this one. It is free, and on Opus 5 it recovered a third to a half of the dropped faults.

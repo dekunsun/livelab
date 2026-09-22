@@ -46,4 +46,5 @@ cumulative across Opus 5's Core runs (~US$16 so far), so it is set at US$25.
 
 ## Deviations log
 
-None yet.
+1. **2026-09-22.** The second unforced repetition stopped at 54 of 80 when the Anthropic account ran
+   out of credit; after a top-up the same script filled the rest.

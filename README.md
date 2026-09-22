@@ -91,7 +91,8 @@ models per event:
   ([remedy and stability](docs/results/core_leaderboard.md)). **Opus 5.5, run on its release
   day, is the first model that does both at once**: told the gap, it abstained on all 30 hidden
   twins and kept all 30 visible faults, in each of three identical runs. Left to infer the gap itself, it too abstained on none —
-  so the system still has to state it.
+  so the system still has to state it. A registered control shows about half its gain over Opus 5 is the call
+  mode, not the model: Opus 5, unforced, keeps 24–26 of 30 (forced: 19–23). **Don't force the function call.**
 
 So the system should state what cannot be verified **and keep its own anomaly rules running on
 what can**, so that a finding the evidence supports is never dropped because another part of the

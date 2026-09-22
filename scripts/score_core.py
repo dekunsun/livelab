@@ -163,12 +163,15 @@ def main():
                   "| Model | Answered | Hidden: abstains | **Keeps visible faults** | **Pairs both right** | Needless abstention | Median text before the call (chars) |",
                   "| --- | --- | --- | --- | --- | --- | --- |"]
         for m, res in auto.items():
-            s_ = score(items, {"V1": res})["V1"]
-            spoken = sorted(len(d.get("spoken") or "") for d in res.values())
+            runs = [res] + [r for r in (load_dir(m, f"V1.rep{k}.auto") for k in (1, 2)) if r]
+            scored = [score(items, {"V1": r})["V1"] for r in runs]
+            spoken = sorted(len(d.get("spoken") or "") for r in runs for d in r.values())
             med = spoken[len(spoken) // 2] if spoken else 0
-            lines.append(f"| {m} (auto) | {len(res)}/{n} | {f(s_['hidden_abstains'])} | **{f(s_['visible_detected'])}** "
-                         f"| **{f(s_['pairs_both_right'])}** | {f(s_['guard_abstains'])} | {med} |")
-            board.setdefault(m, {})["V1_auto"] = s_
+            cell = lambda k: " · ".join(str(x[k][0]) for x in scored) + f" of {scored[0][k][1]}"  # noqa: E731
+            lines.append(f"| {m} (auto, {len(runs)} run{'s' if len(runs) > 1 else ''}) | "
+                         + " · ".join(str(len(r)) for r in runs) + f" of {n} | {cell('hidden_abstains')} "
+                         f"| **{cell('visible_detected')}** | **{cell('pairs_both_right')}** | {cell('guard_abstains')} | {med} |")
+            board.setdefault(m, {})["V1_auto_runs"] = scored
         lines.append("")
 
     ho = load_dir("handoff", ".")
