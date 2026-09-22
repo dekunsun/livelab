@@ -11,7 +11,7 @@ What the suite measures and how to run it: [core.md](../core.md). Registered bef
 | gemini-3.8-live | 80 / 80 / 80 of 80 | **20/20** | 20/30 | **12/30** | **10/30** | 0/20 | 0/30 | 17/30 | 0/10 |
 | claude-opus-5 | 80 / 80 / 80 of 80 | **19/20** | 26/30 | **20/30** | **18/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 | gpt-6-astra | 80 / 80 / 80 of 80 | **0/20** | 30/30 | **12/30** | **12/30** | 0/20 | 0/30 | 30/30 | 0/10 |
-| claude-opus-5-5 | 23 / 22 / 22 of 80 | **5/10** | 11/11 | **11/11** | **11/11** | — | 0/11 | 12/12 | — |
+| claude-opus-5-5 | 80 / 80 / 80 of 80 | **15/20** | 30/30 | **30/30** | **30/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 
 By family, exploratory and not interpreted (ten pairs each): pairs both right under V1, and visible faults kept under V1.
 
@@ -20,9 +20,7 @@ By family, exploratory and not interpreted (ten pairs each): pairs both right un
 | gemini-3.8-live | 3/10 pairs, 4/10 kept | 1/10 pairs, 1/10 kept | 6/10 pairs, 7/10 kept |
 | claude-opus-5 | 4/10 pairs, 4/10 kept | 4/10 pairs, 6/10 kept | 10/10 pairs, 10/10 kept |
 | gpt-6-astra | 2/10 pairs, 2/10 kept | 6/10 pairs, 6/10 kept | 4/10 pairs, 4/10 kept |
-| claude-opus-5-5 | 10/10 pairs, 10/10 kept | 1/1 pairs, 1/1 kept | — pairs, — kept |
-
-**Coverage below 90% for: claude-opus-5-5. By the registration these rows are not read.**
+| claude-opus-5-5 | 10/10 pairs, 10/10 kept | 10/10 pairs, 10/10 kept | 10/10 pairs, 10/10 kept |
 
 ## The remedy arm: the sentence also names what still works
 
@@ -215,3 +213,25 @@ differences smaller than that spread are corrected:
 - Pc2's per-model verdicts are robust: Astra under 15 in all three runs, Opus above 15 in all
   three. Pc3's Opus pass (bar 24) is **not** robust: its runs straddle the bar (22–27).
 - Gemini was run once; its counts carry the same single-run caveat and no measured spread.
+
+### Opus 5.5, run on its release day: the first model that does both
+
+Opus 5.5 (released 2026-09-22, run the same day, deviation 1 of the
+[registration](../core_preregistration.md)) is the first model that, told a sensor is missing,
+**abstains on all 30 hidden twins and keeps all 30 visible faults** — 30 of 30 pairs both right,
+with nothing lost on the guards (0/20 needless abstention, 0/10 false alarms, 10/10 full-sensor
+faults). The separation every earlier model failed, it makes cleanly, in one run.
+
+What it does not change:
+
+- **Left to infer the gap itself, it still rules.** Under V0 it abstained on 0 of 30 hidden twins,
+  exactly like every other model. Asked for verifiability first (B1), it said "cannot verify" on
+  20 and committed anyway on 15. The failure this project found is intact; what is new is that a
+  correctly **stated** gap is now handled perfectly by one model.
+- **One run.** Opus 5's three-run spread was 4–5 items; 5.5 has no repetitions yet. At a boundary
+  score the spread can only cut one way, but the caveat stands.
+- **Its API dropped forced tool calls** (deviation 1): every other model ran with `tool_choice:
+  any`, 5.5 with `auto`. Coverage was 240 of 240, so no answer was lost to it.
+- The suite has been public on GitHub since the day before the release; the items are frozen and
+  regenerate from a seed. Same-day training contamination is not plausible, and a future model
+  trained on the repo is exactly why the items regenerate — a fresh seed mints a fresh suite.
