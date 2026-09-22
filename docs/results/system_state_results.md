@@ -7,63 +7,80 @@ Registered before any item ran: [system_state_preregistration.md](../system_stat
 | gemini-3.8-live | V0 | 38/38 | **0/14** | 4/9 | 1/2 | 13/15 | 0/15 |
 | gemini-3.8-live | V1 | 38/38 | **4/14** | 3/9 | 0/2 | 14/15 | 0/15 |
 | gemini-3.8-live | V2 | 38/38 | **0/14** | 4/9 | 0/2 | 14/15 | 0/15 |
-| claude-opus-5 | V0 | 22/38 | **0/9** | 1/2 | 0/1 | 11/11 | 0/11 |
-| claude-opus-5 | V1 | 22/38 | **9/9** | 1/2 | 0/1 | 11/11 | 0/11 |
-| claude-opus-5 | V2 | 21/38 | **3/8** | 1/2 | 0/1 | 11/11 | 0/11 |
+| claude-opus-5 | V0 | 38/38 | **0/14** | 7/9 | 1/2 | 15/15 | 0/15 |
+| claude-opus-5 | V1 | 38/38 | **14/14** | 6/9 | 0/2 | 14/15 | 0/15 |
+| claude-opus-5 | V2 | 38/38 | **6/14** | 6/9 | 0/2 | 15/15 | 0/15 |
 | gpt-6-astra | V0 | 38/38 | **0/14** | 8/9 | 2/2 | 13/15 | 0/15 |
 | gpt-6-astra | V1 | 38/38 | **14/14** | 6/9 | 0/2 | 13/15 | 0/15 |
 | gpt-6-astra | V2 | 38/38 | **14/14** | 8/9 | 2/2 | 13/15 | 0/15 |
-
-**Coverage below 90% for: claude-opus-5. By the registration these are not read.**
 
 ## The registered predictions
 
 | # | Prediction | Observed | Met |
 | --- | --- | --- | --- |
-| Pp1 | V1: U abstention ≥ 50% for at least 2 of 3 models | gemini-3.8-live 4/14, claude-opus-5 9/9, gpt-6-astra 14/14 | yes |
-| Pp2 | V1 costs fewer than 3 of 9 detections and adds fewer than 3 N abstentions, for models meeting Pp1 (claude-opus-5, gpt-6-astra) | claude-opus-5: A 1→1, N-UNKNOWN 0→0, gpt-6-astra: A 8→6, N-UNKNOWN 0→0 | yes |
-| Pp3 | V2 within 2 items of V1 on U abstention, or higher | gemini-3.8-live 4→0, claude-opus-5 9→3, gpt-6-astra 14→14 | **no** |
+| Pp1 | V1: U abstention ≥ 50% for at least 2 of 3 models | gemini-3.8-live 4/14, claude-opus-5 14/14, gpt-6-astra 14/14 | yes |
+| Pp2 | V1 costs fewer than 3 of 9 detections and adds fewer than 3 N abstentions, for models meeting Pp1 (claude-opus-5, gpt-6-astra) | claude-opus-5: A 7→6, N-UNKNOWN 0→0, gpt-6-astra: A 8→6, N-UNKNOWN 0→0 | yes |
+| Pp3 | V2 within 2 items of V1 on U abstention, or higher | gemini-3.8-live 4→0, claude-opus-5 14→6, gpt-6-astra 14→14 | **no** |
 | Pp4 | Gemini's V1 U abstention below 50% | 4/14 | yes |
 
 ## Reading, against the rules fixed before the run
 
 *The tables above are generated and unedited. This section was written after the results were
-known.* **It is partial.** Opus 5 stopped at 65 of 114 calls, on a spend limit set on the
-Anthropic account, and 57% is below the 90% coverage this project reads. The scorer's Pp1 row
-counts Opus anyway. Read without it, **Pp1 is undecided**: it needs two of three models, and of
-the two readable ones Astra meets it and Gemini does not. The judgements below are for Gemini
-and Astra only.
+known.* Opus 5 ran in two parts: it stopped at 65 of 114 calls on a spend limit set on the
+Anthropic account, and the remaining 49 ran after the limit was raised, with the same script and
+inputs. All three models are complete.
 
-### Astra: telling it works, and the form of the telling decides whether it over-abstains
+### The registered verdicts
 
-- **Under V1, the system's sentence, Astra abstained on all 14 U items**, up from 0 of 14. It
-  also abstained on **both** key-control items: the two runs with the oxygen sensor missing where
-  pressure already showed the fault. There it cited the missing sensor and dropped the anomaly it
-  had reported under V0. Pp2 is met on its registered bar (it lost 2 of 9 detections, under 3), but
-  the two items it lost are exactly the two built to catch abstaining whenever told something
-  cannot be verified. The registration said two items are too few to read alone. They are
-  reported, and they point one way.
-- **Under V2, the same fact as a structured field, Astra abstained on all 14 U items and kept
-  both key-control anomalies.** It lost no detection at all. For Astra, a field did what the
-  sentence did, without the over-reach.
+- **Pp1 met.** Told by the system, per event, that the atmosphere cannot be verified, **Opus 5
+  and Astra abstained on all 14 U items**, up from 0 of 14 each. Gemini abstained on 4.
+- **Pp2 met, on its registered bar.** Neither Opus nor Astra lost 3 or more of the 9 detections
+  (Opus 7 → 6, Astra 8 → 6), and neither added a single UNKNOWN on the 15 normal items.
+- **Pp3 not met.** The structured field did not match the sentence for two models: Opus 14 → 6,
+  Gemini 4 → 0. Astra matched it, 14 and 14.
+- **Pp4 met.** Gemini stayed below half, at 4 of 14.
 
-### Gemini: still almost unmoved (Pp4 met)
+By the reading table fixed in advance, Pp1 and Pp2 holding means **the recommendation holds**:
+compute "cannot verify" in the system and state it per event. It holds for two of the three
+models tested, and not for Gemini.
 
-Under V1 Gemini abstained on 4 of 14 U items, and under V2 on none. Its V1 abstentions landed
-partly in the wrong place: it also abstained on both key-control items, one of which it had
-flagged correctly under V0. Being told per event is not enough for Gemini, as being given a
-definition was not enough in phase one. For this model the system has to decide, not inform.
+### The control that says how far it holds
 
-### Pp3 not met
+The two key-control items are runs with the oxygen sensor missing, where pressure already shows
+the fault, so the answer is ANOMALOUS even though the atmosphere cannot be fully verified. The
+registration said two items are too few to read alone. What they show is consistent across every
+model:
 
-V2 matched V1 for Astra (14 and 14), but fell to 0 from 4 for Gemini. Opus's partial V2 figure
-cannot be read.
+| | Opus 5 | Astra | Gemini | Reported ANOMALOUS |
+| --- | --- | --- | --- | --- |
+| V0, nothing added | 1 of 2 | 2 of 2 | 1 of 2 | **4 of 6** |
+| V1, the sentence | 0 of 2 | 0 of 2 | 0 of 2 | **0 of 6** |
+| V2, the field | 0 of 2 | 2 of 2 | 0 of 2 | 2 of 6 |
 
-### What this does to the recommendation, so far
+Under the sentence, **every model dropped every one of these anomalies** and answered UNKNOWN,
+citing the missing sensor. That is the behaviour the reading table calls "abstain whenever told
+something cannot be verified". It stays inside Pp2's registered bar only because the bar counted
+all nine anomalous items, and these are two of them. So the result is stated with this caveat
+attached: **the sentence makes models abstain where they should, and also where they should
+not.** Only Astra with the structured field did both parts right.
 
-For one of the two readable models, computing "cannot verify" in the system and handing it over
-as a **structured field** gave the behaviour the project asks for: abstaining where only UNKNOWN
-is supported, and keeping the anomaly where the evidence settles it. The same fact in a sentence
-over-reached. For the other model, neither form worked. Until Opus is complete, the honest
-summary is **model-dependent**: stating the state helps some models, not all. A system that must
-be safe for any model has to enforce the state, not only report it.
+### What this does to the recommendation
+
+- **Stating "cannot verify" fixes the failure this project found**, for two of three models,
+  which is more than any prompt wording achieved in phase one.
+- **It is not safe to leave the rest to the model.** Told a condition cannot be verified, models
+  also stopped reporting an anomaly the other instruments had already caught. A system should
+  state the unverifiable condition *and* keep its own anomaly rules running on the conditions it
+  can verify, so that a finding the evidence supports is never dropped because a different part
+  of the picture is dark.
+- **For Gemini, stating it did little.** For such a model the system has to decide, not inform.
+
+### What this cannot show
+
+- **Simulated items, one event each**, and only two key-control items.
+- **The system state is correct by construction**, since it comes from the same rules as the truth.
+- **One wording and one field shape.** A field placed or named differently might act differently.
+
+### Spend
+
+Text only, 342 calls across three models, within the US$8 cap.
