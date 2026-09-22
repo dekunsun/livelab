@@ -91,5 +91,3 @@ at US$30 (Opus 5) and US$40 (Astra).
    resume briefly ran in parallel: 20 rep-2 items failed on rate limits and were filled by a later
    single run, and one result file (`V1.rep2/core_leak_ap_10__hidden.json`) was written twice —
    repaired by keeping its first complete record. No answer was altered.
-2. **2026-09-22, Opus 5.** rep 2 was collected in two pieces around the same account's earlier
-   credit interruption pattern; same script, same inputs throughout.

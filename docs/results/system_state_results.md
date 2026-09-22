@@ -58,9 +58,10 @@ model:
 | V2, the field | 0 of 2 | 2 of 2 | 0 of 2 | 2 of 6 |
 
 > **Enlarged (2026-09-22).** [LiveLab Core](core_leaderboard.md) repeated this control on 30
-> matched pairs. Under the same sentence no model kept more than 20 of the 30 visible faults
-> (Opus 5 20, Astra 12, Gemini 12), so the over-reach holds, but not as "every one". The two items
-> here overstated its size.
+> matched pairs, and a three-run stability check made Opus 5's counts ranges. Under the same
+> sentence the models kept 19–23 (Opus 5, across three runs), 12–14 (Astra) and 12 (Gemini, one
+> run) of the 30 visible faults, so the over-reach holds in every run, but not as "every one". The
+> two items here overstated its size.
 
 Under the sentence, **every model dropped every one of these anomalies** and answered UNKNOWN,
 citing the missing sensor. That is the behaviour the reading table calls "abstain whenever told
