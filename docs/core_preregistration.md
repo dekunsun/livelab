@@ -121,4 +121,6 @@ account and its Live backend reports no usage. **Cap: US$15 per metered model**,
 
 ## Deviations log
 
-None yet.
+1. **2026-09-22, Opus 5 run.** The Anthropic account ran out of credit mid-run; 6 calls failed with a
+   billing error and were not saved. After a top-up the same script, unchanged, filled them. No answer
+   was recorded twice or altered.

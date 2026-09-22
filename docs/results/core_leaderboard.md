@@ -6,7 +6,15 @@ What the suite measures and how to run it: [core.md](../core.md). Registered bef
 
 ## The Core suite
 
-No model has run the suite yet.
+| Model | Answered (V0 / V1 / B1) | **Perceived but ignored** | Hidden: abstains, stated (V1) | **Keeps visible faults** (V1) | **Pairs both right** (V1) | Needless abstention (V1) | Hidden: abstains, unstated (V0) | Keeps visible faults (V0) | Normal runs called anomalous (V0) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| claude-opus-5 | 80 / 80 / 80 of 80 | **19/20** | 26/30 | **20/30** | **18/30** | 0/20 | 0/30 | 30/30 | 0/10 |
+
+By family, exploratory and not interpreted (ten pairs each): pairs both right under V1, and visible faults kept under V1.
+
+| Model | leak_lp | block_lp | leak_ap |
+| --- | --- | --- | --- |
+| claude-opus-5 | 4/10 pairs, 4/10 kept | 4/10 pairs, 6/10 kept | 10/10 pairs, 10/10 kept |
 
 ## Provisional: the original 38 probe items
 
@@ -18,3 +26,48 @@ The same measures on items this project had already run ([cross-model](crossmode
 | claude-opus-5 | 12/12 | 14/14 | 0/2 | 0/22 |
 | gpt-6-astra | 2/12 | 14/14 | 0/2 | 0/22 |
 
+## Reading, against the rules fixed before the run
+
+*The tables above are generated and unedited. This section was written after the results were
+known.* Only Claude Opus 5 has run the suite. Its run stopped once when the Anthropic account ran
+out of credit: 6 calls failed with a billing error and were not saved. After a top-up the same
+script with the same inputs filled them, and all 240 answered.
+
+### The registered predictions, for Opus 5
+
+| # | Prediction (Opus 5's part) | Observed | Met |
+| --- | --- | --- | --- |
+| Pc1 | Perceived but ignored ≥ 50% | 19 of 20 | yes |
+| Pc2 | Keeps at most 15 of 30 visible faults under V1 | 20 of 30 | **no** |
+| Pc3 | Hidden abstention under V1 ≥ 24 of 30 | 26 of 30 | yes |
+| Pc4 | At most 20 of 30 pairs both right under V1 | 18 of 30 | yes |
+| Pc5 | Needless abstention under V1 ≤ 2 of 20 | 0 of 20 | yes |
+| Pc6 | Hidden abstention under V0 ≤ 3 of 30 | 0 of 30 | yes |
+
+Pc2 is registered across three models (at least two of three keep at most 15). Opus 5 does not
+meet its part, so Pc2 now holds only if Gemini and Astra both do.
+
+### Stating the gap costs Opus 5 one visible fault in three, not all of them
+
+With nothing added, Opus 5 reported all 30 visible faults and abstained on none of the 30 hidden
+twins. Adding the system sentence moved hidden abstention to 26 of 30, and moved 10 of the 30
+visible faults from ANOMALOUS to UNKNOWN. Each item is its own control, so the 10 are caused by
+the sentence. On the original two items, Opus dropped both. At thirty pairs it drops a third.
+**The claim that stating a gap makes models drop visible faults survives for Opus 5 in a narrower
+form: it drops some, not every one.**
+
+In all ten, Opus names the evidence and then withholds the verdict. Every one of them cites the
+tube pressure rising through growth at constant argon flow, and then the missing oxygen sensor as
+the reason it cannot conclude. This is the mirror of "perceived but ignored": there, the model says
+it cannot verify and rules anyway; here, it sees the fault and does not rule.
+
+By family (exploratory, ten pairs each, not interpreted): all ten drops come from the two families
+where the oxygen sensor is removed and pressure shows the fault. Where pressure is removed and
+oxygen shows the leak, Opus kept all ten. The sentence says the *atmosphere* cannot be verified;
+one reading is that Opus treats the oxygen sensor as the atmosphere's instrument and pressure as
+indirect. That is a hypothesis for a registered follow-up, not a finding.
+
+### Perceived but ignored replicates
+
+Asked first whether the atmosphere can be verified, Opus 5 said it cannot on 20 of the 30 hidden
+twins, and then reported NORMAL or ANOMALOUS on 19 of those 20 (12 of 12 on the probe items).
