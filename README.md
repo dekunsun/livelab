@@ -150,6 +150,7 @@ the predictions I lost — are in the same file.
 | System state | If the system says a condition cannot be verified, do models abstain, and only there? | [registered](docs/system_state_preregistration.md) | [two of three do; all three over-reach](docs/results/system_state_results.md) |
 | Pilot 1, PDMS stills | When the picture carries the answer, is it used together with the protocol step? | [registered](docs/pilots_preregistration.md) | [yes; a task-blind description is not a substitute](docs/results/pilot1_results.md) |
 | Specialist | Native multimodal, or a vision model trained on the lab's own photographs, alone or feeding an LLM? | [registered](docs/specialist_preregistration.md) | [Gemini beat the specialist; the hand-off was worst](docs/results/specialist_results.md) |
+| **LiveLab Core** | With a sensor missing, can a model tell "the gap hides the fault" from "the fault shows on what remains"? 30 matched pairs, packaged as a suite for any model | [registered](docs/core_preregistration.md) | not run yet; [how to run it](docs/core.md), [leaderboard](docs/results/core_leaderboard.md) |
 | Pilot 2, CAXTON video | Can a person see a printing failure without the log? | [registered](docs/pilots_preregistration.md) | [yes, but no clean normal control: stopped](docs/results/pilot2_results.md) |
 | Camera follow-up | Was it the photographs, or the sentence announcing them? | [registered](docs/vision_followup_preregistration.md) | [the announcement alone gives about half; content not testable on these runs](docs/results/vision_followup_results.md) |
 
@@ -306,6 +307,13 @@ never paste the key anywhere else.
 ./.venv/bin/python scripts/run_probes.py && ./.venv/bin/python scripts/score_probes.py
 ```
 
+To score a new model on the one failure this project is about, run [LiveLab Core](docs/core.md):
+80 frozen items, 240 calls, about US$10 at Claude Opus 5 prices, with a spend cap.
+
+```bash
+./.venv/bin/python scripts/run_core.py --backend opus-5 && ./.venv/bin/python scripts/score_core.py
+```
+
 On the free tier, one replay takes about a minute and roughly 0.4M cumulative prompt tokens. The
 Live API counts the whole accumulated context on every turn, so events are 120 s apart and sent as
 compact JSON.
@@ -335,6 +343,8 @@ compact JSON.
 
 **Not done:**
 
+- **LiveLab Core**: items frozen and registered, suite and leaderboard built and tested; no model
+  has run it yet. It enlarges the system-state test's two-item control to thirty matched pairs;
 - **camera-only failures in live footage.** No public, licensed dataset found has them with a
   normal control ([survey](docs/material_survey.md)). The AEGIS liquid-handling set, if released,
   would be the one to use;

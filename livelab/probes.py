@@ -107,9 +107,10 @@ def variant_setup(variant):
     return instruction, tools, required
 
 
-def prefix_message(replay_id, k):
+def prefix_message(replay_id, k, replay_dir=None):
     """Events 0..k in the benchmark's compact arm-A format, one per line."""
-    events = [json.loads(line) for line in open(ROOT / f"data/replays/{replay_id}.jsonl")][:k + 1]
+    replay_dir = Path(replay_dir) if replay_dir else ROOT / "data/replays"
+    events = [json.loads(line) for line in open(replay_dir / f"{replay_id}.jsonl")][:k + 1]
     lines, previous = [], None
     for e in events:
         text, _ = event_message(e, "A", None, ROOT / "data/images/cvd", None, previous)
