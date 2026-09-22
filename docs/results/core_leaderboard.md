@@ -11,6 +11,7 @@ What the suite measures and how to run it: [core.md](../core.md). Registered bef
 | gemini-3.8-live | 80 / 80 / 80 of 80 | **20/20** | 20/30 | **12/30** | **10/30** | 0/20 | 0/30 | 17/30 | 0/10 |
 | claude-opus-5 | 80 / 80 / 80 of 80 | **19/20** | 26/30 | **20/30** | **18/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 | gpt-6-astra | 80 / 80 / 80 of 80 | **0/20** | 30/30 | **12/30** | **12/30** | 0/20 | 0/30 | 30/30 | 0/10 |
+| claude-opus-5-5 | 23 / 22 / 22 of 80 | **5/10** | 11/11 | **11/11** | **11/11** | — | 0/11 | 12/12 | — |
 
 By family, exploratory and not interpreted (ten pairs each): pairs both right under V1, and visible faults kept under V1.
 
@@ -19,6 +20,27 @@ By family, exploratory and not interpreted (ten pairs each): pairs both right un
 | gemini-3.8-live | 3/10 pairs, 4/10 kept | 1/10 pairs, 1/10 kept | 6/10 pairs, 7/10 kept |
 | claude-opus-5 | 4/10 pairs, 4/10 kept | 4/10 pairs, 6/10 kept | 10/10 pairs, 10/10 kept |
 | gpt-6-astra | 2/10 pairs, 2/10 kept | 6/10 pairs, 6/10 kept | 4/10 pairs, 4/10 kept |
+| claude-opus-5-5 | 10/10 pairs, 10/10 kept | 1/1 pairs, 1/1 kept | — pairs, — kept |
+
+**Coverage below 90% for: claude-opus-5-5. By the registration these rows are not read.**
+
+## The remedy arm: the sentence also names what still works
+
+Registered before it ran: [core_remedy_preregistration.md](../core_remedy_preregistration.md). V1R appends one clause to V1's sentence: *"The <remaining required sensors> are installed and reporting."* Same 80 items, one run each.
+
+| Model | Answered | Hidden: abstains | **Keeps visible faults** | **Pairs both right** | Needless abstention |
+| --- | --- | --- | --- | --- | --- |
+| claude-opus-5 | 80/80 | 23/30 | **19/30** (V1: 20/30) | **14/30** (V1: 18/30) | 0/20 |
+| gpt-6-astra | 80/80 | 30/30 | **16/30** (V1: 12/30) | **16/30** (V1: 12/30) | 0/20 |
+
+## Stability: the V1 arm, run again
+
+The same 80 items, script and inputs; only provider-side sampling differs ([registration](../core_remedy_preregistration.md)). A spread of 3 items or fewer sits inside the band the registrations never interpret.
+
+| Model | Hidden: abstains | Keeps visible faults | Pairs both right | Needless abstention |
+| --- | --- | --- | --- | --- |
+| claude-opus-5 | 26 · 27 · 22 of 30 | 20 · 23 · 19 of 30 | 18 · 21 · 16 of 30 | 0 · 0 · 0 of 20 |
+| gpt-6-astra | 30 · 30 · 30 of 30 | 12 · 14 · 14 of 30 | 12 · 14 · 14 of 30 | 0 · 0 · 0 of 20 |
 
 ## Provisional: the original 38 probe items
 
@@ -157,3 +179,39 @@ So Pc2 holds as registered, and the reading is stated with this attached: **the 
 over-reach is shown in two models, Opus 5 and Astra.** Gemini's low count comes mostly from missing
 the fault in the first place and from answers that shift with the added sentence. For a monitoring
 system the consequence is the same, since all three keep at most 20 of 30, but the mechanism is not.
+
+## Reading: the remedy arm and the repetitions, against the rules fixed before the run
+
+*The tables above are generated and unedited. This section was written after the results were
+known* ([registration](../core_remedy_preregistration.md)).
+
+| # | Prediction | Observed | Met |
+| --- | --- | --- | --- |
+| Pm1 | V1R keeps at least 5 more visible faults than V1 (Opus 5 ≥ 25/30, Astra ≥ 17/30) | Opus 19 vs 20; Astra 16 vs 12 | **no**, both |
+| Pm2 | Hidden abstention within 5 items of V1 (Opus ≥ 21, Astra ≥ 25) | 23 and 30 | yes |
+| Pm3 | Needless abstention ≤ 2/20 | 0/20 both | yes |
+| Pm4 | Across three V1 runs, every headline count's spread ≤ 3 items, both models | Astra ≤ 2; **Opus 4–5** (hidden 22–27, keeps 19–23, pairs 16–21) | **no** |
+
+### Pm1 fails: wording does not close the gap
+
+Telling the model, in the same sentence, that the remaining required sensors are installed and
+reporting moved Astra by +4 visible faults (16 vs 12, above the 3-item noise band but under the
+registered bar) and moved Opus 5 by nothing (19 vs 20, inside the band). By the reading fixed in
+advance: **wording is not enough even at its most explicit. The system must keep detection
+itself.** Principle 2 of the product plan now rests on a tested remedy that failed, not only on
+the failure it was meant to fix.
+
+### Pm4 fails for Opus 5: its single-run counts move by up to 5 items
+
+Astra's counts are stable across three identical runs (spread ≤ 2). Opus 5's are not: hidden
+abstention 22–27, visible kept 19–23, pairs both right 16–21. By the withdrawal rule registered in
+advance, **Opus 5's Core counts are reported as ranges from here on**, and point claims resting on
+differences smaller than that spread are corrected:
+
+- *"No model kept more than 20 of 30 visible faults"* → **kept: Opus 5 19–23, Astra 12–14, Gemini
+  12 (one run)**. The qualitative finding stands in every run — a stated gap always cost described,
+  visible faults — but the size of Opus's loss is 7–11 of 30, not a fixed 10.
+- *"No model got more than 18 of 30 pairs both right"* → **no run got more than 21 of 30**.
+- Pc2's per-model verdicts are robust: Astra under 15 in all three runs, Opus above 15 in all
+  three. Pc3's Opus pass (bar 24) is **not** robust: its runs straddle the bar (22–27).
+- Gemini was run once; its counts carry the same single-run caveat and no measured spread.

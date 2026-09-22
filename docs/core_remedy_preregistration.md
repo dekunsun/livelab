@@ -86,4 +86,10 @@ at US$30 (Opus 5) and US$40 (Astra).
 
 ## Deviations log
 
-None yet.
+1. **2026-09-22, Astra.** The OpenAI account ran out of credit during rep 1 (72 of 80 saved);
+   after a top-up the same script filled the rest. Separately, an interrupted run chain and its
+   resume briefly ran in parallel: 20 rep-2 items failed on rate limits and were filled by a later
+   single run, and one result file (`V1.rep2/core_leak_ap_10__hidden.json`) was written twice —
+   repaired by keeping its first complete record. No answer was altered.
+2. **2026-09-22, Opus 5.** rep 2 was collected in two pieces around the same account's earlier
+   credit interruption pattern; same script, same inputs throughout.
