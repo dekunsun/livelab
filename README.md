@@ -26,7 +26,9 @@ and 3 abstentions**. [Both runs side by side](docs/results/realdata_v2_results.m
 The sensor that would show it is not installed, or the excursion is shorter than the sampling
 interval — and the answer is `NORMAL` or `ANOMALOUS` anyway. The models are not confused about what
 they can see: asked as its own question, all four say *"atmosphere cannot be verified"* on exactly
-the same 12 of 14 items, and then rule on all 12.
+the same 12 of 14 items. Three of them then rule on all 12; only Astra lets it reach the verdict,
+abstaining on 10. On 30 fresh pairs ([LiveLab Core](docs/results/core_leaderboard.md)) the split
+repeats: Opus 5 rules on 19 of the 20 it says it cannot verify, Astra on none.
 
 Three things sharpen it:
 
