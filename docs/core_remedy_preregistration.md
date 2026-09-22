@@ -91,3 +91,6 @@ at US$30 (Opus 5) and US$40 (Astra).
    resume briefly ran in parallel: 20 rep-2 items failed on rate limits and were filled by a later
    single run, and one result file (`V1.rep2/core_leak_ap_10__hidden.json`) was written twice —
    repaired by keeping its first complete record. No answer was altered.
+2. **2026-09-22, Opus 5.5 repetitions added.** After its release-day Core run scored 30/30 on the
+   V1 headline counts, its V1 arm is rerun twice more under this registration's repetition
+   protocol and read under Pm4's spread rule. Logged here before the repetitions ran.
