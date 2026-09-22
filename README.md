@@ -70,6 +70,51 @@ installed and what each stage needs, or asked as its own question. It cannot be 
 model's verdict — on Gemini because nothing else works, and elsewhere because a sentence in a
 prompt is not a guarantee.
 
+## When the picture does carry the answer
+
+Everything above uses pictures that add nothing the instruments lack. The second phase asks what
+happens when they do. It uses a self-driving lab's inspection photographs, where the answer is
+visible: a missing container, an uncapped tube, a spill
+([PDMS, Lin et al. 2025](https://figshare.com/articles/dataset/sdls_anomaly_detect/29234663/2),
+CC BY 4.0). There are 100 inspections, including 20 photographs whose right answer flips with the
+protocol step. Every study was registered first, and the labels held up to a blind human check:
+14 of 15 agreed and none contradicted.
+
+| On the same 100 inspections | Right |
+| --- | ---: |
+| **Gemini 3.8 Live, looking at the photograph with the check in hand** | **74** |
+| A specialist: frozen DINOv2 features, nearest neighbours among 2,474 of this lab's labelled photographs | 65 |
+| Claude Opus 5, looking at the photograph (23 abstentions) | 57 |
+| The specialist's verdict handed to Gemini, with no photograph | 51 |
+| The same, handed to Opus 5 | 23 |
+
+- **The models use the picture.** With no photograph both answered UNKNOWN on every item. With it,
+  both were right on about three in four of the items they committed to.
+- **A general model beat a specialist trained on the lab's own data, but only one of the two
+  did.** Gemini had never seen this lab, and it won most clearly where the answer depends on the
+  protocol step: both steps right on 14 of 20 flip photographs, against the specialist's 6.
+  The specialist's accuracy was bought with labels: 31, 42, 59 and 65 at 10%, 25%, 50% and 100%
+  of them.
+- **The CV-then-LLM hand-off was the weakest design tried.** Given only the classifier's verdict,
+  neither language model ever overrode it. Where its vote was only 3 to 2, Opus declined to answer
+  every time and Gemini some of the time, although the classifier was right on most of those.
+- **A description written without knowing the check is not a substitute for the picture.** It
+  misread the very details the checks ask about, such as red liquid described as none, or a
+  mould as a roller, and accuracy fell to 50 and 49 of 100.
+
+This connects to the first finding. Every time the gap in the evidence was **stated** (no
+photograph, or a weak 3-to-2 vote), the models abstained. Every time it was **implied** (an
+instrument not installed, a transient between samples), they did not.
+
+What it does not show: one lab, stills only, one specialist design, and a win for one of two
+native models. It says nothing about time, streaming or live monitoring. A second pilot looked
+for footage that would: 3D-printing nozzle video
+([CAXTON](https://doi.org/10.17863/CAM.84082), CC BY 4.0). A non-expert could see the failures in
+the flagged prints, but there was no clean normal control to set them against, so by its
+registered stop condition that data leaves the fault-judgement line. Results:
+[pilot 1](docs/results/pilot1_results.md) · [specialist](docs/results/specialist_results.md) ·
+[pilot 2](docs/results/pilot2_results.md).
+
 ## How it was tested
 
 Every study below was **registered before it ran**, and each registration's deviations — including
@@ -84,6 +129,9 @@ the predictions I lost — are in the same file.
 | Real plant | Does any of it survive real data? | [registered](docs/realdata_preregistration.md) | [yes, and it prices the simulator](docs/results/realdata_results.md) |
 | Real plant, rerun | Does it survive correcting the instrument description? | [registered](docs/realdata_v2_preregistration.md) | [abstention identical; false alerts are the models', not the description's](docs/results/realdata_v2_results.md) |
 | Camera | With an instrument group gone, does the plant's camera put it back? | [registered](docs/vision_preregistration.md) | [no: one model ignores it, one alarms at it](docs/results/vision_results.md) |
+| Pilot 1, PDMS stills | When the picture carries the answer, is it used together with the protocol step? | [registered](docs/pilots_preregistration.md) | [yes; a task-blind description is not a substitute](docs/results/pilot1_results.md) |
+| Specialist | Native multimodal, or a vision model trained on the lab's own photographs, alone or feeding an LLM? | [registered](docs/specialist_preregistration.md) | [Gemini beat the specialist; the hand-off was worst](docs/results/specialist_results.md) |
+| Pilot 2, CAXTON video | Can a person see a printing failure without the log? | [registered](docs/pilots_preregistration.md) | [yes, but no clean normal control: stopped](docs/results/pilot2_results.md) |
 | Camera follow-up | Was it the photographs, or the sentence announcing them? | [registered](docs/vision_followup_preregistration.md) | [the announcement alone gives about half; content not testable on these runs](docs/results/vision_followup_results.md) |
 
 Detection and context effects, which the first study measures, are in
@@ -97,7 +145,7 @@ The project began from two claims. It has tested the second in full, and the fir
 
 | | Status |
 | --- | --- |
-| **Physical observability exceeds software observability**, so a lab agent needs eyes as well as telemetry | **Strong form not tested; weak form tested, and it failed.** No public dataset has faults that only a camera can see ([survey](docs/material_survey.md)), so the strong form is untested. The weak form asks whether a camera covers for a missing instrument. It was tested on 48 real-plant items, and the camera did not help: Gemini ignored it, and Opus 5 alarmed more on faulty and fault-free runs alike ([results](docs/results/vision_results.md)) |
+| **Physical observability exceeds software observability**, so a lab agent needs eyes as well as telemetry | **Strong form not tested; weak form tested, and it failed.** No public dataset has faults that only a camera can see ([survey](docs/material_survey.md)), so the strong form is untested. The weak form asks whether a camera covers for a missing instrument. It was tested on 48 real-plant items, and the camera did not help: Gemini ignored it, and Opus 5 alarmed more on faulty and fault-free runs alike ([results](docs/results/vision_results.md)). **Where the picture does carry the answer**, on lab inspection stills, the models use it, and Gemini beat a specialist trained on the lab's own photographs ([above](#when-the-picture-does-carry-the-answer)). Live, camera-only failures remain untested |
 | **An agent cannot tell "I can't see it" from "nothing is wrong"** | **Tested, and this is the result above.** It holds across two families, seven framings and 97 items |
 
 The second is the first one's precondition: an agent that does not know it is blind will not be
@@ -254,23 +302,22 @@ compact JSON.
 
 ## Status
 
-**Done:**
-- the benchmark design;
-- 18 CVD episodes;
-- the scorer and its mock validation;
-- arms A, C-context and C-full, each under frozen prompt v4;
-- the pre-registered UNKNOWN probe;
-- the Extended Thinking comparison, stage 1 (B0, B1 and B2 on the 14 U items).
+**Done**, each registered before it ran:
 
-Collecting that last one took a night and produced nothing on the free tier, where this model's
-function-call path fails silently for hours, and about twenty minutes once billing was enabled.
-What the failure looked like, how it was caught, and what now stops a harness from scoring it as
-the model declining to answer: [deviation 7](docs/probe_preregistration.md) and
-[lessons_learned.md](docs/lessons_learned.md).
+- the simulated CVD benchmark: 18 episodes, three arms, frozen prompt v4, and a scorer validated
+  on mock observers;
+- the `UNKNOWN` probe, Extended Thinking, and the four-model comparison;
+- undersampling;
+- the real-plant replication and its rerun under a corrected instrument description;
+- the camera study and its follow-up;
+- pilot 1 (PDMS stills), pilot 2 (CAXTON video, stopped at its registered condition), and the
+  specialist comparison.
 
-**Not yet built:**
-- the liquid-handling control;
-- arm B (specialist detectors);
-- C-vision and C-shuffled-image;
-- a cross-model comparison;
+**Not done:**
+
+- **camera-only failures in live footage.** No public, licensed dataset found has them with a
+  normal control ([survey](docs/material_survey.md)). The AEGIS liquid-handling set, if released,
+  would be the one to use;
+- a fine-tuned specialist, as opposed to nearest neighbours on frozen features;
+- a fair streaming-against-per-frame cost comparison. The earlier one is withdrawn;
 - the Active Live demo.
