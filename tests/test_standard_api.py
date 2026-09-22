@@ -228,3 +228,12 @@ def test_tool_choice_auto_override_lifts_forcing():
     msgs = [{"role": "user", "content": "x"}]
     assert build_request("anthropic", "claude-opus-5", "s", tools, msgs)["tool_choice"] == {"type": "any"}
     assert build_request("anthropic", "claude-opus-5", "s", tools, msgs, tool_choice="auto")["tool_choice"] == {"type": "auto"}
+
+
+def test_gemini_request_is_unforced_and_carries_the_schema():
+    from livelab.standard_api import build_request, url_for
+    tools = [{"name": "t", "description": "d", "parameters": {"type": "object", "properties": {"x": {"type": "string", "enum": ["a"]}}}}]
+    body = build_request("gemini", "gemini-3.8-flash", "sys", tools, [{"role": "user", "parts": [{"text": "x"}]}], force_tool="t")
+    assert body["toolConfig"] == {"functionCallingConfig": {"mode": "AUTO"}}
+    assert body["tools"][0]["functionDeclarations"][0]["parameters"]["properties"]["x"]["enum"] == ["a"]
+    assert url_for("gemini", "gemini-3.8-flash").endswith("/models/gemini-3.8-flash:generateContent")

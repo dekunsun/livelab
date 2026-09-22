@@ -82,7 +82,7 @@ def main():
         "with every sensor installed.", "",
         "## The Core suite", ""]
     run = [m for m in MODELS if load(m)] + sorted(
-        p.name for p in OUT.glob("*") if p.is_dir() and p.name not in MODELS)
+        p.name for p in OUT.glob("*") if p.is_dir() and p.name not in MODELS and p.name != "handoff")
     if not run:
         lines += ["No model has run the suite yet.", ""]
     else:
@@ -170,6 +170,24 @@ def main():
                          f"| **{f(s_['pairs_both_right'])}** | {f(s_['guard_abstains'])} | {med} |")
             board.setdefault(m, {})["V1_auto"] = s_
         lines.append("")
+
+    ho = load_dir("handoff", ".")
+    if ho:
+        s_ = score(items, {"V1": ho})["V1"]
+        flash = board.get("gemini-3.8-flash", {}).get("V1", {})
+        lines += ["## Hand-off: Live narrates, Flash judges", "",
+                  "Registered before it ran: [core_gemini_preregistration.md](../core_gemini_preregistration.md), arm D. "
+                  "The judge (gemini-3.8-flash) sees only gemini-3.8-live's spoken description of the readings plus "
+                  "the system's V1 sentence, never the telemetry.", "",
+                  "| Arm | Answered | Hidden: abstains | **Keeps visible faults** | **Pairs both right** | Needless abstention |",
+                  "| --- | --- | --- | --- | --- | --- |",
+                  f"| Live → Flash (hand-off) | {len(ho)}/{n} | {f(s_['hidden_abstains'])} | **{f(s_['visible_detected'])}** "
+                  f"| **{f(s_['pairs_both_right'])}** | {f(s_['guard_abstains'])} |"]
+        if flash:
+            lines.append(f"| Flash on raw telemetry (V1) | — | {f(flash['hidden_abstains'])} | {f(flash['visible_detected'])} "
+                         f"| {f(flash['pairs_both_right'])} | {f(flash['guard_abstains'])} |")
+        lines.append("")
+        board["handoff"] = s_
 
     lines += ["## Provisional: the original 38 probe items", "",
               "The same measures on items this project had already run ([cross-model](crossmodel_results.md), "

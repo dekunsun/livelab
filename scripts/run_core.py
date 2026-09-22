@@ -26,7 +26,9 @@ from scripts.run_probes import MODELS, PATIENCE_S, PROVIDER, real_connect  # noq
 OUT = ROOT / "results/core"
 # USD per million tokens (input, output). Opus 5 from the vendor's page (scripts/measure_frame_tokens.py);
 # Astra's output price inferred from the cross-model study's billed spend, US$5.46 for 378,014 in and 33,571 out.
-PRICE = {"claude-opus-5": (5.0, 25.0), "claude-opus-5-5": (4.0, 20.0), "gpt-6-astra": (10.0, 50.0)}
+PRICE = {"claude-opus-5": (5.0, 25.0), "claude-opus-5-5": (4.0, 20.0), "gpt-6-astra": (10.0, 50.0),
+         # Gemini paid tier, read from the vendor's pricing page (2026-09): output includes thinking
+         "gemini-3.8-flash": (0.75, 3.75), "gemini-3.1-pro-preview": (2.0, 12.0)}
 
 
 def spent(model):
@@ -66,8 +68,8 @@ async def main(argv=None):
     if model in PROVIDER:
         load_dotenv()
         provider = PROVIDER[model]
-        env = "ANTHROPIC_API_KEY" if provider == "anthropic" else "OPENAI_API_KEY"
-        if not os.environ.get(env):
+        env = {"anthropic": "ANTHROPIC_API_KEY", "gemini": "GEMINI_API_KEY"}.get(provider, "OPENAI_API_KEY")
+        if not (os.environ.get(env) or (provider == "gemini" and os.environ.get("GOOGLE_API_KEY"))):
             sys.exit(f"Set {env} in livelab/.env (never commit it).")
         asker = StandardAsker(provider, model, tool_choice="auto" if args.tool_choice == "auto" else None)
     else:

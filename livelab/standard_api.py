@@ -70,6 +70,10 @@ def user_turn(provider, text, images=()):
     Each provider spells an image differently; what must not differ is the text beside it or the
     order (frames first, then the question), so the same evidence reaches every model.
     """
+    if provider == "gemini":
+        if images:
+            raise NotImplementedError("images are not used with the gemini request/response backend")
+        return {"role": "user", "parts": [{"text": text}]}
     if not images:
         return {"role": "user", "content": text}
     b64 = [base64.b64encode(Path(p).read_bytes()).decode() for p in images]
@@ -125,18 +129,35 @@ def build_request(provider, model, instruction, tools, messages, force_tool=None
         }
         body["tool_choice"] = ({"type": "function", "function": {"name": force_tool}} if force_tool
                                else "required")
+    elif provider == "gemini":
+        # Unforced, like the Live runs it is compared with: the instruction asks for the call and the
+        # asker reminds up to twice, as run_single_turn does for Live (docs/core_gemini_preregistration.md).
+        body = {
+            "systemInstruction": {"parts": [{"text": instruction}]},
+            "contents": messages,
+            "tools": [{"functionDeclarations": [{"name": t["name"], "description": t["description"],
+                                                  "parameters": schema_of(t)} for t in tools]}],
+            "toolConfig": {"functionCallingConfig": {"mode": "AUTO"}},
+        }
     else:
         raise ValueError(provider)
     body.update(extra)
     return body
 
 
-def url_for(provider):
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+
+def url_for(provider, model=None):
+    if provider == "gemini":
+        return GEMINI_URL.format(model=model)
     return {"anthropic": ANTHROPIC_URL, "openai": OPENAI_URL,
             "openai_responses": OPENAI_RESPONSES_URL}[provider]
 
 
 def _headers(provider, key):
+    if provider == "gemini":
+        return {"x-goog-api-key": key, "content-type": "application/json"}
     if provider == "anthropic":
         return {"x-api-key": key, "anthropic-version": ANTHROPIC_VERSION,
                 "content-type": "application/json"}
@@ -185,6 +206,18 @@ def parse(provider, response):
         usage = {"prompt_token_count": u.get("input_tokens"),
                  "response_token_count": u.get("output_tokens"),
                  "thoughts_token_count": (u.get("output_tokens_details") or {}).get("reasoning_tokens")}
+    elif provider == "gemini":
+        cand = (response.get("candidates") or [{}])[0]
+        for part in (cand.get("content") or {}).get("parts") or []:
+            if "functionCall" in part:
+                fc = part["functionCall"]
+                calls.append({"id": fc.get("id"), "name": fc.get("name"), "args": fc.get("args") or {}})
+            elif part.get("text") and not part.get("thought"):
+                spoken += part["text"]
+        u = response.get("usageMetadata") or {}
+        usage = {"prompt_token_count": u.get("promptTokenCount"),
+                 "response_token_count": (u.get("candidatesTokenCount") or 0) + (u.get("thoughtsTokenCount") or 0),
+                 "thoughts_token_count": u.get("thoughtsTokenCount")}
     else:
         msg = ((response.get("choices") or [{}])[0].get("message")) or {}
         spoken = msg.get("content") or ""
@@ -211,6 +244,10 @@ def _acknowledge(provider, calls):
     if provider == "openai_responses":
         return [{"type": "function_call_output", "call_id": c["id"], "output": "recorded"}
                 for c in calls]
+    if provider == "gemini":
+        return [{"role": "user", "parts": [
+            {"functionResponse": dict({"name": c["name"], "response": {"result": "recorded"}},
+                                      **({"id": c["id"]} if c.get("id") else {}))} for c in calls]}]
     return [{"role": "tool", "tool_call_id": c["id"], "content": "recorded"} for c in calls]
 
 
@@ -218,6 +255,9 @@ def _assistant_turn(provider, response, calls):
     """What the model said, in the shape its own API wants echoed back."""
     if provider == "anthropic":
         return [{"role": "assistant", "content": response.get("content") or []}]
+    if provider == "gemini":
+        # Echoed whole: Gemini 3 rejects a follow-up whose function-call part lost its thought signature.
+        return [(response.get("candidates") or [{}])[0].get("content") or {"role": "model", "parts": []}]
     if provider == "openai_responses":
         # Every item, in order: a function_call echoed without the reasoning item that produced it
         # is rejected, and picking items apart is how that happened once already.
@@ -231,13 +271,16 @@ class StandardAsker:
     def __init__(self, provider, model, key=None, post=_post, max_turns=3, tool_choice=None):
         self.provider, self.model, self.max_turns = provider, model, max_turns
         self.tool_choice = tool_choice    # "auto" lifts forced calls (Anthropic only)
-        self.key = key or os.environ.get(
-            "ANTHROPIC_API_KEY" if provider == "anthropic" else "OPENAI_API_KEY", "")
+        env = {"anthropic": "ANTHROPIC_API_KEY", "gemini": "GEMINI_API_KEY"}.get(provider, "OPENAI_API_KEY")
+        self.key = key or os.environ.get(env, "") or (os.environ.get("GOOGLE_API_KEY", "") if provider == "gemini" else "")
+        if provider == "gemini":
+            max_turns = max(max_turns, 5)          # two calls plus up to two reminders, as Live
+        self.max_turns = max_turns
         self._post = post
         self.last_request = None          # committed verbatim as the parity evidence
 
     async def __call__(self, instruction, tools, required, text, images=()):
-        calls, spoken, usage = [], "", {}
+        calls, spoken, usage, reminders = [], "", {}, 0
         messages = [user_turn(self.provider, text, images)]
         for _ in range(self.max_turns):
             missing = [r for r in required if r not in {c["name"] for c in calls}]
@@ -247,16 +290,22 @@ class StandardAsker:
                                  force_tool=missing[0] if len(required) > 1 else None,
                                  tool_choice=self.tool_choice)
             self.last_request = body
-            response = await asyncio.to_thread(self._post, url_for(self.provider),
+            response = await asyncio.to_thread(self._post, url_for(self.provider, self.model),
                                                _headers(self.provider, self.key), body)
             new, said, u = parse(self.provider, response)
             calls += new
             spoken += said
             for k, v in u.items():
                 usage[k] = usage.get(k, 0) + v
-            if not new:                    # nothing to acknowledge, and nothing would change
-                break
+            if not new:
+                if self.provider == "gemini" and reminders < 2:
+                    # Live gets "Call <tool> now." when a turn ends without the call (run_single_turn).
+                    reminders += 1
+                    messages = messages + _assistant_turn(self.provider, response, new) + \
+                        [{"role": "user", "parts": [{"text": f"Call {missing[0]} now."}]}]
+                    continue
+                break                      # nothing to acknowledge, and nothing would change
             messages = messages + _assistant_turn(self.provider, response, new) + \
                 _acknowledge(self.provider, new)
         return {"calls": [{"name": c["name"], "args": c["args"]} for c in calls],
-                "spoken": spoken, "usage": usage, "reminders": 0}
+                "spoken": spoken, "usage": usage, "reminders": reminders}
