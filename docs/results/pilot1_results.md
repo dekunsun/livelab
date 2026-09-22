@@ -51,9 +51,12 @@ separates them is abstention. Opus answered UNKNOWN on 23 items with the picture
 did so on one. Gemini's errors lean one way: it called 18 of 50 abnormal scenes NORMAL.
 
 The C0 result looks like the opposite of this project's first finding, where models almost never
-abstained. It is not. There, the evidence gap was implicit: an instrument not installed, a
-transient between samples. Here the prompt says outright that there is no photograph. This pilot
-shows only that a stated gap is respected. It does not test an implied one.
+abstained. It is not. There, the missing instrument was stated in the manifest, but the model
+had to infer from it that the instruments present could not settle the question. Here the prompt
+says outright that the evidence itself is absent. This pilot shows that a stated absence of
+evidence is respected. It does not test the inference. *(Corrected 2026-09-21: this first called
+phase one's gap "implicit"; the absence was stated there too, and what was left to the model was
+the inference.)*
 
 ### A description written without the task is worse than the picture (Pa3 not met)
 

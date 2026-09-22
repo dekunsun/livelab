@@ -83,7 +83,9 @@ So the language model added no information, and it turned a weak but better-than
 into silence. That abstention is not unreasonable: a 3-to-2 vote is weak evidence. But it cost
 accuracy, and it is the opposite of this project's phase-one finding, where models committed
 without evidence. Here the evidence was *stated* to be weak, and the model respected it. That
-fits pilot 1's C0: a gap that is stated gets respected, and a gap that is implied does not.
+fits pilot 1's C0. When the weakness or absence of the evidence is stated, it is respected. When
+the model must infer that what it has cannot answer the question, as in phase one, it is not.
+*(Corrected 2026-09-21: this first said "a gap that is implied", which misdescribed phase one.)*
 
 ### Ps4 not met: the specialist handles the step worse
 

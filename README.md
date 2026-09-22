@@ -102,9 +102,13 @@ protocol step. Every study was registered first, and the labels held up to a bli
   misread the very details the checks ask about, such as red liquid described as none, or a
   mould as a roller, and accuracy fell to 50 and 49 of 100.
 
-This connects to the first finding. Every time the gap in the evidence was **stated** (no
-photograph, or a weak 3-to-2 vote), the models abstained. Every time it was **implied** (an
-instrument not installed, a transient between samples), they did not.
+This connects to the first finding, and sharpens it. When the evidence itself was said to be
+missing or weak ("no photograph is available", "3 of 5 similar photographs agree"), the models
+abstained. In phase one the missing instrument was stated too, since the manifest said *not
+installed*. What the models had to do there was **infer** that the instruments they did have
+could not answer the question, and they did not. The failure is in that inference, not in reading
+what they are told. *(Corrected 2026-09-21: a first version of this paragraph called phase one's
+gap "implied", which misdescribed it.)*
 
 What it does not show: one lab, stills only, one specialist design, and a win for one of two
 native models. It says nothing about time, streaming or live monitoring. A second pilot looked
