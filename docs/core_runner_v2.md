@@ -71,3 +71,22 @@ is omitted is not assumed; the events show it.
 2. A small real smoke run (a few items per backend) checks that the SDK and server behave as these
    rules assume, including where `interaction_status` actually appears. It does not judge models.
 3. Only after both pass are any reruns made, each registered first.
+
+## Observed in the smoke run (2026-09-22)
+
+Three V1 items (`core_leak_lp_01__visible`, `core_leak_lp_01__hidden`, `core_normal_01__normal`) on
+the standard Live model, Extended Thinking and Flash; records in `results/core_v2_smoke/`. It checks
+the runner, not the models.
+
+- Every item was submitted unprompted, with no reminder, no malformed call, no later call, and a
+  first user turn equal to the frozen item text. Every session ended normally.
+- **The standard Live model sends no `interaction_status` at all.** Its turn ends with
+  `generation_complete` and `turn_complete`, and one usage message arrives after the call, in the same
+  message as `turn_complete`, reporting 339–503 thinking tokens per item. Runner v1 closed the
+  session at the call and lost that message; the model does reason.
+- **Extended Thinking sends `interaction_status` inside `server_content`, beside `turn_complete`.** On
+  the visible item: a first turn ended at 4 s with no call and status `IN_PROGRESS`; the call came at
+  13 s; two more turns followed, the last with status `IDLE` at 23 s. Usage arrives once per turn
+  (5,955 / 20,096 / 6,672 prompt tokens; 372 / 5,702 / 57 thinking tokens), so an item's usage is the
+  sum of its messages. Runner v1 would have closed at 13 s and kept none of it.
+- Flash's usage arrives once per request; its first request carried 347–5,625 thinking tokens.
