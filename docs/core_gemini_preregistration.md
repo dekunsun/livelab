@@ -68,4 +68,7 @@ runner: US$5 (Flash), US$12 (Pro).
 
 ## Deviations log
 
-None yet.
+1. **Arm C was collected over two days (2026-09-22 and 2026-09-23).** The paid tier caps
+   `gemini-3.1-pro-preview` at 250 requests a day. The run stopped at about 64 of 80 items; 47 calls
+   failed on the cap and were not saved. The rest was collected after the reset, skipping every item
+   already saved, so no answer was asked twice. Coverage is 80 of 80 in every arm.

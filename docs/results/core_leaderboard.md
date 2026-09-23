@@ -14,7 +14,7 @@ Every result on this page was collected by runner v1, which did not save reminde
 | claude-opus-5 | 80 / 80 / 80 of 80 | **19/20** | 26/30 | **20/30** | **18/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 | gpt-6-astra | 80 / 80 / 80 of 80 | **0/20** | 30/30 | **12/30** | **12/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 | claude-opus-5-5 | 80 / 80 / 80 of 80 | **15/20** | 30/30 | **30/30** | **30/30** | 0/20 | 0/30 | 30/30 | 0/10 |
-| gemini-3.1-pro-preview | 67 / 64 / 64 of 80 | **20/20** | 30/30 | **27/30** | **27/30** | 0/4 | 0/30 | 30/30 | 0/7 |
+| gemini-3.1-pro-preview | 80 / 80 / 80 of 80 | **20/20** | 30/30 | **27/30** | **27/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 | gemini-3.8-flash | 80 / 80 / 80 of 80 | **20/20** | 30/30 | **22/30** | **22/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 
 By family, exploratory and not interpreted (ten pairs each): pairs both right under V1, and visible faults kept under V1.
@@ -27,8 +27,6 @@ By family, exploratory and not interpreted (ten pairs each): pairs both right un
 | claude-opus-5-5 | 10/10 pairs, 10/10 kept | 10/10 pairs, 10/10 kept | 10/10 pairs, 10/10 kept |
 | gemini-3.1-pro-preview | 10/10 pairs, 10/10 kept | 10/10 pairs, 10/10 kept | 7/10 pairs, 7/10 kept |
 | gemini-3.8-flash | 9/10 pairs, 9/10 kept | 8/10 pairs, 8/10 kept | 5/10 pairs, 5/10 kept |
-
-**Coverage below 90% for: gemini-3.1-pro-preview. By the registration these rows are not read.**
 
 ## The remedy arm: the sentence also names what still works
 
@@ -299,14 +297,15 @@ this one. It is free, and on Opus 5 it recovered a third to a half of the droppe
 ## Reading: one Live model, or Live plus a judge (Gemini), against the rules fixed before the run
 
 *Written after the results were known* ([registration](../core_gemini_preregistration.md)). Arm C
-(`gemini-3.1-pro-preview`) stopped at about 64 of 80 items on the paid tier's 250-requests-per-day
-cap for that model and will be completed when the cap resets; Pg3 is open until then.
+(`gemini-3.1-pro-preview`) was collected over two days: it stopped at about 64 of 80 items on the
+paid tier's 250-requests-per-day cap for that model and was completed after the cap reset
+(deviation 1 of the registration).
 
 | # | Prediction | Observed | Met |
 | --- | --- | --- | --- |
 | Pg1 | Flash gets at least 5 more V1 pairs both right than Live (≥ 15) | 22 against 10 | yes |
 | Pg2 | Flash catches at least 25/30 visible faults under V0 (Live: 17) | 30/30 | yes |
-| Pg3 | Pro at least as many V1 pairs as Flash | pending (arm C incomplete) | — |
+| Pg3 | Pro at least as many V1 pairs as Flash | 27 against 22 | yes |
 | Pg4 | V0 hidden abstention ≤ 3/30 | Flash 0/30 | yes |
 | Pg5 | The hand-off keeps at least 5 fewer visible faults than Flash on raw telemetry | 13 against 22 | yes |
 
@@ -331,7 +330,16 @@ told "pressure shows a gradual upward trend" without the numbers, the judge abst
 30. This supports a design preference — give the diagnosing model direct access to the evidence —
 to be rechecked under runner v2. It is not a general finding that summaries cannot work.
 
-**As registered, Pg1, Pg2, Pg4 and Pg5 hold as counts.** The registration's architecture reading
+**Pro scored higher than Flash.** On the same items, through the same REST path and runner,
+`gemini-3.1-pro-preview` abstained on every hidden twin once told (30/30), kept 27 of 30 visible
+faults and got 27 of 30 pairs both right, against Flash's 22; its three misses were all in the
+atmospheric-pressure leak family. With nothing added it caught all 30 visible faults. It too said
+"cannot verify" and ruled anyway on 20 of 20, as did every Gemini model tested. Pro and Flash share
+the interface and the runner, so this comparison is less confounded than Flash against Live, but it
+is one run each under runner v1, with reminders unrecorded and reasoning compute not compared.
+Pro's spend: US$4.92.
+
+**As registered, Pg1 to Pg5 all hold as counts.** The registration's architecture reading
 ("split, and route the telemetry to the judge") is not adopted: the suite did not test a model
 holding a conversation while monitoring, and the runner cannot yet separate model from
 configuration.

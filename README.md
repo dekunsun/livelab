@@ -94,7 +94,7 @@ models per event:
   twins and kept all 30 visible faults, in each of three identical runs. Left to infer the gap itself, it too abstained on none —
   so the system still has to state it. A registered control shows about half its gain over Opus 5 is the call
   mode, not the model: Opus 5, unforced, keeps 24–26 of 30 (forced: 19–23). **Don't force the function call.** On Gemini, same-generation
-  `gemini-3.8-flash` got 22 of 30 pairs right against `gemini-3.8-live`'s 10, and when Flash judged
+  `gemini-3.8-flash` got 22 of 30 pairs right against `gemini-3.8-live`'s 10 (`gemini-3.1-pro-preview`: 27), and when Flash judged
   from Live's spoken summary instead of the readings it fell back to 13. These are observations of
   two configurations under runner v1, with no mechanism attributed
   ([limitations](docs/core_runner_v1_limitations.md)); they favour giving the diagnosing model direct
