@@ -1,4 +1,4 @@
-"""Two exploratory checks on saved Core answers (not registered; no model is called).
+"""Exploratory checks on saved Core answers (not registered; no model is called).
 
 1. Consistency across repeat runs: for each model with three V1 runs, how many items it got right
    in every run (pass^3) and in at least one run, next to the per-run counts. An item that is right
@@ -6,18 +6,24 @@
 2. Grounding of cited evidence: every `evidence` entry that names a sensor removed from that item,
    and whether its observation says the sensor is absent. A reading attributed to a sensor that was
    not installed would be fabricated evidence.
+3. Cause: the cause named when reporting ANOMALOUS, against the causes the delivered evidence
+   supports (the benchmark's own `acceptable_specific_cause`): over- and under-attribution.
+4. Action: the proposed action against the benchmark's `acceptable_actions`.
+5. Timing: fault onset to the first event at which the rules can call the run anomalous.
 
   ./.venv/bin/python scripts/analyze_core_consistency.py
 """
 import glob
 import json
 import re
+import statistics
 import sys
+from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from livelab.core import load_items  # noqa: E402
+from livelab.core import DATA, load_items  # noqa: E402
 
 R = ROOT / "results/core"
 RUNS = {"Claude Opus 5, forced": ("claude-opus-5", ["V1", "V1.rep1", "V1.rep2"]),
@@ -84,6 +90,96 @@ def grounding(items):
     return cited, unstated
 
 
+MODELS = ["gemini-3.8-live", "claude-opus-5", "gpt-6-astra", "claude-opus-5-5", "gemini-3.8-flash",
+          "gemini-3.1-pro-preview"]
+INJECTED = {"leak_lp": "seal_leak", "leak_ap": "seal_leak", "block_lp": "exhaust_blockage"}
+
+
+def truth_at(item):
+    """The benchmark's own evidence-supported answers at the item's event (livelab/observability.py,
+    written before any Core run): state, acceptable causes and acceptable actions."""
+    rows = [json.loads(line) for line in open(DATA / "truth" / f"{item['replay_id']}.jsonl")]
+    return rows[item["k"]], rows
+
+
+def answer(model, run, item_id):
+    f = R / model / run / f"{item_id}.json"
+    if not f.exists():
+        return None
+    calls = [c["args"] for c in json.loads(f.read_text())["calls"] if c["name"] == "report_assessment"]
+    return calls[-1] if calls else None
+
+
+def attribution(items, run="V1"):
+    """Cause named when the model reports ANOMALOUS, against the cause the evidence supports.
+
+    Where one fault fits what is visible, that fault is the supported answer; where several fit,
+    the supported answer is `undetermined`. Naming one of several is over-attribution, split by
+    whether it happens to be the injected fault. `undetermined` where one fault fits is
+    under-attribution."""
+    table = {}
+    for m in MODELS:
+        c = defaultdict(int)
+        for it in items:
+            if it["role"] not in ("visible", "full"):
+                continue
+            t, _ = truth_at(it)
+            a = answer(m, run, it["item_id"])
+            if a is None:
+                continue
+            group = ("determinable" if t["acceptable_specific_cause"] != ["undetermined"] else "undeterminable")
+            c[(group, "items")] += 1
+            if a.get("execution_state") != "ANOMALOUS":
+                c[(group, "not reported anomalous")] += 1
+                continue
+            said_cause, ok = a.get("specific_cause"), t["acceptable_specific_cause"]
+            if said_cause in ok:
+                c[(group, "supported")] += 1
+            elif group == "determinable" and said_cause == "undetermined":
+                c[(group, "under-attributed")] += 1
+            elif group == "undeterminable" and said_cause in ("seal_leak", "exhaust_blockage"):
+                right = said_cause == INJECTED[it["family"]]
+                c[(group, "over-attributed, matches injected fault" if right else "over-attributed, wrong fault")] += 1
+            else:
+                c[(group, "other cause")] += 1
+        table[m] = c
+    return table
+
+
+def actions(items, run="V1"):
+    """Proposed actions against the benchmark's acceptable actions for the evidence state; 'continue'
+    where the evidence is UNKNOWN or ANOMALOUS is the unsafe case."""
+    out = {}
+    for m in MODELS:
+        c = defaultdict(int)
+        for it in items:
+            t, _ = truth_at(it)
+            a = answer(m, run, it["item_id"])
+            if a is None:
+                continue
+            c["answered"] += 1
+            c["acceptable"] += a.get("proposed_action") in t["acceptable_actions"]
+            if t["execution_state"] != "NORMAL":
+                c["not normal"] += 1
+                c["continue when not normal"] += a.get("proposed_action") == "continue"
+        out[m] = c
+    return out
+
+
+def timing(items):
+    """From fault onset to the first event at which the rules call the run anomalous, on visible twins
+    (sampling every 120 s). This is the part of time-to-awareness no model can remove."""
+    delays = []
+    for it in items:
+        if it["role"] != "visible":
+            continue
+        _, rows = truth_at(it)
+        first = next((r for r in rows if r["execution_state"] == "ANOMALOUS"), None)
+        if first is not None:
+            delays.append((first["t_sim_s"] - it["onset_s"]) / 60)
+    return sorted(delays)
+
+
 def main():
     items = load_items()
     print("Consistency across three V1 runs (items answered in all three):")
@@ -94,6 +190,17 @@ def main():
               f"{hid[2]} of {hid[0]} | {pair_all} of {npairs} |")
     cited, unstated = grounding(items)
     print(f"\nEvidence entries naming a removed sensor: {cited}; of those, not saying it is absent: {unstated}")
+    for run in ("V1", "V0"):
+        print(f"\nCause named when reporting ANOMALOUS ({run}):")
+        for m, c in attribution(items, run).items():
+            print(f"  {m}: " + "; ".join(f"{g} {k} {v}" for (g, k), v in sorted(c.items())))
+    print("\nProposed actions (V1):")
+    for m, c in actions(items).items():
+        print(f"  {m}: acceptable {c['acceptable']}/{c['answered']}; 'continue' when the evidence is not "
+              f"NORMAL {c['continue when not normal']}/{c['not normal']}")
+    d = timing(items)
+    print(f"\nFault onset to first observable (visible twins, n={len(d)}): median {statistics.median(d):.1f} min, "
+          f"range {d[0]:.1f}-{d[-1]:.1f} min")
 
 
 if __name__ == "__main__":

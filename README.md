@@ -93,7 +93,7 @@ models per event:
   day, is the first model that does both at once**: told the gap, it abstained on all 30 hidden
   twins and kept all 30 visible faults, in each of three identical runs. Left to infer the gap itself, it too abstained on none —
   so the system still has to state it. A registered control shows about half its gain over Opus 5 is the call
-  mode, not the model: Opus 5, unforced, keeps 24–26 of 30 (forced: 19–23). **Don't force the function call.** On Gemini, same-generation
+  mode, not the model: Opus 5, unforced, keeps 24–26 of 30 (forced: 19–23). **Don't force the function call — but validate what comes back**: unforced, Opus 5 and 5.5 omitted a required field in 7 to 20 of 80 answers per run, forced Opus 5 in none ([cause, action and schema](docs/results/core_leaderboard.md)). On Gemini, same-generation
   `gemini-3.8-flash` got 22 of 30 pairs right against `gemini-3.8-live`'s 10 (`gemini-3.1-pro-preview`: 27), and when Flash judged
   from Live's spoken summary instead of the readings it fell back to 13. These are observations of
   two configurations under runner v1, with no mechanism attributed

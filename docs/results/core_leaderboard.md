@@ -370,3 +370,66 @@ failure is not fabricated evidence: the models see the gap and describe it, then
 **Per-event errors compound over a run.** A run delivers 58 events. If a monitor gave a false
 "normal" on 1% of events, at least one would occur in 44% of runs; at 0.1%, in 6%. Product
 guardrails are therefore set per run, not per event.
+
+## Reading: cause, action, schema and timing (exploratory)
+
+*Not registered; `scripts/analyze_core_consistency.py`, saved answers only.* Core scores the
+execution state. The benchmark's own truth (`livelab/observability.py`, written on 2026-09-18,
+before Core was registered) also defines, for every event, which **causes** and which **proposed
+actions** the delivered evidence supports. Core's scorer never used them. They are read here.
+
+**Which cause the evidence supports.** A cause is supported when its fault signature, restricted to
+the installed sensors, matches the channels actually deviating. In the two low-pressure families the
+visible twin has lost its O2 sensor, so a seal leak and an exhaust blockage both show only a rising
+pressure: the supported cause is `undetermined`. In the atmospheric leak family the visible twin
+keeps its O2 sensor, and a rising O2 fits only a leak: the supported cause is `seal_leak`. With
+every sensor installed (the ten full items) one cause always fits.
+
+| V1, answers reporting ANOMALOUS | Cause determinable (20): reported | named it | said `undetermined` | Cause not determinable (20): reported | said `undetermined` | named the injected fault | named the other fault |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Gemini 3.8 Live | 13 | 7 | 3 | 5 | 1 | 1 | 1 |
+| Claude Opus 5 | 19 | 19 | 0 | 10 | 9 | 1 | 0 |
+| GPT-6 Astra | 14 | 1 | 13 | 8 | 8 | 0 | 0 |
+| Claude Opus 5.5 | 20 | 11 | 9 | 20 | 20 | 0 | 0 |
+| Gemini 3.8 Flash | 15 | 15 | 0 | 17 | 8 | 4 | 5 |
+| Gemini 3.1 Pro | 17 | 17 | 0 | 20 | 0 | 10 | 10 |
+
+Remaining answers named another cause (Live 3 and 2). **Over-attribution is a Gemini pattern here.**
+Where the cause could not be determined, Gemini 3.1 Pro named one every time — exhaust blockage for
+all twenty, right on the ten blockages by chance and wrong on the ten leaks; Flash did so on 9 of 17.
+Scoring cause against the injected fault would have rewarded Pro's ten lucky answers. The Claude
+models and Astra said `undetermined` there. **Under-attribution is the opposite error**: Astra (13
+of 14) and Opus 5.5 (9 of 20) said `undetermined` where the evidence settled the cause. Without the
+system sentence (V0) the pattern holds: Pro 20 of 20 and Flash 17 of 20 over-attributed; Astra 19 of
+20 and Opus 5.5 4 of 20 under-attributed.
+
+**Proposed actions.** The benchmark accepts `continue` only when the evidence says NORMAL.
+
+| V1, 80 items | Acceptable action | `continue` when the evidence is ANOMALOUS | `continue` when it is UNKNOWN |
+| --- | ---: | ---: | ---: |
+| Gemini 3.8 Live | 23 | 28 | 27 |
+| Claude Opus 5 | 70 | 1 | 9 |
+| GPT-6 Astra | 80 | 0 | 0 |
+| Claude Opus 5.5 | 70 | 0 | 0 |
+| Gemini 3.8 Flash | 55 | 2 | 23 |
+| Gemini 3.1 Pro | 58 | 0 | 22 |
+
+Opus 5.5's ten other answers had no action at all (next paragraph). Flash and Pro reported UNKNOWN
+correctly and then proposed to continue: the state is right, the action is not by the benchmark's
+rules. Whether continuing an unverifiable run is ever acceptable is a product decision; the product
+asks a human rather than letting the model decide.
+
+**Schema.** Checked against the tool's schema with runner v2's rule, 67 of Opus 5.5's 240 answers
+omit a required field (`proposed_action`, sometimes `evidence`), and 5 of Gemini 3.1 Pro's omit
+`evidence`; every other model's answers are complete. The unforced call is the cause: forced Opus 5
+omitted nothing in 240 answers, unforced Opus 5 omitted fields in 8, 11 and 7 of 80 per run, and
+Opus 5.5, always unforced, in 10, 20 and 15. Runner v1 scored these answers anyway; runner v2 would
+not count them as submissions. **The tool-choice advice is therefore conditional**: an unforced
+call judged better (section above) and dropped required fields; a product that leaves it unforced
+must validate the schema and ask again for what is missing, and count that as a remedy.
+
+**Time the sampling alone costs.** On the 30 visible twins, the first event at which the rules can
+call the run anomalous came 5.5 to 10.0 minutes after the fault began (median 7.5), at one event
+every 120 s. No model can report a fault before it is observable; this is the first of the four
+segments in the product's time to awareness (onset → observable → recognised → notified →
+acknowledged).
