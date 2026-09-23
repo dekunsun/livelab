@@ -343,3 +343,30 @@ Pro's spend: US$4.92.
 ("split, and route the telemetry to the judge") is not adopted: the suite did not test a model
 holding a conversation while monitoring, and the runner cannot yet separate model from
 configuration.
+
+## Reading: consistency across runs, and grounding of cited evidence (exploratory)
+
+*Not registered; computed from saved answers by `scripts/analyze_core_consistency.py`, no model
+called.* Borrowed from agent-evaluation practice: report how often an item is right in *every* run
+(pass^k), not only how many are right per run.
+
+| Model | Visible kept: per run | every run | at least one | Hidden abstains: every run | Pairs both right, every run |
+| --- | --- | --- | --- | --- | --- |
+| Claude Opus 5, forced | 18 · 19 · 19 of 26 | 16 | 20 | 21 of 27 | 13 of 26 |
+| Claude Opus 5, unforced | 24 · 26 · 26 of 30 | 24 | 27 | 26 of 30 | 21 of 30 |
+| GPT-6 Astra | 12 · 14 · 14 of 30 | 10 | 18 | 30 of 30 | 10 of 30 |
+| Claude Opus 5.5 | 30 · 30 · 30 of 30 | 30 | 30 | 30 of 30 | 30 of 30 |
+
+Items answered in all three runs only (Opus 5's forced third run answered 73 of 80). **Per-run
+counts overstate reliability.** Forced Opus 5 caught 20 visible faults at least once but only 16 in
+every run; Astra 18 and 10. A fault caught in one run and dropped in the next is a fault a monitor
+catches only sometimes. Only Opus 5.5 was right on every item in every run.
+
+**Cited evidence is grounded.** Across every Core answer, 641 evidence entries name a sensor that
+was removed from that item, and all 641 say it is absent; in a manual check of the 20 that carry a
+number, every number belongs to a sensor that was installed. No model invented a reading. The
+failure is not fabricated evidence: the models see the gap and describe it, then rule anyway.
+
+**Per-event errors compound over a run.** A run delivers 58 events. If a monitor gave a false
+"normal" on 1% of events, at least one would occur in 44% of runs; at 0.1%, in 6%. Product
+guardrails are therefore set per run, not per event.
