@@ -34,7 +34,8 @@ Three things sharpen it:
 
 - **It is not a prompt problem, and not only a Gemini problem.** Under the benchmark's own wording
   every model abstains **0 of 55**. One added sentence defining when to answer `UNKNOWN` then moves
-  Opus 5 to 13/14 and GPT-6 Astra to 14/14 — and Gemini by nothing, at any thinking level.
+  Opus 5 to 13/14 and GPT-6 Astra to 14/14 — and Gemini Live by nothing (the claim that this held
+  at every thinking level is suspended until the Extended Thinking call path is reviewed).
   [Cross-model results](docs/results/crossmodel_results.md)
 - **It is not an artefact of the simulator, as far as tested.** Put to 119 runs of a real
   distillation plant with the plant's own expert annotations as truth, abstention was **0, 4 and 3
@@ -92,10 +93,12 @@ models per event:
   day, is the first model that does both at once**: told the gap, it abstained on all 30 hidden
   twins and kept all 30 visible faults, in each of three identical runs. Left to infer the gap itself, it too abstained on none —
   so the system still has to state it. A registered control shows about half its gain over Opus 5 is the call
-  mode, not the model: Opus 5, unforced, keeps 24–26 of 30 (forced: 19–23). **Don't force the function call.** On Gemini, the Live mode itself costs judgment: same-generation
-  `gemini-3.8-flash` got 22 of 30 pairs right against Live's 10 — but when Flash judged from Live's
-  spoken summary instead of the readings it fell back to 13. **Let Live talk, let another model judge,
-  and route the telemetry to the judge directly.**
+  mode, not the model: Opus 5, unforced, keeps 24–26 of 30 (forced: 19–23). **Don't force the function call.** On Gemini, same-generation
+  `gemini-3.8-flash` got 22 of 30 pairs right against `gemini-3.8-live`'s 10, and when Flash judged
+  from Live's spoken summary instead of the readings it fell back to 13. These are observations of
+  two configurations under runner v1, with no mechanism attributed
+  ([limitations](docs/core_runner_v1_limitations.md)); they favour giving the diagnosing model direct
+  access to the evidence, to be rechecked under runner v2.
 
 So the system should state what cannot be verified **and keep its own anomaly rules running on
 what can**, so that a finding the evidence supports is never dropped because another part of the
