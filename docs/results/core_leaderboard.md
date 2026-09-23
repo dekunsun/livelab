@@ -12,8 +12,8 @@ What the suite measures and how to run it: [core.md](../core.md). Registered bef
 | claude-opus-5 | 80 / 80 / 80 of 80 | **19/20** | 26/30 | **20/30** | **18/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 | gpt-6-astra | 80 / 80 / 80 of 80 | **0/20** | 30/30 | **12/30** | **12/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 | claude-opus-5-5 | 80 / 80 / 80 of 80 | **15/20** | 30/30 | **30/30** | **30/30** | 0/20 | 0/30 | 30/30 | 0/10 |
-| gemini-3.1-pro-preview | 63 / 63 / 62 of 80 | **20/20** | 30/30 | **27/30** | **27/30** | 0/3 | 0/30 | 30/30 | 0/3 |
-| gemini-3.8-flash | 54 / 54 / 53 of 80 | **16/16** | 27/27 | **20/27** | **20/27** | — | 0/27 | 27/27 | — |
+| gemini-3.1-pro-preview | 67 / 64 / 64 of 80 | **20/20** | 30/30 | **27/30** | **27/30** | 0/4 | 0/30 | 30/30 | 0/7 |
+| gemini-3.8-flash | 80 / 80 / 80 of 80 | **20/20** | 30/30 | **22/30** | **22/30** | 0/20 | 0/30 | 30/30 | 0/10 |
 
 By family, exploratory and not interpreted (ten pairs each): pairs both right under V1, and visible faults kept under V1.
 
@@ -24,9 +24,9 @@ By family, exploratory and not interpreted (ten pairs each): pairs both right un
 | gpt-6-astra | 2/10 pairs, 2/10 kept | 6/10 pairs, 6/10 kept | 4/10 pairs, 4/10 kept |
 | claude-opus-5-5 | 10/10 pairs, 10/10 kept | 10/10 pairs, 10/10 kept | 10/10 pairs, 10/10 kept |
 | gemini-3.1-pro-preview | 10/10 pairs, 10/10 kept | 10/10 pairs, 10/10 kept | 7/10 pairs, 7/10 kept |
-| gemini-3.8-flash | 9/10 pairs, 9/10 kept | 8/10 pairs, 8/10 kept | 3/7 pairs, 3/7 kept |
+| gemini-3.8-flash | 9/10 pairs, 9/10 kept | 8/10 pairs, 8/10 kept | 5/10 pairs, 5/10 kept |
 
-**Coverage below 90% for: gemini-3.1-pro-preview, gemini-3.8-flash. By the registration these rows are not read.**
+**Coverage below 90% for: gemini-3.1-pro-preview. By the registration these rows are not read.**
 
 ## The remedy arm: the sentence also names what still works
 
@@ -61,8 +61,8 @@ Registered before it ran: [core_gemini_preregistration.md](../core_gemini_prereg
 
 | Arm | Answered | Hidden: abstains | **Keeps visible faults** | **Pairs both right** | Needless abstention |
 | --- | --- | --- | --- | --- | --- |
-| Live → Flash (hand-off) | 1/80 | — | **1/1** | **—** | — |
-| Flash on raw telemetry (V1) | — | 27/27 | 20/27 | 20/27 | — |
+| Live → Flash (hand-off) | 80/80 | 30/30 | **13/30** | **13/30** | 0/20 |
+| Flash on raw telemetry (V1) | — | 30/30 | 22/30 | 22/30 | 0/20 |
 
 ## Provisional: the original 38 probe items
 
@@ -293,3 +293,36 @@ this measure would be available to Opus 5 simply by not forcing the call.
 
 For builders this is the more useful half: **do not force the function call** on a judgment like
 this one. It is free, and on Opus 5 it recovered a third to a half of the dropped faults.
+
+## Reading: one Live model, or Live plus a judge (Gemini), against the rules fixed before the run
+
+*Written after the results were known* ([registration](../core_gemini_preregistration.md)). Arm C
+(`gemini-3.1-pro-preview`) stopped at about 64 of 80 items on the paid tier's 250-requests-per-day
+cap for that model and will be completed when the cap resets; Pg3 is open until then.
+
+| # | Prediction | Observed | Met |
+| --- | --- | --- | --- |
+| Pg1 | Flash gets at least 5 more V1 pairs both right than Live (≥ 15) | 22 against 10 | yes |
+| Pg2 | Flash catches at least 25/30 visible faults under V0 (Live: 17) | 30/30 | yes |
+| Pg3 | Pro at least as many V1 pairs as Flash | pending (arm C incomplete) | — |
+| Pg4 | V0 hidden abstention ≤ 3/30 | Flash 0/30 | yes |
+| Pg5 | The hand-off keeps at least 5 fewer visible faults than Flash on raw telemetry | 13 against 22 | yes |
+
+**The Live mode costs judgment.** Same generation, same items, same unforced calls: Flash reported
+every visible fault with nothing added (30/30, Live 17), caught every full-sensor fault (10/10, Live
+7), abstained on every hidden twin once told (30/30, Live 20), and got 22 of 30 pairs both right
+against Live's 10. Live's answers under the system sentence moved in every direction; Flash's never
+called a visible fault NORMAL or a hidden one ANOMALOUS. One weakness is shared by the generation, not
+the mode: both said "cannot verify" and ruled anyway on 20 of 20.
+
+**Splitting helps only if the judge reads the telemetry.** When Flash judged from Live's spoken
+description instead of the readings, it kept 13 of 30 visible faults (on raw telemetry: 22) and 8 of
+10 full-sensor faults (10) — back to Live's own level. The description was not wrong: all 30 visible
+narrations mentioned the reading rising (median 46 words). What it lost was the magnitude and the
+context that make a drift a fault; told "pressure shows a gradual upward trend" without the numbers,
+the judge abstained on 17 of the 30.
+
+**Architecture reading, as registered (Pg1 and Pg5 hold):** split — Live talks, a standard model
+judges — **and route the telemetry to the judge directly**; the voice layer's summary must never be
+the judge's evidence. Both differences (12 and 9 items) exceed the largest single-run spread
+measured on this suite (Opus 5, 4–5), so no repetition was triggered.

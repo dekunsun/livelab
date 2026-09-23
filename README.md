@@ -92,7 +92,10 @@ models per event:
   day, is the first model that does both at once**: told the gap, it abstained on all 30 hidden
   twins and kept all 30 visible faults, in each of three identical runs. Left to infer the gap itself, it too abstained on none —
   so the system still has to state it. A registered control shows about half its gain over Opus 5 is the call
-  mode, not the model: Opus 5, unforced, keeps 24–26 of 30 (forced: 19–23). **Don't force the function call.**
+  mode, not the model: Opus 5, unforced, keeps 24–26 of 30 (forced: 19–23). **Don't force the function call.** On Gemini, the Live mode itself costs judgment: same-generation
+  `gemini-3.8-flash` got 22 of 30 pairs right against Live's 10 — but when Flash judged from Live's
+  spoken summary instead of the readings it fell back to 13. **Let Live talk, let another model judge,
+  and route the telemetry to the judge directly.**
 
 So the system should state what cannot be verified **and keep its own anomaly rules running on
 what can**, so that a finding the evidence supports is never dropped because another part of the
