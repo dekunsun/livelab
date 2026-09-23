@@ -87,6 +87,7 @@ the runner, not the models.
 - **Extended Thinking sends `interaction_status` inside `server_content`, beside `turn_complete`.** On
   the visible item: a first turn ended at 4 s with no call and status `IN_PROGRESS`; the call came at
   13 s; two more turns followed, the last with status `IDLE` at 23 s. Usage arrives once per turn
-  (5,955 / 20,096 / 6,672 prompt tokens; 372 / 5,702 / 57 thinking tokens), so an item's usage is the
-  sum of its messages. Runner v1 would have closed at 13 s and kept none of it.
+  (5,955 / 20,096 / 6,672 prompt tokens; 372 / 5,702 / 57 thinking tokens). The counts rise and fall,
+  so they read as per-turn, not running totals; that is an inference, not documented. Runner v1 would
+  have closed at 13 s, keeping only the first turn's usage (372 thinking tokens).
 - Flash's usage arrives once per request; its first request carried 347–5,625 thinking tokens.
