@@ -52,8 +52,10 @@ cannot support, found by an audit of the runner on 2026-09-22, before any rerun.
   real-time interaction in which Live's own strengths would be used.
 - **The hand-off (13 against 22)** is kept as an observation under runner v1: Flash judging from the
   readings did better than Flash judging from this Live narration. The design preference it
-  supports — give the diagnosing model direct access to the evidence — is a design choice, to be
-  rechecked under runner v2, not a general finding that summaries cannot work.
+  supports — give the diagnosing model direct access to the evidence — is a design choice, not a
+  general finding that summaries cannot work. The hand-off was not rerun under runner v2: the
+  narrations it rests on are saved, and runner v1's faults concern how Live's own answers were
+  collected, not what its narrations said.
 - **"Gemini moved by nothing, at any thinking level"** (the cross-model and system-state probe
   studies) is **suspended** until the Extended Thinking call path is reviewed.
 

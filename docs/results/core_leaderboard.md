@@ -329,8 +329,9 @@ strengths, so it cannot say what role Live should play in a system.
 instead of the readings, it kept 13 of 30 visible faults (on raw telemetry: 22) and 8 of 10
 full-sensor faults (10). All 30 visible narrations mentioned the reading rising (median 46 words);
 told "pressure shows a gradual upward trend" without the numbers, the judge abstained on 17 of the
-30. This supports a design preference — give the diagnosing model direct access to the evidence —
-to be rechecked under runner v2. It is not a general finding that summaries cannot work.
+30. This supports a design preference — give the diagnosing model direct access to the evidence.
+It is not a general finding that summaries cannot work, and the hand-off was not rerun under runner
+v2.
 
 **Pro scored higher than Flash.** On the same items, through the same REST path and runner,
 `gemini-3.1-pro-preview` abstained on every hidden twin once told (30/30), kept 27 of 30 visible
@@ -439,8 +440,10 @@ The execution state, written first, survived the cut in every case, so the state
 Runner v2 raises the cap and records each response's stop reason. Gemini's five omissions are not
 explained by a cap (no output limit was set), but runner v1 did not record Gemini's finish reason
 either, so they are left unexplained until a v2 run. **Scope:** the execution-state counts stand for
-every model (Opus 5.5 answered the state on 240 of 240); the cause, action and schema readings, and
-any full-task consistency, are provisional for the Claude models until the v2 reruns.
+every model (Opus 5.5 answered the state on 240 of 240). *Settled by the runner v2 reruns below:*
+with an 8,192-token cap all 240 Opus 5.5 answers were complete; none of Pro's 76 v2 submissions
+lacked a field, though 4 items were never submitted; cause, action and full-task consistency are
+read from those runs.
 
 **Another difference in configuration.** Opus 5 was called without extended reasoning; Opus 5.5's
 release page says it is no longer available with reasoning switched off, and every v2 response from
