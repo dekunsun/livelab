@@ -545,3 +545,33 @@ action does not default to the safe side, not that an instruction was broken.
 **Against the PRD's gate:** Pro passes the state thresholds (hidden 30, visible 28) and fails on
 over-attribution and on `continue` with a state not NORMAL; one run, so pass^3 is not yet
 measured. Flash fails the visible threshold (22) as well; Live fails both state thresholds. **No model yet passes the full gate.**
+
+## Reading: stating the task's cause and action rules (V1S), Opus 5.5 half
+
+*Written after the results were known* ([registration](../core_v2_rules_preregistration.md)). One run,
+all 80 public items, runner v2, unforced, output cap 8,192. V1S adds the fault library and the cause
+and action rules the scorer already applied; neither was in the V1 request. Scored on fixed
+denominators with `scripts/score_core_rules.py`, which reproduces the V1 counts. Gemini 3.1 Pro's
+half was stopped by the provider's daily request quota after 2 items and is pending.
+
+| Opus 5.5, fixed denominators | V1 (three runs) | V1S (one run) |
+| --- | --- | --- |
+| Determinable cause right (of 20) | 11 · 11 · 10 (9 · 9 · 10 needless undetermined) | 20 |
+| Undeterminable cause `undetermined` (of 20) | 20 · 20 · 20 | 20 |
+| `continue` on non-NORMAL items (of 70) | 0 · 1 · 5 | 0 |
+| Action in the allowed set, non-NORMAL (of 70) | 70 · 69 · 65 | 70 |
+| Normal controls, state and action right (of 10) | 10 · 10 · 10 | 10 |
+| Hidden abstains · visible kept · full-sensor detected | 30·30·10 · 30·30·10 · 28·30·10 | 30 · 30 · 10 |
+| Valid first submission, no reminder (of 80) | 80 · 80 · 80 | 80 |
+
+**Against the registration:** Pr1 (determinable ≥ 18) met; Pr3 met for Opus 5.5; Pr5 (0 `continue`)
+met, but V1 also had a 0 run, so this alone does not show improved reliability; Pr6 and Pr7 met.
+Spend US$5.07.
+
+**Reading, as fixed in advance:** the cause improves where it had failed, the action meets the target
+and nothing regressed, so V1S becomes a *candidate* configuration for Opus 5.5. What this supports:
+the V1 cause failure was, at least for this model, mostly a task-specification gap — the request never
+said how causes are judged or which faults move which readings. What it does not support: that the
+failure had a single cause, that V1S is reliable (one run; the comparison with V1 is historical), or
+that it holds on the private hold-out. Before adoption: repeated runs and the hold-out. The rules and
+observability layer stay whatever the result (PRD FR4, FR11, FR12).
