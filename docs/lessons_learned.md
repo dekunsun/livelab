@@ -207,3 +207,9 @@ or with themselves. None compared the plant description with the plant.
    reason recorded, all 240 Opus 5.5 answers were complete. Before attributing a format failure to a
    model or a call mode, check output limits, stop reasons and reasoning settings, and log a stop at
    the limit as an infrastructure failure.
+9. **Check that the task states the rules it is scored by.** Opus 5.5 left settled causes
+   undetermined and Pro named causes the evidence could not settle, and both were first read as model
+   behaviour. The request never said which readings each fault moves, how a cause is judged or which
+   actions each state allows; only the scorer knew. Stated (V1S), both configurations met every
+   registered cause and action target in one run each. Before calling an answer a model failure,
+   diff the scorer's rules against the request actually sent.
