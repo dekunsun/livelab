@@ -546,32 +546,47 @@ action does not default to the safe side, not that an instruction was broken.
 over-attribution and on `continue` with a state not NORMAL; one run, so pass^3 is not yet
 measured. Flash fails the visible threshold (22) as well; Live fails both state thresholds. **No model yet passes the full gate.**
 
-## Reading: stating the task's cause and action rules (V1S), Opus 5.5 half
+## Reading: stating the task's cause and action rules (V1S)
 
-*Written after the results were known* ([registration](../core_v2_rules_preregistration.md)). One run,
-all 80 public items, runner v2, unforced, output cap 8,192. V1S adds the fault library and the cause
-and action rules the scorer already applied; neither was in the V1 request. Scored on fixed
-denominators with `scripts/score_core_rules.py`, which reproduces the V1 counts. Gemini 3.1 Pro's
-half was stopped by the provider's daily request quota after 2 items and is pending.
+*Written after the results were known* ([registration](../core_v2_rules_preregistration.md)). One run
+per model, all 80 public items, runner v2, unforced, output cap 8,192. V1S adds the fault library
+and the cause and action rules the scorer already applied; neither was in the V1 request. Scored on
+fixed denominators with `scripts/score_core_rules.py`, which reproduces the V1 counts; a missing
+submission counts as not done.
 
-| Opus 5.5, fixed denominators | V1 (three runs) | V1S (one run) |
-| --- | --- | --- |
-| Determinable cause right (of 20) | 11 · 11 · 10 (9 · 9 · 10 needless undetermined) | 20 |
-| Undeterminable cause `undetermined` (of 20) | 20 · 20 · 20 | 20 |
-| `continue` on non-NORMAL items (of 70) | 0 · 1 · 5 | 0 |
-| Action in the allowed set, non-NORMAL (of 70) | 70 · 69 · 65 | 70 |
-| Normal controls, state and action right (of 10) | 10 · 10 · 10 | 10 |
-| Hidden abstains · visible kept · full-sensor detected | 30·30·10 · 30·30·10 · 28·30·10 | 30 · 30 · 10 |
-| Valid first submission, no reminder (of 80) | 80 · 80 · 80 | 80 |
+| Fixed denominators | Opus 5.5 V1 (three runs) | Opus 5.5 V1S | Pro V1 | Pro V1S |
+| --- | --- | --- | --- | --- |
+| Determinable cause right (of 20) | 11 · 11 · 10 | 20 | 17 (3 not submitted) | 19 (1 not submitted) |
+| Undeterminable cause `undetermined` (of 20) | 20 · 20 · 20 | 20 | 0 (19 named a cause) | 20 |
+| `continue` on non-NORMAL items (of 70) | 0 · 1 · 5 | 0 | 20 | 0 |
+| Action in the allowed set, non-NORMAL (of 70) | 70 · 69 · 65 | 70 | 46 | 69 (1 not submitted) |
+| Normal controls, state and action right (of 10) | 10 · 10 · 10 | 10 | 10 | 10 |
+| Hidden abstains (of 30) | 30 · 30 · 28 | 30 | 30 | 30 |
+| Visible kept (of 30) | 30 · 30 · 30 | 30 | 28 | 30 |
+| Full-sensor fault detected (of 10) | 10 · 10 · 10 | 10 | 8 | 9 (1 not submitted) |
+| Valid submission, no reminder (of 80) | 80 · 80 · 80 | 80 | 76 | 79 |
 
-**Against the registration:** Pr1 (determinable ≥ 18) met; Pr3 met for Opus 5.5; Pr5 (0 `continue`)
-met, but V1 also had a 0 run, so this alone does not show improved reliability; Pr6 and Pr7 met.
-Spend US$5.07.
+Pro's one missing submission (`core_full_05`) is the V1 pattern again: it wrote in text that it had
+recorded the assessment, and made no function call after two reminders. Product-protocol counts are
+the same as above (no submission needed a second reminder). Spend: Opus 5.5 US$5.07, Pro US$2.45.
 
-**Reading, as fixed in advance:** the cause improves where it had failed, the action meets the target
-and nothing regressed, so V1S becomes a *candidate* configuration for Opus 5.5. What this supports:
-the V1 cause failure was, at least for this model, mostly a task-specification gap — the request never
-said how causes are judged or which faults move which readings. What it does not support: that the
-failure had a single cause, that V1S is reliable (one run; the comparison with V1 is historical), or
-that it holds on the private hold-out. Before adoption: repeated runs and the hold-out. The rules and
-observability layer stay whatever the result (PRD FR4, FR11, FR12).
+**Against the registration:** Pr1–Pr7 all met. Pr5 (Opus 5.5 at 0 `continue`) is only consistent
+with the target, since V1 also had a 0 run. Pro's `continue` fell from 20 to 0 and its
+undeterminable causes from 0 to 20 right.
+
+**Reading, as fixed in advance:** for both models, cause improves in the direction it had failed —
+Opus 5.5 stops leaving settled causes undetermined, Pro stops naming a cause the evidence cannot
+settle — the action meets the target, and nothing regressed. V1S becomes a *candidate* configuration
+for both. What this supports: the V1 cause and action failures of these two configurations were
+mostly a task-specification gap. The request never said which readings each fault moves, how a
+cause is judged, or which actions each state allows, while the scorer judged by exactly those rules.
+What it does not support: that the failures had a single cause, that V1S is reliable (one run per
+model; the comparison with V1 is historical), that it holds on the private hold-out, or anything
+about Live, Flash, Opus 5 or Astra, which were not rerun. Before adoption: repeated runs and the
+hold-out. The rules and observability layer stay whatever the result (PRD FR4, FR11, FR12).
+
+**What changes in how Core is read.** The state results (hidden abstentions, visible faults kept,
+perceived-but-ignored) are unaffected: V1S adds nothing about the state, and the V1 state counts
+stand. The cause and action results under V1 are reported as the behaviour of a request that did not
+state the scoring rules, not as model limits. For qualification, the task a model is scored on should
+state the rules it is scored by; V1S is the proposed default for future Core qualification runs.

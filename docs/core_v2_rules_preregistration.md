@@ -155,3 +155,6 @@ reported as "stopped at budget, incomplete" and no target is read from the items
   failed after three attempts, plus one retry, are kept in `V1S.auto.quota_failed/` for the
   end-to-end ledger and will be rerun when the quota resets; the 2 completed items stand. Opus 5.5's
   run completed (80 of 80, US$5.07).
+- Pro resumed (2026-09-24, 00:00 PDT): the daily quota resets at midnight Pacific, although the
+  429's `retryDelay` said about 17 hours. The run completed: 80 of 80 records, 79 valid submissions.
+  Results: [leaderboard](results/core_leaderboard.md#reading-stating-the-tasks-cause-and-action-rules-v1s).
