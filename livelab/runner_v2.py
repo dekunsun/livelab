@@ -274,8 +274,22 @@ async def live_item(connect, model_id, instruction, tools, required, text, *, se
                    usage_messages=usage)
 
 
+TRUNCATED = {"max_tokens", "MAX_TOKENS", "length", "max_output_tokens"}
+
+
+def stop_reason(provider, response):
+    """Why the provider stopped writing; a cap here means the answer may have been cut off."""
+    if provider == "anthropic":
+        return response.get("stop_reason")
+    if provider == "gemini":
+        return ((response.get("candidates") or [{}])[0]).get("finishReason")
+    if provider == "openai_responses":
+        return (response.get("incomplete_details") or {}).get("reason") or response.get("status")
+    return ((response.get("choices") or [{}])[0]).get("finish_reason")
+
+
 async def rest_item(provider, model, instruction, tools, required, text, *, post, headers, tool_choice=None,
-                    remedy="fixed", max_requests=6, closing_turn=True, clock=None):
+                    remedy="fixed", max_requests=6, closing_turn=True, clock=None, max_tokens=8192):
     """One item on a request/response API, every request body and response kept whole.
 
     `headers` is used to send and is never recorded. After the submission, one closing request hands
@@ -287,16 +301,21 @@ async def rest_item(provider, model, instruction, tools, required, text, *, post
     client, server, reminders, usage = [], [], [], []
     sub = Submission(required, tools)
     messages = [user_turn(provider, text)]
-    spoken, spoken_before, collection, closing = "", None, None, False
+    spoken, spoken_before, collection, closing, truncated = "", None, None, False, []
+    # Runner v1 capped Anthropic output at 1,024 tokens and cut answers off mid-call; the cap is
+    # raised here and every stop at a cap is recorded (docs/results/core_leaderboard.md).
+    extra = {"max_tokens": max_tokens} if provider == "anthropic" else {}
     for n in range(max_requests):
         missing = [r for r in required if r not in sub.first]
         body = build_request(provider, model, instruction, tools, messages,
                              force_tool=(missing[0] if missing and len(required) > 1 else None),
-                             tool_choice=tool_choice)
+                             tool_choice=tool_choice, **extra)
         client.append({"t": now(), "kind": "request", "content": body, "sha256": sha256(body)})
         response = await asyncio.to_thread(post, url_for(provider, model), headers, body)
         server.append({"t": now(), "message": response})
         new, said, u = parse(provider, response)
+        if stop_reason(provider, response) in TRUNCATED:
+            truncated.append(n)
         usage.append({"t": now(), "request": n, "usage": u})
         spoken += said
         was_complete = sub.complete
@@ -325,7 +344,8 @@ async def rest_item(provider, model, instruction, tools, required, text, *, post
         messages = messages + _assistant_turn(provider, response, new) + _acknowledge(provider, new)
     else:
         collection = "request_limit"
-    return _record(sub, text, client, server, reminders, _outcome(sub, False), {"status": collection},
+    return _record(sub, text, client, server, reminders, _outcome(sub, False),
+                   {"status": collection, "truncated_requests": truncated},
                    first_turn_text=text if client and _first_text(provider, client[0]["content"]) == text else None,
                    provider=provider, model=model, spoken=spoken, spoken_before_submission=spoken_before,
                    usage_messages=usage)

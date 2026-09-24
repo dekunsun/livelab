@@ -419,14 +419,23 @@ correctly and then proposed to continue: the state is right, the action is not b
 rules. Whether continuing an unverifiable run is ever acceptable is a product decision; the product
 asks a human rather than letting the model decide.
 
-**Schema.** Checked against the tool's schema with runner v2's rule, 67 of Opus 5.5's 240 answers
-omit a required field (`proposed_action`, sometimes `evidence`), and 5 of Gemini 3.1 Pro's omit
-`evidence`; every other model's answers are complete. The unforced call is the cause: forced Opus 5
-omitted nothing in 240 answers, unforced Opus 5 omitted fields in 8, 11 and 7 of 80 per run, and
-Opus 5.5, always unforced, in 10, 20 and 15. Runner v1 scored these answers anyway; runner v2 would
-not count them as submissions. **The tool-choice advice is therefore conditional**: an unforced
-call judged better (section above) and dropped required fields; a product that leaves it unforced
-must validate the schema and ask again for what is missing, and count that as a remedy.
+**Schema, and a correction.** Checked against the tool's schema with runner v2's rule, 67 of Opus
+5.5's 240 answers omit a required field (`proposed_action`, sometimes `evidence`), and 5 of Gemini
+3.1 Pro's omit `evidence`. For the Claude models the cause is the runner, not the model: runner v1
+capped Anthropic output at 1,024 tokens, and **every Claude answer missing a field had used at least
+1,000 of them** (Opus 5.5: 102 of 102 across all its runs; unforced Opus 5: 26 of 26), while no
+answer below 1,000 tokens missed one. The call was cut off mid-argument. Forced Opus 5 wrote shorter
+answers (median 475 output tokens) and never hit the cap; unforced Opus 5 wrote longer ones (799),
+and Opus 5.5, whose reasoning cannot be switched off according to its release page, longer still
+(913). A first reading of this paragraph blamed the unforced call; it was withdrawn the same day.
+The execution state, written first, survived the cut in every case, so the state counts stand.
+Runner v2 must raise the cap and record each response's stop reason; Gemini's five omissions are
+not explained by a cap (no output limit was set) and stand as the model's.
+
+**Another difference in configuration.** Opus 5 was called without extended reasoning; Opus 5.5
+cannot be called without it. The "model" half of Opus 5.5's gain over Opus 5 therefore includes
+reasoning being on, and the refusal of a forced call is consistent with that: forcing a tool is not
+offered alongside extended reasoning.
 
 **Time the sampling alone costs.** On the 30 visible twins, the first event at which the rules can
 call the run anomalous came 5.5 to 10.0 minutes after the fault began (median 7.5), at one event

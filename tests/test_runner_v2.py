@@ -221,3 +221,24 @@ def test_rest_closing_turn_revision_is_a_later_call():
 def test_rest_with_remedy_off_stops_at_the_first_turn_without_a_call():
     rec, bodies = rest([gemini_response(text="Rising pressure.")], remedy="none")
     assert len(bodies) == 1 and rec["outcome"] == "protocol_incomplete" and rec["reminders"] == []
+
+
+def test_rest_raises_the_output_cap_and_records_a_cut_off_answer():
+    cut = dict(gemini_response([("report_assessment", {"execution_state": "ANOMALOUS"})]))
+    cut["candidates"][0]["finishReason"] = "MAX_TOKENS"
+    rec, bodies = rest([cut, gemini_response(text="Done.")], remedy="none")
+    assert rec["collection"]["truncated_requests"] == [0]
+    assert rec["malformed_calls"] and rec["outcome"] == "protocol_incomplete"
+
+
+def test_anthropic_requests_carry_the_raised_cap():
+    queue = [{"content": [{"type": "tool_use", "id": "t1", "name": "report_assessment", "input": VALID}],
+              "stop_reason": "tool_use", "usage": {"input_tokens": 5, "output_tokens": 5}},
+             {"content": [{"type": "text", "text": "ok"}], "stop_reason": "end_turn", "usage": {}}]
+    bodies = []
+
+    def post(url, headers, body):
+        bodies.append(body)
+        return queue.pop(0)
+    rec = asyncio.run(rest_item("anthropic", "claude-opus-5-5", INSTRUCTION, TOOLS, REQUIRED, TEXT, post=post, headers={}))
+    assert bodies[0]["max_tokens"] == 8192 and rec["collection"]["truncated_requests"] == []

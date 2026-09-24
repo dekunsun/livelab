@@ -19,6 +19,9 @@ v1's.
   calls with their ids, `usage_metadata`, `interaction_status`, `interrupted`, `turn_complete` and
   `turn_complete_reason`. Every field of a message is read; one message can carry a tool call,
   usage and a status at once.
+- **Every stop reason.** A response that stopped at an output cap is listed in
+  `collection.truncated_requests`; the Anthropic output cap is raised to 8,192 tokens (runner v1's
+  1,024 cut answers off mid-call).
 - **Every attempt.** A transport error before any submission starts a fresh attempt; each attempt's
   error is kept.
 
