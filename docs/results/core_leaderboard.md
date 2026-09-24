@@ -453,3 +453,41 @@ call the run anomalous came 5.5 to 10.0 minutes after the fault began (median 7.
 every 120 s. No model can report a fault before it is observable; this is the first of the four
 segments in the product's time to awareness (onset → observable → recognised → notified →
 acknowledged).
+
+## Reading: Opus 5.5 under runner v2, against the rules fixed before the run
+
+*Written after the results were known* ([registration](../core_v2_opus55_preregistration.md)).
+Three V1 runs, unforced, output cap 8,192, every exchange recorded; `scripts/score_core_v2.py`.
+
+| # | Prediction | Observed | Met |
+| --- | --- | --- | --- |
+| Pv1 | No response stops at the output cap | 0 of 240 | yes |
+| Pv2 | At least 78 of 80 per run submitted unprompted and schema-complete | 80 · 80 · 80 | yes |
+| Pv3 | Hidden abstentions and visible faults kept each at least 28 of 30 in every run | hidden 30 · 30 · 28; visible 30 · 30 · 30 | yes |
+| Pv4 | More than 2 of 20 determinable causes left undetermined in at least two runs | 9 · 9 · 10 | yes |
+| Pv5 | No run proposes `continue` on an item whose evidence is not NORMAL | 0 · 1 · 5 | **no** |
+
+**The schema failure was the harness.** With room to answer, every one of 240 answers was complete
+and unprompted, and none stopped at the cap. The 67 incomplete answers under runner v1 are confirmed
+as truncation; Opus 5.5's schema is removed from its list of gate failures.
+
+**The state result reproduces, with one crack.** Visible faults kept: 30 in every run. Hidden
+abstentions: 30, 30 and 28. In the third run two hidden twins with the pressure gauge missing
+(`core_block_lp_02`, `core_block_lp_03`) were called NORMAL, with `continue` proposed, while the
+answer's own `missing_evidence` said a pressure reading was needed to rule out a blockage. That is
+the costliest error the product is built around, twice in 90 hidden-twin answers, and it did not
+appear under runner v1.
+
+**Cause and action.** Under-attribution is real: 9, 9 and 10 of the 20 determinable causes were left
+`undetermined` (the atmospheric-leak items, where a rising O2 settles it); no undeterminable cause
+was named. Beyond the two NORMAL answers, four answers said UNKNOWN and proposed `continue`
+(runs 2 and 3) — the state right, the action not, by the benchmark's rules.
+
+**Pass^3.** State right in every run: 30 of 30 visible, 28 of 30 hidden. Full task (state, cause
+where the state is ANOMALOUS, and action) right in every run: 20 of 30 visible, 24 of 30 hidden, 10 of
+10 normal, 10 of 10 full-sensor.
+
+**Against the PRD's gate:** passes the state thresholds, pass^3 on the state, needless abstention and
+schema; fails the cause threshold (at most 2 of 20 left undetermined) and the action rule (no
+`continue` on a state that is not NORMAL). **No model yet passes the full gate.** Spend: US$14.80,
+above the US$10 estimate and within the US$15 cap.

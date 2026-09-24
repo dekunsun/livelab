@@ -55,4 +55,10 @@ request after each submission and a larger cap, so Run B is estimated at US$10, 
 
 ## Deviations log
 
-None yet.
+1. **Spend.** Run B cost US$14.80 against an estimate of US$10, inside the US$15 cap: runner v2's
+   closing request and Opus 5.5's longer answers. Run A cost under US$0.25. No other deviation.
+
+## Result
+
+Pv1–Pv4 held; Pv5 failed (0 · 1 · 5 unsafe `continue`). Reading in
+[core_leaderboard.md](results/core_leaderboard.md), "Opus 5.5 under runner v2".
