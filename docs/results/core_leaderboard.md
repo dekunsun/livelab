@@ -589,4 +589,4 @@ hold-out. The rules and observability layer stay whatever the result (PRD FR4, F
 perceived-but-ignored) are unaffected: V1S adds nothing about the state, and the V1 state counts
 stand. The cause and action results under V1 are reported as the behaviour of a request that did not
 state the scoring rules, not as model limits. For qualification, the task a model is scored on should
-state the rules it is scored by; V1S is the proposed default for future Core qualification runs.
+state the rules it is scored by; V1S is the default task statement for Core qualification runs from 2026-09-24 (owner decision).
