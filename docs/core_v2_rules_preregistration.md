@@ -145,4 +145,8 @@ reported as "stopped at budget, incomplete" and no target is read from the items
 
 ## Deviations log
 
-(none yet)
+- Smoke (2026-09-24): the runner's `--cap` counts spend in `results/core_v2/` only, whatever `--out`
+  is; the first Opus smoke with `--cap 3` stopped before any call. Rerun with `--cap 20.8`. Smoke
+  spend (six items) sits in `results/core_v2_smoke/` and is outside the cap accounting. Pipeline
+  checks passed on all six: rules block in the request, `max_tokens` 8192 recorded, first turn equal
+  to the item text, complete records, no reminders. Smoke answers are not scored or read.
