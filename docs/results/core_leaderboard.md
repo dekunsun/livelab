@@ -535,6 +535,6 @@ with the same rule, the counts were 55, 25 and 22, so this was present before an
 The prompt does not state which action follows from an uncertain state; the finding is that the
 action does not default to the safe side, not that an instruction was broken.
 
-**Against the PRD's gate:** Flash and Pro pass the state thresholds (hidden 30, visible ≥ 28 for
-Pro, not Flash) but each fails on over-attribution and on `continue` with a state not NORMAL; Live
-fails the state thresholds. **No model yet passes the full gate.**
+**Against the PRD's gate:** Pro passes the state thresholds (hidden 30, visible 28) and fails on
+over-attribution and on `continue` with a state not NORMAL; one run, so pass^3 is not yet
+measured. Flash fails the visible threshold (22) as well; Live fails both state thresholds. **No model yet passes the full gate.**
