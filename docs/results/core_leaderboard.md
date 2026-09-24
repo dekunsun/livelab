@@ -283,18 +283,16 @@ The first unforced run (24) fell in the registered ambiguous band, so it was rer
 three unforced runs sit **above every forced run** (visible kept 24–26 against 19–23; pairs both
 right 23–25 against 16–21; the ranges do not overlap), and **below Opus 5.5 in every run** (30).
 
-**The call mode is real and partial.** Freeing Opus 5 from the forced call raised it by about 3–5
-items on every headline count, and it did so without writing anything before the call (0
-characters in all 240 unforced answers), so the mechanism is not visible reasoning. Of the distance
-from forced Opus 5 (~21 visible faults kept) to Opus 5.5 (30), roughly **4 items are the call mode;
-the other 5 are a system-level difference** between the two models as each can be run — a different
-model, and (see "Another difference in configuration" below) reasoning that Opus 5.5 cannot switch
-off. Opus 5.5's result is therefore partly confounded: it remains the only model at 30/30, in three
-runs out of three, but about half of its advantage over its predecessor on this measure would be
-available to Opus 5 simply by not forcing the call.
-
-For builders this is the more useful half: **do not force the function call** on a judgment like
-this one. It is free, and on Opus 5 it recovered a third to a half of the dropped faults.
+**The call mode moved Opus 5.** Unforced, Opus 5 kept 3–5 more items on every headline count than
+forced, without writing anything before the call (0 characters in all 240 unforced answers), so the
+mechanism is not visible reasoning. *Revised 24 September 2026:* this is one model, three runs per
+mode, under runner v1, whose 1,024-token output cap cut off 7–11 unforced answers per run (their
+state survived; see "Schema, and a correction"); it has not been retested under runner v2. An
+earlier version of this reading split the distance from forced Opus 5 to Opus 5.5 into "4 items
+of call mode and 5 of model"; that subtraction across two different models is withdrawn, and the
+difference between Opus 5 and 5.5 is reported only as a system-level difference between two
+configurations. For builders the supported advice is narrower than "do not force the call":
+the call mode is part of the configuration, so qualify the one you will ship.
 
 ## Reading: one Live model, or Live plus a judge (Gemini), against the rules fixed before the run
 

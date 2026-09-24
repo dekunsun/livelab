@@ -21,9 +21,22 @@ Neither behaviour shows up in accuracy on a normal benchmark. Both are cheap to 
 
 80 items from a simulated CVD tube furnace. Each item is the telemetry of one run up to a
 growth-stage event, and the model reports `NORMAL`, `ANOMALOUS` or `UNKNOWN` through a function call.
-The core is **30 matched pairs**: the same fault on the same run, with one sensor removed. In the
-*visible* twin the remaining sensors show the fault. In the *hidden* twin they cannot. 20 guard
-items have every sensor installed.
+The core is **30 matched pairs**: the same run (seed, fault onset and rate) asked at the same
+event, with different sensors removed. In the *visible* twin the remaining sensors show the fault.
+In the *hidden* twin they cannot. 20 guard items have every sensor installed.
+
+This is the single reference for how the twins differ (from `FAMILIES` in `livelab/core.py`);
+other documents should reuse it rather than restate it.
+
+| Family (10 pairs each) | Regime | Injected fault | Visible twin: sensors removed | Hidden twin: sensors removed | Visible truth | Hidden truth |
+| --- | --- | --- | --- | --- | --- | --- |
+| `leak_lp` | low pressure | seal leak | exhaust O2 | exhaust O2 **and** pressure gauge | ANOMALOUS (pressure rises) | UNKNOWN |
+| `block_lp` | low pressure | exhaust blockage | exhaust O2 | pressure gauge | ANOMALOUS (pressure rises) | UNKNOWN |
+| `leak_ap` | atmospheric | seal leak | pressure gauge | exhaust O2 | ANOMALOUS (O2 rises) | UNKNOWN |
+
+In `leak_lp` the hidden twin is missing two sensors and the visible twin one, so a model could get
+that pair right by counting missing sensors; results are therefore also reported by family, and a
+pair both right is not on its own proof that the model reasoned from the remaining evidence.
 
 Each item is asked three ways:
 

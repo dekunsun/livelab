@@ -92,9 +92,12 @@ models per event:
   ([remedy and stability](docs/results/core_leaderboard.md)). **Opus 5.5, run on its release
   day, is the first model that does both at once**: told the gap, it abstained on all 30 hidden
   twins and kept all 30 visible faults, in each of three identical runs. Left to infer the gap itself, it too abstained on none —
-  so the system still has to state it. A registered control shows about half its gain over Opus 5 is the call
-  mode; the rest is a system-level difference between the two as each can be run (Opus 5.5 always
-  reasons): Opus 5, unforced, keeps 24–26 of 30 (forced: 19–23). **Don't force the function call**, and leave room for the answer: unforced answers ran longer and some were cut off by the runner's 1,024-token output cap ([cause, action and schema](docs/results/core_leaderboard.md)). On Gemini, same-generation
+  so the system still has to state it. The call mode is one configuration variable that moved
+  results: in a registered control under runner v1, Opus 5 kept 24–26 of 30 visible faults unforced
+  against 19–23 forced. It has not been retested under runner v2, and the gap between Opus 5 and 5.5
+  is a system-level difference between two configurations, not split into model and call mode.
+  **Qualify the call mode you will ship, and leave room for the answer**: runner v1's 1,024-token
+  output cap cut off long answers ([cause, action and schema](docs/results/core_leaderboard.md)). On Gemini, same-generation
   `gemini-3.8-flash` got 22 of 30 pairs right against `gemini-3.8-live`'s 10 (`gemini-3.1-pro-preview`: 27), and when Flash judged
   from Live's spoken summary instead of the readings it fell back to 13. These are observations of
   two configurations under runner v1, with no mechanism attributed
