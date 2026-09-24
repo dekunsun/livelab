@@ -35,8 +35,8 @@ cannot support, found by an audit of the runner on 2026-09-22, before any rerun.
    soon as the required calls arrive.
 
 7. **An output cap that cut answers off.** Anthropic requests were capped at 1,024 output tokens
-   and the stop reason was not saved. Every Claude answer that later failed a schema check had used
-   at least 1,000 of them (Opus 5.5: 102; unforced Opus 5: 26). The execution state, written first,
+   and the stop reason was not saved. Every Claude answer that later failed a schema check used
+   exactly 1,024 (Opus 5.5: 102; unforced Opus 5: 26), and no complete answer did. The execution state, written first,
    survived in every case; later fields (the proposed action, sometimes the evidence) did not.
    Opus 5.5's reasoning cannot be switched off, so it wrote the longest answers.
 
