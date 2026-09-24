@@ -108,3 +108,27 @@ def test_a_right_model_gets_every_pair_and_perceived_but_ignored_counts_commitme
     assert s["perceives_gap"] == (30, 30)
     assert s["perceived_but_ignored"] == (20, 30)
     assert s["coverage"]["B1"] == (30, 80)
+
+
+def test_v1s_adds_only_the_rules_block_to_the_instruction():
+    from livelab.core import RULES_ARM, rules_block, setup_for
+    for i in ITEMS:                                   # every item's message is V1's, byte for byte
+        assert text_for(i, RULES_ARM) == text_for(i, "V1")
+    ins, tools, req = setup_for(RULES_ARM)
+    ins1, tools1, req1 = setup_for("V1")
+    assert ins == ins1 + rules_block() and ins.startswith(ins1)
+    assert tools == tools1 and req == req1
+
+
+def test_rules_block_states_the_scoring_library_exactly():
+    import re
+    from livelab.core import READING_WORDS, REGIME_RULE_WORDS, rules_block
+    from livelab.observability import SIGNATURES
+    block = rules_block()
+    word_to_ch = {w: c for c, w in READING_WORDS.items()}
+    for regime, sigs in SIGNATURES.items():
+        line = next(l for l in block.splitlines() if l.startswith("- " + REGIME_RULE_WORDS[regime]))
+        stated = {}
+        for fault, moved in re.findall(r"(\w+) moves ([^;.]+)", line):
+            stated[fault] = {word_to_ch[w.strip()] for w in re.split(r",| and ", moved) if w.strip()}
+        assert stated == {f: set(ch) for f, ch in sigs.items()}
