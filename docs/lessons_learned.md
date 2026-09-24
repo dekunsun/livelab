@@ -195,3 +195,15 @@ or with themselves. None compared the plant description with the plant.
    content", and so did the write-up, until a review pointed it out. The same review caught the
    cost comparison: a flat list price for streaming against per-frame requests that answered every
    frame is two different workloads, not two prices for one.
+7. **Check the runner before explaining a gap between models.** Gemini 3.8 Flash scored 22 pairs to
+   Live's 10, and a mechanism ("the live mode costs judgment") was written before anyone asked what
+   the runner had recorded. It had closed Live sessions at the first call, kept no reminders and
+   compared usage on different accounting. Runner v2 records every message; rerun, the gap held
+   (Flash 22, Live 6), so the runner was not the cause, but the mechanism stays withdrawn: the suite
+   cannot separate model from configuration.
+8. **A missing field can be an output limit.** 128 Claude answers lacked a required field, and the
+   first reading blamed the unforced call. Every one of them had used exactly the 1,024 output
+   tokens runner v1 allowed; no complete answer reached the limit. Rerun with 8,192 and the stop
+   reason recorded, all 240 Opus 5.5 answers were complete. Before attributing a format failure to a
+   model or a call mode, check output limits, stop reasons and reasoning settings, and log a stop at
+   the limit as an infrastructure failure.
