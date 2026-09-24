@@ -491,3 +491,50 @@ where the state is ANOMALOUS, and action) right in every run: 20 of 30 visible, 
 schema; fails the cause threshold (at most 2 of 20 left undetermined) and the action rule (no
 `continue` on a state that is not NORMAL). **No model yet passes the full gate.** Spend: US$14.80,
 above the US$10 estimate and within the US$15 cap.
+
+## Reading: Gemini 3.8 Live, 3.8 Flash and 3.1 Pro under runner v2, against the rules fixed before the run
+
+*Written after the results were known* ([registration](../core_v2_gemini_preregistration.md)).
+One V1 run per model, unforced, every server message recorded; `scripts/score_core_v2.py`.
+
+| # | Prediction | Observed | Met |
+| --- | --- | --- | --- |
+| Pgv1 | Every item ends with a recorded collection status; none unfinished is scored UNKNOWN | 240 of 240 recorded; Pro's 4 unfinished items reported as `protocol_incomplete`, unscored | yes |
+| Pgv2 | Flash and Pro reproduce v1 hidden · visible · pairs within 2 | Flash 30 · 22 · 22 (v1 30 · 22 · 22); Pro 30 · 28 · 28 (v1 30 · 27 · 27) | yes |
+| Pgv3 | Pro gets at least as many pairs both right as Flash | 28 against 22 | yes |
+| Pgv4 | No Gemini model proposes `continue` on an item whose evidence is not NORMAL | Live 60, Flash 27, Pro 20 of 70 | **no** |
+
+**Collection.** Live: 80 of 80 submitted unprompted, no reminder, every session ended normally.
+Flash: 79 unprompted, 1 after a reminder. Pro: 76 unprompted; on 4 items
+(`core_full_06`, `core_full_10`, `core_leak_ap_06__visible`, `core_leak_lp_09__visible`) it wrote
+in text that it had recorded the assessment, made no function call, and made none after two
+reminders. Coverage 76/80, so its row is read; those 4 are not scored. No request stopped at an
+output cap. Metered spend: Flash US$1.83, Pro US$2.44; Live's is on the owner's Google account
+(median 257 thinking tokens an item, now recorded).
+
+**Live did not improve once the runner was fixed.** Hidden abstentions 17 (v1 20), visible faults
+kept 12 (12), pairs both right 6 (10). By the registration, a drop of three or more is reported as
+found and, from one run, not read as a trend. What it rules out: runner v1 closing the Live session
+at the first call did not cause the v1 gap to Flash. The gap remains an observation of two
+configurations on a static task.
+
+**Flash reproduced exactly; Pro scored one pair higher**, keeping every visible fault on the 28 it
+answered.
+
+**Cause: Pro over-attributes where Opus 5.5 under-attributes.** Where the pressure rises and the O2
+sensor is missing (the low-pressure visible twins), a leak and a blockage both fit, and the only
+supported cause is `undetermined`. Pro named `exhaust_blockage` on all 19 of those it answered,
+including 9 whose simulated fault was a seal leak; Flash named a cause on 8 of 15, Live on 1 of 6,
+Opus 5.5 on 0 of 60. On the determinable causes (the atmospheric-leak twins, where rising O2 settles
+it) Pro and Flash were right on all they reported (17 of 17 each), while Opus 5.5 left 9–10 of 20
+undetermined in each run. Neither error direction is acceptable to the PRD's gate.
+
+**Action.** On the 70 items whose state is not NORMAL, `continue` was proposed by Live on 60, Flash on
+27 and Pro on 20, including answers that had themselves said UNKNOWN. Scored on runner v1's records
+with the same rule, the counts were 55, 25 and 22, so this was present before and was not measured.
+The prompt does not state which action follows from an uncertain state; the finding is that the
+action does not default to the safe side, not that an instruction was broken.
+
+**Against the PRD's gate:** Flash and Pro pass the state thresholds (hidden 30, visible ≥ 28 for
+Pro, not Flash) but each fails on over-attribution and on `continue` with a state not NORMAL; Live
+fails the state thresholds. **No model yet passes the full gate.**

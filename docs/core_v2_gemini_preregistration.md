@@ -58,4 +58,11 @@ the owner's Google account and is reported as tokens, not dollars.
 
 ## Deviations log
 
-None yet.
+None. Spend: Flash US$1.83, Pro US$2.44, both within estimate and cap.
+
+## Result
+
+Pgv1–Pgv3 held; Pgv4 failed (Live 60, Flash 27, Pro 20 `continue` on 70 items not NORMAL). Live
+pairs both right 6 against v1's 10: reported as found, one run. Reading in
+[core_leaderboard.md](results/core_leaderboard.md), "Gemini 3.8 Live, 3.8 Flash and 3.1 Pro under
+runner v2".
