@@ -58,7 +58,15 @@ async def main(argv=None):
     ap.add_argument("--out", default=str(OUT))
     ap.add_argument("--rep", type=int, default=0, help="repetition: N>0 saves to <arm>.repN")
     ap.add_argument("--max-tokens", type=int, default=8192, help="Anthropic output cap (v1 used 1,024)")
+    ap.add_argument("--holdout", action="store_true",
+                    help="use the private held-out items (scripts/make_holdout.py); results go to results/core_holdout/")
     args = ap.parse_args(argv)
+    global DATA
+    if args.holdout:
+        import livelab.core as core
+        core.DATA = DATA = ROOT / "data" / "core_holdout"
+        if args.out == str(OUT):
+            args.out = str(ROOT / "results" / "core_holdout")
     out = Path(args.out)
     model = MODELS[args.backend]
     items = load_items()
