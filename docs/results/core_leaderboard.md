@@ -286,10 +286,12 @@ right 23–25 against 16–21; the ranges do not overlap), and **below Opus 5.5 
 **The call mode is real and partial.** Freeing Opus 5 from the forced call raised it by about 3–5
 items on every headline count, and it did so without writing anything before the call (0
 characters in all 240 unforced answers), so the mechanism is not visible reasoning. Of the distance
-from forced Opus 5 (~21 visible faults kept) to Opus 5.5 (30), roughly **4 items are the call mode
-and roughly 5 are the model**. Opus 5.5's result is therefore partly confounded: it remains the only
-model at 30/30, in three runs out of three, but about half of its advantage over its predecessor on
-this measure would be available to Opus 5 simply by not forcing the call.
+from forced Opus 5 (~21 visible faults kept) to Opus 5.5 (30), roughly **4 items are the call mode;
+the other 5 are a system-level difference** between the two models as each can be run — a different
+model, and (see "Another difference in configuration" below) reasoning that Opus 5.5 cannot switch
+off. Opus 5.5's result is therefore partly confounded: it remains the only model at 30/30, in three
+runs out of three, but about half of its advantage over its predecessor on this measure would be
+available to Opus 5 simply by not forcing the call.
 
 For builders this is the more useful half: **do not force the function call** on a judgment like
 this one. It is free, and on Opus 5 it recovered a third to a half of the dropped faults.
@@ -425,18 +427,26 @@ asks a human rather than letting the model decide.
 capped Anthropic output at 1,024 tokens, and **every Claude answer missing a field used exactly
 1,024** (Opus 5.5: 102 of 102 across all its runs; unforced Opus 5: 26 of 26), while no complete
 answer reached 1,024. Runner v1 did not save the stop reason; output equal to the cap in all 128
-cases and in no complete answer is the saved evidence that these stopped at `max_tokens`. The call was cut off mid-argument. Forced Opus 5 wrote shorter
+cases and in no complete answer is the saved evidence that these stopped at `max_tokens`. A
+registered check then observed it directly ([registration](../core_v2_opus55_preregistration.md),
+run A): five previously cut items rerun through runner v2 with the cap set back to 1,024; one
+stopped with `stop_reason = "max_tokens"` at 1,024 tokens and lacked `proposed_action`, and the
+four that finished below the cap (893–1,016 tokens) were complete. The call was cut off mid-argument. Forced Opus 5 wrote shorter
 answers (median 475 output tokens) and never hit the cap; unforced Opus 5 wrote longer ones (799),
 and Opus 5.5, whose reasoning cannot be switched off according to its release page, longer still
 (913). A first reading of this paragraph blamed the unforced call; it was withdrawn the same day.
 The execution state, written first, survived the cut in every case, so the state counts stand.
-Runner v2 must raise the cap and record each response's stop reason; Gemini's five omissions are
-not explained by a cap (no output limit was set) and stand as the model's.
+Runner v2 raises the cap and records each response's stop reason. Gemini's five omissions are not
+explained by a cap (no output limit was set), but runner v1 did not record Gemini's finish reason
+either, so they are left unexplained until a v2 run. **Scope:** the execution-state counts stand for
+every model (Opus 5.5 answered the state on 240 of 240); the cause, action and schema readings, and
+any full-task consistency, are provisional for the Claude models until the v2 reruns.
 
-**Another difference in configuration.** Opus 5 was called without extended reasoning; Opus 5.5
-cannot be called without it. The "model" half of Opus 5.5's gain over Opus 5 therefore includes
-reasoning being on, and the refusal of a forced call is consistent with that: forcing a tool is not
-offered alongside extended reasoning.
+**Another difference in configuration.** Opus 5 was called without extended reasoning; Opus 5.5's
+release page says it is no longer available with reasoning switched off, and every v2 response from
+it carries a reasoning block that was not requested. The part of its gain not explained by the call
+mode is therefore a system-level difference between two supported configurations, not a measure of
+the model alone. Why Opus 5.5 refuses a forced call is not known.
 
 **Time the sampling alone costs.** On the 30 visible twins, the first event at which the rules can
 call the run anomalous came 5.5 to 10.0 minutes after the fault began (median 7.5), at one event
