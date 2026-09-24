@@ -150,3 +150,8 @@ reported as "stopped at budget, incomplete" and no target is read from the items
   spend (six items) sits in `results/core_v2_smoke/` and is outside the cap accounting. Pipeline
   checks passed on all six: rules block in the request, `max_tokens` 8192 recorded, first turn equal
   to the item text, complete records, no reminders. Smoke answers are not scored or read.
+- Pro full run (2026-09-24): after 2 items, requests failed with HTTP 429, quota metric
+  `generate_requests_per_model_per_day` (limit 250) for `gemini-3.1-pro`. Stopped. Two items that
+  failed after three attempts, plus one retry, are kept in `V1S.auto.quota_failed/` for the
+  end-to-end ledger and will be rerun when the quota resets; the 2 completed items stand. Opus 5.5's
+  run completed (80 of 80, US$5.07).
