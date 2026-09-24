@@ -358,17 +358,23 @@ called.* Borrowed from agent-evaluation practice: report how often an item is ri
 | GPT-6 Astra | 12 · 14 · 14 of 30 | 10 | 18 | 30 of 30 | 10 of 30 |
 | Claude Opus 5.5 | 30 · 30 · 30 of 30 | 30 | 30 | 30 of 30 | 30 of 30 |
 
-Items answered in all three runs only (Opus 5's forced third run answered 73 of 80). **Per-run
+Items answered in all three runs only (Opus 5's forced third run answered 73 of 80), so forced
+Opus 5's per-run counts here (18 · 19 · 19 of 26) are on a common subset and differ from the 20 · 23 ·
+19 in the main table, which counts every item each run answered. **Per-run
 counts overstate reliability.** Forced Opus 5 caught 20 visible faults at least once but only 16 in
 every run; Astra 18 and 10. A fault caught in one run and dropped in the next is a fault a monitor
-catches only sometimes. Only Opus 5.5 was right on every item in every run.
+catches only sometimes. Under runner v1 only Opus 5.5 was right on every item in every run; under
+runner v2 its hidden abstentions were 30 · 30 · 28 (see the v2 reading below).
 
 **Cited evidence is grounded.** Across every Core answer, 641 evidence entries name a sensor that
 was removed from that item, and all 641 say it is absent; in a manual check of the 20 that carry a
-number, every number belongs to a sensor that was installed. No model invented a reading. The
-failure is not fabricated evidence: the models see the gap and describe it, then rule anyway.
+number, every number belongs to a sensor that was installed. This check found no invented reading; it
+covers the 641 removed-sensor entries and the 20 numbers among them, not every numeric claim in
+every answer. Within that scope, the failure is not fabricated evidence: the models see the gap and
+describe it, then rule anyway.
 
-**Per-event errors compound over a run.** A run delivers 58 events. If a monitor gave a false
+**Per-event errors compound over a run.** A run delivers 58 events. As an illustration, assuming
+events are independent and share one error rate (not a LiveLab measurement): if a monitor gave a false
 "normal" on 1% of events, at least one would occur in 44% of runs; at 0.1%, in 6%. Product
 guardrails are therefore set per run, not per event.
 
