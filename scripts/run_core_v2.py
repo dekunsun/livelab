@@ -56,6 +56,8 @@ async def main(argv=None):
     ap.add_argument("--tool-choice", choices=["forced", "auto"], default="forced")
     ap.add_argument("--cap", type=float, default=5.0, help="stop once this model's v2 spend passes this many USD")
     ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--rep", type=int, default=0, help="repetition: N>0 saves to <arm>.repN")
+    ap.add_argument("--max-tokens", type=int, default=8192, help="Anthropic output cap (v1 used 1,024)")
     args = ap.parse_args(argv)
     out = Path(args.out)
     model = MODELS[args.backend]
@@ -78,7 +80,8 @@ async def main(argv=None):
 
     for it in items:
         for arm in args.arm:
-            dirname = arm + (".auto" if args.tool_choice == "auto" else "") + (".noremedy" if args.remedy == "none" else "")
+            dirname = (arm + (f".rep{args.rep}" if args.rep else "") + (".auto" if args.tool_choice == "auto" else "")
+                       + (".noremedy" if args.remedy == "none" else ""))
             dest = out / model / dirname / f"{it['item_id']}.json"
             if dest.exists():
                 continue
@@ -92,7 +95,7 @@ async def main(argv=None):
                 try:
                     if model in PROVIDER:
                         rec = await rest_item(provider, model, instruction, tools, required, text, post=_post,
-                                              headers=headers, remedy=args.remedy,
+                                              headers=headers, remedy=args.remedy, max_tokens=args.max_tokens,
                                               tool_choice="auto" if args.tool_choice == "auto" else None)
                     else:
                         rec = await live_item(connect, model, instruction, tools, required, text, remedy=args.remedy,
@@ -112,7 +115,8 @@ async def main(argv=None):
                 rec = {"runner": RUNNER_VERSION, "calls": [], "outcome": "transport_error",
                        "submission": {"status": "none"}, "collection": {"status": "transport_error"}}
             rec.update({"model": model, "arm": arm, "item_id": it["item_id"], "role": it["role"], "truth": it["truth"],
-                        "remedy": args.remedy, "tool_choice": args.tool_choice, "evidence": evidence_of(it),
+                        "remedy": args.remedy, "tool_choice": args.tool_choice, "max_tokens": args.max_tokens,
+                        "evidence": evidence_of(it),
                         "attempts": attempts})
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(json.dumps(rec, indent=1, ensure_ascii=False))
