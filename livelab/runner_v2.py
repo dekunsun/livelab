@@ -362,6 +362,6 @@ def _first_text(provider, body):
     if provider == "gemini":
         return body["contents"][0]["parts"][-1]["text"]
     turns = body.get("messages") or body.get("input") or [{}]
-    first = turns[1] if provider == "openai" else turns[0]
+    first = turns[1] if provider in ("openai", "openrouter") else turns[0]
     content = first.get("content")
     return content if isinstance(content, str) else (content or [{}])[-1].get("text")

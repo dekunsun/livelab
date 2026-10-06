@@ -22,6 +22,7 @@ ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"   # OpenAI chat shape, open-weight models
 MAX_TOKENS = 1024
 TIMEOUT_S = 120
 # Models whose API dropped forced tool calls: tool_choice "tool" and "any" are refused
@@ -119,7 +120,7 @@ def build_request(provider, model, instruction, tools, messages, force_tool=None
         }
         body["tool_choice"] = ({"type": "function", "name": force_tool} if force_tool
                                else "required")
-    elif provider == "openai":
+    elif provider in ("openai", "openrouter"):
         body = {
             "model": model,
             "messages": [{"role": "system", "content": instruction}] + messages,
@@ -128,7 +129,11 @@ def build_request(provider, model, instruction, tools, messages, force_tool=None
                                     "parameters": schema_of(t)}} for t in tools],
         }
         body["tool_choice"] = ({"type": "function", "function": {"name": force_tool}} if force_tool
-                               else "required")
+                               else "auto" if tool_choice == "auto" else "required")
+        if provider == "openrouter":
+            # Route only to endpoints that honour every parameter sent (tools, tool_choice); the
+            # endpoint that served each answer is in the saved response.
+            body["provider"] = {"require_parameters": True}
     elif provider == "gemini":
         # Unforced, like the Live runs it is compared with: the instruction asks for the call and the
         # asker reminds up to twice, as run_single_turn does for Live (docs/core_gemini_preregistration.md).
@@ -152,7 +157,7 @@ def url_for(provider, model=None):
     if provider == "gemini":
         return GEMINI_URL.format(model=model)
     return {"anthropic": ANTHROPIC_URL, "openai": OPENAI_URL,
-            "openai_responses": OPENAI_RESPONSES_URL}[provider]
+            "openai_responses": OPENAI_RESPONSES_URL, "openrouter": OPENROUTER_URL}[provider]
 
 
 def _headers(provider, key):

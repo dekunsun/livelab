@@ -22,7 +22,7 @@ from scripts.run_core import PRICE  # noqa: E402
 from scripts.run_probes import MODELS, PROVIDER, real_connect  # noqa: E402
 
 OUT = ROOT / "results/core_v2"
-KEYS = {"anthropic": "ANTHROPIC_API_KEY", "gemini": "GEMINI_API_KEY"}
+KEYS = {"anthropic": "ANTHROPIC_API_KEY", "gemini": "GEMINI_API_KEY", "openrouter": "OPENROUTER_API_KEY"}
 
 
 def evidence_of(item):

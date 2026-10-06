@@ -28,7 +28,9 @@ OUT = ROOT / "results/core"
 # Astra's output price inferred from the cross-model study's billed spend, US$5.46 for 378,014 in and 33,571 out.
 PRICE = {"claude-opus-5": (5.0, 25.0), "claude-opus-5-5": (4.0, 20.0), "gpt-6-astra": (10.0, 50.0),
          # Gemini paid tier, read from the vendor's pricing page (2026-09): output includes thinking
-         "gemini-3.8-flash": (0.75, 3.75), "gemini-3.1-pro-preview": (2.0, 12.0)}
+         "gemini-3.8-flash": (0.75, 3.75), "gemini-3.1-pro-preview": (2.0, 12.0),
+         # OpenRouter's listed price (2026-10-05); output includes reasoning tokens
+         "moonshotai/kimi-k3": (0.95, 14.0)}
 
 
 def spent(model):
