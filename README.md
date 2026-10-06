@@ -116,6 +116,10 @@ models per event:
   20 of 20 determinable causes and Pro to 20 of 20 undeterminable ones and from 20 `continue` to 0,
   with no state regression. So those cause and action failures were mostly a gap in the task, not a
   model limit; V1S is a candidate configuration pending repeated runs and the private hold-out.
+  Run later on GLM 5.3 Flash (open weights) and GPT-6 Astra (stopped at budget, descriptive only),
+  V1S also moved the state: GLM abstained on 28 hidden twins instead of 11 and kept 25 visible
+  faults instead of 12, Astra kept 30 instead of 14
+  ([reading](docs/results/core_leaderboard.md#reading-v1s-on-an-open-weight-model-glm-53-flash-and-on-gpt-6-astra)).
 
 So the system should state what cannot be verified **and keep its own anomaly rules running on
 what can**, so that a finding the evidence supports is never dropped because another part of the

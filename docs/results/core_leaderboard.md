@@ -590,3 +590,57 @@ perceived-but-ignored) are unaffected: V1S adds nothing about the state, and the
 stand. The cause and action results under V1 are reported as the behaviour of a request that did not
 state the scoring rules, not as model limits. For qualification, the task a model is scored on should
 state the rules it is scored by; V1S is the default task statement for Core qualification runs from 2026-09-24 (owner decision).
+
+*Update, 2026-10-06:* the sentence that V1S leaves the state unaffected held for Opus 5.5 and Pro,
+whose state rows were already at or near the ceiling under V1. It does not hold for the next two
+models run (below): under V1S, GLM 5.3 Flash abstained on 28 hidden twins instead of 11 and kept 25
+visible faults instead of 12, and Astra kept 30 visible faults instead of 14. For those models the
+V1 state counts are also partly a result of the unstated rules.
+
+## Reading: V1S on an open-weight model (GLM 5.3 Flash) and on GPT-6 Astra
+
+*Written after the results were known* ([GLM registration](../core_v2_glm_preregistration.md),
+[Astra registration](../core_v2_astra_preregistration.md)). One run per arm, all 80 public items,
+runner v2. GLM 5.3 Flash through OpenRouter, pinned to Z.AI (every response came from Z.AI),
+unforced, US$0.45. Astra on the OpenAI Responses endpoint with a forced call; **the US$18 cap stopped
+it after 155 of 160 items**, so by its registration no prediction is read and its counts are
+descriptive. Its missing items are full-sensor items (two in V1, three in V1S); the twin and
+undeterminable rows are complete.
+
+| Fixed denominators | GLM V1 | GLM V1S | Astra V1 | Astra V1S |
+| --- | --- | --- | --- | --- |
+| Determinable cause right (of 20) | 2 | 17 | 1 (2 not run) | 17 (3 not run) |
+| Undeterminable cause `undetermined` (of 20) | 5 (2 named a cause) | 17 | 11 | 20 |
+| `continue` on non-NORMAL items (of 70) | 35 | 3 | 0 (2 not run) | 0 (3 not run) |
+| Action in the allowed set, non-NORMAL (of 70) | 34 | 67 | 68 | 67 |
+| Said UNKNOWN or ANOMALOUS, then `continue` | 8 | 0 | 0 | 0 |
+| Normal controls, state and action right (of 10) | 10 | 10 | 10 | 10 |
+| Hidden abstains (of 30) | 11 | 28 | 30 | 30 |
+| Visible kept (of 30) | 12 | 25 | 14 | 30 |
+| Full-sensor fault detected (of 10) | 4 | 9 | 8 (2 not run) | 7 (3 not run) |
+| Valid submission, no reminder (of 80) | 79 | 80 | 78 (2 not run) | 77 (3 not run) |
+
+**GLM, against the registration:**
+
+| # | Prediction | Result | Held |
+| --- | --- | --- | --- |
+| Pg1 | V1S does not regress the state: hidden and visible each within 2 of V1 | not regressed, but both rose far beyond 2 (11 → 28, 12 → 25) | **no** as worded |
+| Pg2 | Cause rows improve by at least 3 each where V1 is below 18 | determinable 2 → 17, undeterminable 5 → 17 | yes |
+| Pg3 | `continue` on non-NORMAL at most 2 of 70 | 3 | **no** |
+| Pg4 | Valid submissions without a reminder at least 72 of 80 | 80 | yes |
+
+**Reading, as fixed in advance:** the registered reading for "stating the rules moved this open
+model in the same direction" needs Pg2 and Pg3; Pg3 missed by one item, so that reading is not
+claimed. Descriptively, `continue` fell from 35 to 3 and every cause row rose by 12 or more. Pg1 did
+not anticipate an improvement: the state moved, which the registration treated as outside V1S.
+Reported as found, one run.
+
+**What the two runs add.**
+- **Stating the rules helped a smaller open model and a third vendor's model**, not only the two
+  frontier models first tested. A clearer contract can help any model, so this does not separate
+  capability from specification. That needs a fixed contract on unseen items (the private hold-out).
+- **V1S also moved the state for both.** Astra's V1 answers on the visible faults it dropped said
+  that no reference established whether the pressure rise was acceptable; the fault library in V1S
+  says which readings each fault moves. Which part of V1S moved the state was not isolated.
+- **Under V1S GLM still misses the gate** on visible faults (25 of 30, the gate needs 28) and on
+  `continue` (3 of 70, the gate needs 0), so not every failure was the task. Astra's V1S counts cannot be read against the gate: the run is incomplete.

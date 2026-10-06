@@ -75,4 +75,12 @@ study's reading rule, not significance).
 
 ## Deviations log
 
-(none yet)
+- None. All 160 items ran; every response came from Z.AI; spend US$0.45.
+
+## Result
+
+Run 2026-10-05/06; [reading](results/core_leaderboard.md#reading-v1s-on-an-open-weight-model-glm-53-flash-and-on-gpt-6-astra).
+Pg2 and Pg4 held. Pg3 missed by one (`continue` 3 of 70 against at most 2). Pg1 failed as worded:
+the state did not regress but rose well beyond 2 items (hidden 11 → 28, visible 12 → 25), which the
+registration had not anticipated. The registered "same direction" reading needs Pg2 and Pg3, so it
+is not claimed.
