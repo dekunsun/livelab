@@ -80,4 +80,23 @@ One run per arm, so no pass^3 and no qualification. Differences under 3 items ar
 
 ## Deviations log
 
-(none yet)
+- 2026-10-06: **stopped at budget, incomplete.** The cap stopped the run at US$18.04 after 155 of 160
+  items (about US$0.12 a call, above the US$0.08–0.09 the estimate assumed). Not run: V1
+  `core_full_09`, `core_full_10`; V1S `core_full_08`, `core_full_09`, `core_full_10`. Every record
+  written is a valid submission. By the budget rule above, no prediction is read from this run.
+  The 60 twin items and the 20 undeterminable items are complete in both arms; the missing
+  full-sensor items fall in the determinable, non-NORMAL, full-detection and submission rows.
+  Descriptive counts only (`scripts/score_core_rules.py --model gpt-6-astra --runs V1 V1S`):
+
+  | Row | V1 | V1S |
+  | --- | --- | --- |
+  | Hidden abstains, of 30 | 30 | 30 |
+  | Visible faults kept, of 30 | 14 | 30 |
+  | Undeterminable: `undetermined`, of 20 | 11 | 20 |
+  | Undeterminable: named a cause, of 20 | 0 | 0 |
+  | Determinable: cause right, of 20 (items run) | 1 (18) | 17 (17) |
+  | `continue` on non-NORMAL, of 70 (items run) | 0 (68) | 0 (67) |
+  | Normal controls right, of 10 | 10 | 10 |
+
+  Finishing the five items needs about US$0.60 beyond the cap and the owner's approval; if it is
+  run, it is logged here as a second deviation before any prediction is read.
