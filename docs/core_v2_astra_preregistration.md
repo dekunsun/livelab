@@ -104,3 +104,11 @@ One run per arm, so no pass^3 and no qualification. Differences under 3 items ar
   rerun). The descriptive counts above had been seen. The five items are the same fixed full-sensor
   items, with the same settings and runner; nothing else is rerun. Predictions are read on the
   completed 160 items.
+
+## Result
+
+Completed 2026-10-06 (160 items, US$18.64);
+[reading](results/core_leaderboard.md#reading-v1s-on-an-open-weight-model-glm-53-flash-and-on-gpt-6-astra).
+Pa1, Pa3, Pa4 and Pa5 held. Pa2 failed: visible faults kept rose from 14 to 30 of 30 under V1S, so by
+the registered reading the rules also changed the state behaviour; reported as found, one run, not a
+mechanism. Under V1S Astra met every row on the public set in one run, with a forced call.
