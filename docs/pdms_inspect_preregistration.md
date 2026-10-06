@@ -75,4 +75,10 @@ One run per arm, one model, 40 items: a screening test, not a product claim.
 
 ## Deviations log
 
-(none yet)
+- None. One C1I request (flip00_nor) met an HTTP 503 and was retried by the runner's transport
+  retry before any record was written; the attempt is kept in the record.
+
+## Result
+
+Run 2026-10-05; [results](results/pdms_inspect_results.md). Pi1, Pi3 and Pi4 held; Pi2 did not
+(+1 item). By the reading rule: no evidence that magnification helps on these photographs.
