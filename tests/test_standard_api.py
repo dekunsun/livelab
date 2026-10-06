@@ -242,10 +242,14 @@ def test_gemini_request_is_unforced_and_carries_the_schema():
 def test_openrouter_uses_the_openai_chat_shape_and_requires_parameter_support():
     from livelab.standard_api import build_request, url_for
     tool = {"name": "report_assessment", "description": "d", "parameters": {"type": "object", "properties": {}}}
-    body = build_request("openrouter", "moonshotai/kimi-k3", "inst", [tool], [{"role": "user", "content": "q"}],
+    body = build_request("openrouter", "z-ai/glm-5.3-flash", "inst", [tool], [{"role": "user", "content": "q"}],
                          tool_choice="auto")
     assert body["messages"][0] == {"role": "system", "content": "inst"}
-    assert body["tool_choice"] == "auto" and body["provider"] == {"require_parameters": True}
+    assert body["tool_choice"] == "auto"
+    assert body["provider"] == {"order": ["z-ai"], "allow_fallbacks": False, "require_parameters": True}
+    import pytest
+    with pytest.raises(ValueError):                      # an unpinned OpenRouter model is refused
+        build_request("openrouter", "moonshotai/kimi-k3", "inst", [tool], [])
     assert url_for("openrouter").startswith("https://openrouter.ai/api/v1/")
     forced = build_request("openai", "gpt-5.6-sol", "inst", [tool], [])
     assert forced["tool_choice"] == "required" and "provider" not in forced

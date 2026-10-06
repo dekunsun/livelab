@@ -69,4 +69,6 @@ study's reading rule, not significance).
 
 ## Deviations log
 
-(none yet)
+- 2026-10-05: not run. A three-item smoke (unscored) showed OpenRouter sending one item's requests
+  to up to three different hosts. The owner then chose GLM 5.3 Flash instead, on a single pinned host
+  ([core_v2_glm_preregistration.md](core_v2_glm_preregistration.md)). No scored Kimi K3 call was made.

@@ -30,7 +30,7 @@ PRICE = {"claude-opus-5": (5.0, 25.0), "claude-opus-5-5": (4.0, 20.0), "gpt-6-as
          # Gemini paid tier, read from the vendor's pricing page (2026-09): output includes thinking
          "gemini-3.8-flash": (0.75, 3.75), "gemini-3.1-pro-preview": (2.0, 12.0),
          # OpenRouter's listed price (2026-10-05); output includes reasoning tokens
-         "moonshotai/kimi-k3": (0.95, 14.0)}
+         "moonshotai/kimi-k3": (0.95, 14.0), "z-ai/glm-5.3-flash": (0.15, 0.5)}
 
 
 def spent(model):

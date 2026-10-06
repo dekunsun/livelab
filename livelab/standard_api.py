@@ -23,6 +23,9 @@ ANTHROPIC_VERSION = "2023-06-01"
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"   # OpenAI chat shape, open-weight models
+# OpenRouter spreads one model over many hosts with different quantization; a single item once went to
+# three hosts in three requests. Every OpenRouter model is pinned to one host, with no fallback.
+OPENROUTER_PIN = {"z-ai/glm-5.3-flash": "z-ai"}            # Z.AI, the model's maker (fp8)
 MAX_TOKENS = 1024
 TIMEOUT_S = 120
 # Models whose API dropped forced tool calls: tool_choice "tool" and "any" are refused
@@ -131,9 +134,12 @@ def build_request(provider, model, instruction, tools, messages, force_tool=None
         body["tool_choice"] = ({"type": "function", "function": {"name": force_tool}} if force_tool
                                else "auto" if tool_choice == "auto" else "required")
         if provider == "openrouter":
-            # Route only to endpoints that honour every parameter sent (tools, tool_choice); the
-            # endpoint that served each answer is in the saved response.
-            body["provider"] = {"require_parameters": True}
+            # One host, no fallback, and only if it honours every parameter sent (tools,
+            # tool_choice); the host that served each answer is in the saved response.
+            if model not in OPENROUTER_PIN:
+                raise ValueError(f"pin {model} to one OpenRouter host in OPENROUTER_PIN first")
+            body["provider"] = {"order": [OPENROUTER_PIN[model]], "allow_fallbacks": False,
+                                "require_parameters": True}
     elif provider == "gemini":
         # Unforced, like the Live runs it is compared with: the instruction asks for the call and the
         # asker reminds up to twice, as run_single_turn does for Live (docs/core_gemini_preregistration.md).
