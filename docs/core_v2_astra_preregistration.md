@@ -100,3 +100,7 @@ One run per arm, so no pass^3 and no qualification. Differences under 3 items ar
 
   Finishing the five items needs about US$0.60 beyond the cap and the owner's approval; if it is
   run, it is logged here as a second deviation before any prediction is read.
+- 2026-10-06: **cap raised to US$19.50 to finish the five items** (owner approval, logged before the
+  rerun). The descriptive counts above had been seen. The five items are the same fixed full-sensor
+  items, with the same settings and runner; nothing else is rerun. Predictions are read on the
+  completed 160 items.
