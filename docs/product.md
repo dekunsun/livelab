@@ -85,19 +85,20 @@ fine", "all normal" or "no anomaly". A test checks every template and every mode
 **North star:** faults caught per 100 runs, within an alert budget, with zero unsupported
 "normal".
 
-The metrics follow two decisions: **is there a fault** (recall, false positives, precision) and
-**is the evidence enough, or should the case go to a human** (escalation recall, unnecessary
-escalation). False reassurance is a miss on the second decision.
+The metrics follow two decisions, each with two errors, and lower is better for all four: **is
+there a fault** (missed faults, false positives; precision from reviewer feedback) and **is the
+evidence enough, or should the case go to a human** (missed escalations, unnecessary escalations).
+False reassurance is a missed escalation.
 
 | Metric | Governance term | Definition | Starting target |
 | --- | --- | --- | --- |
-| Unsupported NORMAL (guardrail) | False reassurance: a case that should have gone to a human was auto-cleared | NORMAL shown while a required check cannot be verified or a rule anomaly is open | 0 per run; one occurrence stops the rollout stage |
+| Unsupported NORMAL (guardrail) | False reassurance, a missed escalation: a case that should have gone to a human was auto-cleared | NORMAL shown while a required check cannot be verified or a rule anomaly is open | 0 per run; one occurrence stops the rollout stage |
 | False NORMAL with a real fault | The same, letting a real problem through | The above, with a fault confirmed afterwards | 0 |
-| Miss rate | 1 − recall | Confirmed faults on verifiable conditions with no alert | ≤ 10% |
+| Miss rate | Missed faults (1 − recall) | Confirmed faults on verifiable conditions with no alert | ≤ 10% |
 | Usefulness rate | Precision, as judged by the people reviewing | Alerts marked useful ÷ alerts marked useful or wrong | Read against the alert budget |
-| False alerts per user per week | False positives (over-enforcement), as reviewer load | Alerts marked wrong | Within the agreed budget |
-| Escalation recall | Escalation recall | Share of cases with insufficient evidence answered "cannot verify" | ≥ 28/30 in the qualification gate |
-| Unnecessary escalation | Over-escalation, as reviewer load | "Cannot verify" where the evidence was enough | ≤ 1/20 in the qualification gate |
+| False alerts per user per week | False positives (wrongful enforcement), as reviewer load | Alerts marked wrong | Within the agreed budget |
+| Missed escalation | Missed escalation | Cases with insufficient evidence where the model gave a verdict instead of "cannot verify" | ≤ 2/30 in the qualification gate |
+| Unnecessary escalation | Unnecessary escalation, as reviewer load | "Cannot verify" where the evidence was enough | ≤ 1/20 in the qualification gate |
 | Time from fault to known | Time to detection and action | Fault → observable → detected → delivered → acknowledged, each measured | Within each fault's damage window |
 | Model contribution | Automation lift over rules alone | Do researchers understand and act better with the model's text than with rules alone? | Decides whether the model stays |
 | Adoption and retention | Tool adoption | Share of eligible runs monitored; owners still using it after four weeks | Tracked from the first partner |
@@ -223,17 +224,17 @@ row but one missing submission; GLM 5.3 Flash fell short on visible faults (25/3
 
 **北极星指标：** 每 100 次运行在告警预算内抓到的故障数，且没有一次无依据的“正常”。
 
-指标围绕两个判断：**有没有故障**（召回率、误伤率、精准率），以及**证据够不够、要不要转人工**（转人工召回率、不必要转人工率）。虚假安慰是第二个判断的失败。
+指标围绕两个判断，每个判断有两类错误，四类错误都是越低越好：**有没有故障**（漏报、误伤；精准率以审核人的反馈衡量），以及**证据够不够、该不该送人工审核**（漏送审、过度送审）。虚假安慰就是漏送审。
 
 | 指标 | 治理中的说法 | 定义 | 起始目标 |
 | --- | --- | --- | --- |
-| 无依据的 NORMAL（护栏） | 虚假安慰：应转人工的情况被自动放行 | 某项必需检查无法验证，或已有规则异常未解除时，却显示 NORMAL | 每次运行为 0；出现一次即停止当前上线阶段 |
+| 无依据的 NORMAL（护栏） | 虚假安慰，即漏送审：本该送审的情况被自动放行 | 某项必需检查无法验证，或已有规则异常未解除时，却显示 NORMAL | 每次运行为 0；出现一次即停止当前上线阶段 |
 | 伴随实际故障的错误 NORMAL | 同上，且放过了真实问题 | 上述情况下，事后确认存在实际故障 | 0 |
-| 漏报率 | 1 − 召回率 | 可验证条件上已确认、却没有告警的故障占比 | ≤ 10% |
+| 漏报率 | 漏报（1 − 召回率） | 可验证条件上已确认、却没有告警的故障占比 | ≤ 10% |
 | 有用率 | 精准率（以审核人的反馈衡量） | 标为有用的告警 ÷ 标为有用或错误的告警 | 对照告警预算解读 |
-| 每位用户每周的误报 | 误伤率，体现为审核负担 | 被标为错误的告警 | 在约定预算内 |
-| 转人工召回率 | 转人工召回率 | 证据不足的情况中回答“无法验证”的比例 | 资格门槛中 ≥ 28/30 |
-| 不必要转人工率 | 过度升级，体现为审核负担 | 证据其实足够，却回答“无法验证” | 资格门槛中 ≤ 1/20 |
+| 每位用户每周的误报 | 误伤，体现为审核负担 | 被标为错误的告警 | 在约定预算内 |
+| 漏送审率 | 漏送审 | 证据不足、本该送审的情况中，没有回答“无法验证”而直接给出结论的比例 | 资格门槛中 ≤ 2/30 |
+| 过度送审率 | 过度送审，体现为审核负担 | 证据其实足够，却回答“无法验证” | 资格门槛中 ≤ 1/20 |
 | 从故障到知道的时间 | 发现与处置时效 | 故障 → 可观测 → 被识别 → 已送达 → 已确认，分段测量 | 在该故障的损害时间窗内 |
 | 模型贡献 | 相对纯规则的自动化增益 | 有模型解释时，研究员是否比只有规则时理解得更好、行动得更对 | 决定模型是否留在产品里 |
 | 采用率与留存 | 工具采用率 | 符合条件的运行中开启监控的比例；四周后仍在使用的运行负责人比例 | 从第一个合作方开始跟踪 |

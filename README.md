@@ -12,20 +12,20 @@ instead of giving a confident verdict. It then designs the product around what i
 
 - **The problem.** The costly failure of an AI monitor is not only a missed alarm. It is false
   reassurance: reporting "all normal" without the evidence to know, so nobody checks.
-- **Two decisions, two sets of metrics.** Is there a fault: recall, false-positive rate and
-  precision (on real plant data, fault-free runs were flagged anomalous 8% to 97% of the time,
-  depending on the model). Is the evidence enough, or should the case go to a human: escalation
-  recall and unnecessary-escalation rate. False reassurance is a miss on the second decision: a
-  case that should have gone to a human was auto-cleared as "normal".
-- **What I found: from almost never escalating to meeting both metrics.** The starting point:
-  under the original task wording of the early studies, escalation recall was near zero (models
-  said they could not tell in 7 of 2,134 judgments where nothing else was supported), and three of
-  four models said they could not verify something, then gave a verdict anyway. The trap: telling
-  models through the prompt what could not be verified raised escalation recall to 14/14 but cut
-  fault recall to 12–23 of 30, so one metric rose as the other fell. After the fixes (a newer model
-  generation, a corrected test runner, scoring rules stated in the task), Claude Opus 5.5, Gemini
-  3.1 Pro and GPT-6 Astra each reached 30/30 on both escalation recall and fault recall on the
-  80-item benchmark (one run each).
+- **Two decisions, two pairs of errors.** Is there a fault: missed faults and false positives
+  (on real plant data, fault-free runs were flagged anomalous 8% to 97% of the time, depending on
+  the model), with precision measured from reviewer feedback. Is the evidence enough, or should
+  the case go to a human: missed escalations and unnecessary escalations. False reassurance is a
+  missed escalation: a case that should have gone to a human was auto-cleared as "normal".
+- **What I found: from almost never escalating to no missed escalations and no missed faults.**
+  The starting point: under the original task wording of the early studies, 99.7% of escalations
+  were missed (in 2,127 of 2,134 judgments where only "cannot tell" was supported, models gave a
+  verdict anyway), and three of four models said they could not verify something, then gave a
+  verdict anyway. The trap: telling models through the prompt what could not be verified cut
+  missed escalations to 0 of 14 but raised missed faults to 7–18 of 30, so one error fell as the
+  other rose. After the fixes (a newer model generation, a corrected test runner, scoring rules
+  stated in the task), Claude Opus 5.5, Gemini 3.1 Pro and GPT-6 Astra each had no missed
+  escalations and no missed faults (0 of 30 each) on the 80-item benchmark (one run each).
 - **Root causes before blame.** Claude's apparent missing-field failures came from the test
   runner's output cap, and most cause and action errors from scoring rules the task never stated.
   Once the task stated them, four model configurations went from 24–71 to 72–80 of 80 items fully
@@ -49,8 +49,8 @@ Researchers: start at [The finding](#the-finding). Product readers: the [V1S res
 **LiveLab 研究的是：一个实时监控实验室实验（如管式炉、精馏装置）的 AI，能不能判断手上的证据是否足以判定运行“正常”还是“异常”、是否足以定下故障原因和下一步操作；证据不够时，能否如实说“无法验证”并转交人工核查，而不是给出确定结论。项目再据此设计产品。**
 
 - **要解决的问题。** AI 监控代价高的失败不只是漏报，还有“虚假安慰”：在没有足够证据时报告“一切正常”，于是没人再去检查。
-- **两个判断，两组指标。** 一是有没有故障：看召回率、误伤率和精准率（在真实装置数据上，无故障运行被判为异常的比例因模型而异，为 8%–97%）。二是证据够不够、要不要转人工：看转人工召回率和不必要转人工率。虚假安慰是第二个判断的失败：本该转人工的情况，被自动判成了“正常”。
-- **发现了什么：从“几乎不转人工”到“两项指标同时达标”。** 起点：在早期研究的原始任务说法下，转人工召回率几乎为零（在只有“判断不了”有依据的 2,134 次判断中，模型只有 7 次这样回答），四个模型中有三个先说“无法验证”，接着照样给出结论。陷阱：只靠提示词告诉模型哪些无法验证，转人工召回率升到 14/14，检出召回率却降到 12–23/30，一个指标上去、另一个掉下来。改进后（换用新一代模型、修好测试运行器、在任务里写明评分规则），在 80 题基准上，Claude Opus 5.5、Gemini 3.1 Pro 和 GPT-6 Astra 的转人工召回率和检出召回率都达到 30/30（各跑一次）。
+- **两个判断，两类错误。** 一是有没有故障：看漏报和误伤（在真实装置数据上，无故障运行被判为异常的比例因模型而异，为 8%–97%），精准率以审核人的反馈衡量。二是证据够不够、该不该送人工审核：看漏送审和过度送审。虚假安慰就是漏送审：本该送审的情况，被自动判成了“正常”。
+- **发现了什么：从“几乎不送审”到“漏送审和漏报同时清零”。** 起点：在早期研究的原始任务说法下，漏送审率达 99.7%（在只有“判断不了”有依据的 2,134 次判断中，2,127 次直接给出了结论），四个模型中有三个先说“无法验证”，接着照样给出结论。陷阱：只靠提示词告诉模型哪些无法验证，漏送审降到 0/14，可见故障的漏报却升到 7–18 个（共 30），一类错误下去、另一类上来。改进后（换用新一代模型、修好测试运行器、在任务里写明评分规则），在 80 题基准上，Claude Opus 5.5、Gemini 3.1 Pro 和 GPT-6 Astra 的漏送审和漏报都是 0/30（各跑一次）。
 - **先找根因，再归责。** Claude 看起来“漏填字段”的失败，其实是测试运行器的输出上限截断了回答；多数原因和动作上的错误，来自任务里从没写明的评分规则。写明规则后，四种模型配置在 80 道题上完全答对的题数，从 24–71 提升到 72–80（每种各跑一次；还没有配置通过“三次运行加保留集”的上线门槛）。写明规则也改变了部分模型的状态判断，这与我事先登记的预测相反。
 - **怎么设计产品。** 正式状态由系统负责，系统的异常规则在每个仍在报数的传感器上持续运行；模型负责解释；只有模型报出的异常，转人工核查。每个模型上线前要过准入门槛，每次更新都要重测。成功指标是：在告警预算内抓到的故障数，且每次运行“无依据的正常”为 0。
 - **怎么做的。** 21 项预注册研究，使用模拟数据和公开的真实装置数据；不成立的预测和我自己的更正，都与结果一起公开。
