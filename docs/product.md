@@ -85,16 +85,23 @@ fine", "all normal" or "no anomaly". A test checks every template and every mode
 **North star:** faults caught per 100 runs, within an alert budget, with zero unsupported
 "normal".
 
-| Metric | Definition | Starting target |
-| --- | --- | --- |
-| Unsupported NORMAL (guardrail) | NORMAL shown while a required check cannot be verified or a rule anomaly is open | 0 per run; one occurrence stops the rollout stage |
-| False NORMAL with a real fault | The above, with a fault confirmed afterwards | 0 |
-| Miss rate | Confirmed faults on verifiable conditions with no alert | ≤ 10% |
-| False alerts per user per week | Alerts marked wrong | Within the agreed budget |
-| Time from fault to known | Fault → observable → detected → delivered → acknowledged, each measured | Within each fault's damage window |
-| Model contribution | Do researchers understand and act better with the model's text than with rules alone? | Decides whether the model stays |
-| Adoption and retention | Share of eligible runs monitored; owners still using it after four weeks | Tracked from the first partner |
-| Cost per monitored hour | Model spend over monitored hours | Reported from the first partner |
+The metrics follow two decisions: **is there a fault** (recall, false positives, precision) and
+**is the evidence enough, or should the case go to a human** (escalation recall, unnecessary
+escalation). False reassurance is a miss on the second decision.
+
+| Metric | Governance term | Definition | Starting target |
+| --- | --- | --- | --- |
+| Unsupported NORMAL (guardrail) | False reassurance: a case that should have gone to a human was auto-cleared | NORMAL shown while a required check cannot be verified or a rule anomaly is open | 0 per run; one occurrence stops the rollout stage |
+| False NORMAL with a real fault | The same, letting a real problem through | The above, with a fault confirmed afterwards | 0 |
+| Miss rate | 1 − recall | Confirmed faults on verifiable conditions with no alert | ≤ 10% |
+| Usefulness rate | Precision, as judged by the people reviewing | Alerts marked useful ÷ alerts marked useful or wrong | Read against the alert budget |
+| False alerts per user per week | False positives (over-enforcement), as reviewer load | Alerts marked wrong | Within the agreed budget |
+| Escalation recall | Escalation recall | Share of cases with insufficient evidence answered "cannot verify" | ≥ 28/30 in the qualification gate |
+| Unnecessary escalation | Over-escalation, as reviewer load | "Cannot verify" where the evidence was enough | ≤ 1/20 in the qualification gate |
+| Time from fault to known | Time to detection and action | Fault → observable → detected → delivered → acknowledged, each measured | Within each fault's damage window |
+| Model contribution | Automation lift over rules alone | Do researchers understand and act better with the model's text than with rules alone? | Decides whether the model stays |
+| Adoption and retention | Tool adoption | Share of eligible runs monitored; owners still using it after four weeks | Tracked from the first partner |
+| Cost per monitored hour | Unit cost | Model spend over monitored hours | Reported from the first partner |
 
 Guardrails are counted per run, not per update: at one update every two minutes, a 1% per-update
 error rate would touch about 44% of two-hour runs.
@@ -216,16 +223,21 @@ row but one missing submission; GLM 5.3 Flash fell short on visible faults (25/3
 
 **北极星指标：** 每 100 次运行在告警预算内抓到的故障数，且没有一次无依据的“正常”。
 
-| 指标 | 定义 | 起始目标 |
-| --- | --- | --- |
-| 无依据的 NORMAL（护栏） | 某项必需检查无法验证，或已有规则异常未解除时，却显示 NORMAL | 每次运行为 0；出现一次即停止当前上线阶段 |
-| 伴随实际故障的错误 NORMAL | 上述情况下，事后确认存在实际故障 | 0 |
-| 漏报率 | 可验证条件上已确认、却没有告警的故障占比 | ≤ 10% |
-| 每位用户每周的误报 | 被标为错误的告警 | 在约定预算内 |
-| 从故障到知道的时间 | 故障 → 可观测 → 被识别 → 已送达 → 已确认，分段测量 | 在该故障的损害时间窗内 |
-| 模型贡献 | 有模型解释时，研究员是否比只有规则时理解得更好、行动得更对 | 决定模型是否留在产品里 |
-| 采用率与留存 | 符合条件的运行中开启监控的比例；四周后仍在使用的运行负责人比例 | 从第一个合作方开始跟踪 |
-| 每监控小时成本 | 模型花费 ÷ 监控小时数 | 从第一个合作方开始报告 |
+指标围绕两个判断：**有没有故障**（召回率、误伤率、精准率），以及**证据够不够、要不要转人工**（转人工召回率、不必要转人工率）。虚假安慰是第二个判断的失败。
+
+| 指标 | 治理中的说法 | 定义 | 起始目标 |
+| --- | --- | --- | --- |
+| 无依据的 NORMAL（护栏） | 虚假安慰：应转人工的情况被自动放行 | 某项必需检查无法验证，或已有规则异常未解除时，却显示 NORMAL | 每次运行为 0；出现一次即停止当前上线阶段 |
+| 伴随实际故障的错误 NORMAL | 同上，且放过了真实问题 | 上述情况下，事后确认存在实际故障 | 0 |
+| 漏报率 | 1 − 召回率 | 可验证条件上已确认、却没有告警的故障占比 | ≤ 10% |
+| 有用率 | 精准率（以审核人的反馈衡量） | 标为有用的告警 ÷ 标为有用或错误的告警 | 对照告警预算解读 |
+| 每位用户每周的误报 | 误伤率，体现为审核负担 | 被标为错误的告警 | 在约定预算内 |
+| 转人工召回率 | 转人工召回率 | 证据不足的情况中回答“无法验证”的比例 | 资格门槛中 ≥ 28/30 |
+| 不必要转人工率 | 过度升级，体现为审核负担 | 证据其实足够，却回答“无法验证” | 资格门槛中 ≤ 1/20 |
+| 从故障到知道的时间 | 发现与处置时效 | 故障 → 可观测 → 被识别 → 已送达 → 已确认，分段测量 | 在该故障的损害时间窗内 |
+| 模型贡献 | 相对纯规则的自动化增益 | 有模型解释时，研究员是否比只有规则时理解得更好、行动得更对 | 决定模型是否留在产品里 |
+| 采用率与留存 | 工具采用率 | 符合条件的运行中开启监控的比例；四周后仍在使用的运行负责人比例 | 从第一个合作方开始跟踪 |
+| 每监控小时成本 | 单位成本 | 模型花费 ÷ 监控小时数 | 从第一个合作方开始报告 |
 
 护栏按每次运行计，不按每次更新计：每两分钟更新一次时，如果每次更新有 1% 出错，约 44% 的两小时运行会至少出现一次。
 
