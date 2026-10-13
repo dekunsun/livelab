@@ -83,7 +83,7 @@ other, so in the product the system's rules own detection and the model explains
 - **Limits.** One simulated instrument, one public plant dataset and one set of lab photographs;
   no live deployment and no user validation yet; the post-fix results are one run per configuration.
 
-Researchers: start at [The finding](#the-finding). Product readers: the [product summary](docs/product.md)
+Researchers: start at [The finding](#the-finding). Product readers: the [product summary](docs/product.md#english)
 (the PRD and the model qualification spec, condensed), the [V1S result](docs/results/core_leaderboard.md#reading-stating-the-tasks-cause-and-action-rules-v1s) and
 [lessons learned](docs/lessons_learned.md).
 

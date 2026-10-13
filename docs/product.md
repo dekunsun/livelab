@@ -1,10 +1,183 @@
 # LiveLab Monitor: product summary
 
+本文是两份工作文档的公开摘要：产品需求文档（PRD）和模型资格规范。它是根据基准结果做的设计，不是已上线的产品。先中文，后英文。
+
 A public summary of two working documents, the product requirements (PRD) and the model
 qualification spec. It is a design built from the benchmark's results, not a deployed product.
-English first, then Chinese.
+Chinese first, then [English](#english).
+
+## 中文
+
+### 一页看完
+
+| 项 | 内容 |
+| --- | --- |
+| 产品 | 实验室长时间运行的 AI 监控：告诉离开的研究员运行是否正常、仪器判断不了什么，只在证据需要时打断 |
+| 最危险的失败 | 虚假安慰（漏送审）：证据不够，却自动报告“一切正常” |
+| 核心设计 | 系统决定正式状态，模型负责解释；证据不够就显示“无法验证”并转人工；只有模型报出的异常也转人工核查 |
+| 衡量方式 | 四类错误都越低越好：漏报 ≤ 10%、误伤在告警预算内、漏送审每次运行为 0、过度送审 ≤ 1/20 |
+| 模型准入 | 按配置在私有保留集上跑三次，过门槛才能上线；每次模型更新都重测 |
+| 现状 | 写明评分规则后，3 个前沿模型配置在公开集上一次运行各行达标；还没有配置正式取得资格；尚未部署、尚无用户验证 |
+
+### 用户与要完成的事
+
+| 用户 | 处境 | v1 给他们什么 |
+| --- | --- | --- |
+| **运行负责人**（主要用户）：启动长时间运行（管式炉生长、一串 HPLC 排队）后离开的研究员 | 中途失败的运行可能几小时后才被发现 | 在手机上就能信得过的状态、状态变化时的理由，以及只在必要时才有的打断 |
+| **设备管理者**（次要用户）：把共享仪器交给下一位用户 | 没有“哪些被盯过”的记录 | 每次运行哪些验证过、哪些没有的记录 |
+| **自动化实验**（后期）：把每个结果交给优化器 | 默认没有人在回路里 | 一个机器可读、带“已验证 / 未验证”标记的状态 |
+
+要完成的事：*“我离开正在运行的实验时，告诉我它是否正常进行，告诉我已装仪器判断不了什么，只在证据需要我处理时才打断我。”*
+
+### 两个判断，四类错误
+
+| 判断 | 错误 | 含义 | 代价 | 产品目标 |
+| --- | --- | --- | --- | --- |
+| 有没有故障 | **漏报** | 有故障却没有报 | 一个样品、一次运行，有时是一台仪器 | ≤ 10% |
+| | **误伤** | 没有故障却报了异常 | 打扰研究员，告警被静音，产品没人用 | 在告警预算内（每位用户每周的误报数） |
+| 证据够不够、该不该送人工审核 | **漏送审**（即虚假安慰） | 证据不够，却自动给出“正常”或“异常”的结论 | 最高：它让人没有理由再去看 | 每次运行为 0（护栏） |
+| | **过度送审** | 证据其实够，却交给人工 | 占用审核产能 | ≤ 1/20 |
+
+打断也有预算：一个遇到小风险就停下来问人的智能体，可能让实验整夜等待批准。
+
+### 评测发现，以及对应的设计
+
+| 发现 | 数据 | 对应的设计 |
+| --- | --- | --- |
+| 模型说“无法验证”，却照样下结论 | 起点：原始任务说法下漏送审 2,127 / 2,134（99.7%）；四个模型中三个在 12 道这类题上全部如此；真实装置数据上三个模型漏送审 27–31 / 31 | 系统计算可观测性，NORMAL 只表示已验证（FR2、FR4） |
+| 只靠提示词，两类错误此消彼长 | 告知“哪些无法验证”后漏送审 0 / 14，可见故障漏报却升到 7–18 / 30（Opus 5、Astra） | 异常规则在每个仍在报数的传感器上持续运行，模型清除不了（FR3、FR4） |
+| 真实数据上误伤很高 | 真实精馏装置的无故障运行被判异常 8%–97%，因模型而异 | 按每个合作方的正常运行重建参考带；告警策略控制误伤（第 1 阶段、FR6） |
+| 先把证据转成文字再交接会丢信息 | 同样 100 张实验室照片，先交给专用视觉模型再交给语言模型：Opus 5 从 57 降到 23，Gemini 从 74 降到 51 | 传原始证据，模型按需取回（FR14） |
+| 多数原因和动作错误来自没写明的规则 | 写明评分规则后，4 种配置完全答对的题数从 24–71 升到 72–80（共 80） | 资格测试的任务写明评分规则；原因和下一步由系统限定（FR11、FR12） |
+| 修好后，前沿模型两类错误同时清零 | Opus 5.5、Gemini 3.1 Pro、GPT-6 Astra 漏送审和漏报都是 0 / 30、误伤 0 / 10；开源 GLM 5.3 Flash 为 2 / 30 和 5 / 30 | 模型按配置过准入门槛，每次更新重测（见“模型资格”） |
+
+### 怎么运作
+
+```mermaid
+flowchart LR
+  A[读数] --> B[每个传感器的数据状态<br/>有效、过期、掉线、未安装]
+  B --> C[可观测性<br/>本阶段哪些检查能验证]
+  C --> D[异常规则<br/>在每个仍在报数的通道上运行]
+  D --> E[正式状态<br/>固定优先级]
+  E --> F[状态卡与告警]
+  E -. 事件 .-> G[模型解释<br/>原因限定在故障库内，<br/>下一步限定在规程内]
+  G -. 解释或模型提示 .-> F
+  A --> H[(运行记录)]
+```
+
+正式状态由系统决定；模型异步负责解释，状态从不等模型。
+
+| 规则确认的异常 | 必需证据 | 正式状态 |
+| --- | --- | --- |
+| 有 | 完整或不完整 | **ANOMALOUS**，并继续列出无法验证的条件 |
+| 无 | 不完整 | **CANNOT VERIFY**（转人工核查） |
+| 无 | 完整，且每项必需检查都通过 | **NORMAL**，仅限已定义的检查 |
+
+传感器缺失永远不会压掉已确认的异常。模型永远不能清除已确认的异常，也不能把 CANNOT VERIFY 变成 NORMAL。只有模型报出、规则尚未确认的异常，单列一行“模型提示，待核查”，并请运行负责人核查；正式状态不变。
+
+### 需求（每条一句）
+
+| 编号 | 需求 |
+| --- | --- |
+| FR1 | 从硬件层读取仪器清单；阶段计划写明每个阶段需要哪些条件、各由哪个传感器验证 |
+| FR2 | 系统计算每个传感器的数据状态，以及每项必需条件是已验证、无法验证还是出现偏离 |
+| FR3 | 异常规则在每个可用通道上运行，不依赖模型 |
+| FR4 | 固定的状态优先级（见上表） |
+| FR5 | 模型异步解释；回答缺失、格式错误或超时，都不能设定状态 |
+| FR6 | 告警策略：变为异常时告警；无法验证每项条件每阶段只通知一次；合并重复；免打扰时段；记录已发出、已送达、已确认 |
+| FR7 | 每个状态都带可核查的依据；缺失的读数记为缺失，不填数值 |
+| FR8 | 对话读取状态，但不设定状态 |
+| FR9 | 运行记录，可回放并复现每个状态 |
+| FR10 | v1 不操作仪器；以后的任何操作，只有仪器回读到状态改变才算完成 |
+| FR11 | 系统在故障库范围内列出吻合证据的原因，模型给的原因必须在其中 |
+| FR12 | 下一步遵循实验室规程；状态不是 NORMAL 时，绝不建议“继续” |
+| FR13 | 回答按格式校验；追问一次，仍不完整就标为“评估不完整” |
+| FR14 | 按需取证据：全部记录存在模型上下文之外；由便宜的规则决定何时调用模型；由模型决定取什么 |
+
+非功能需求：读数到达后 30 秒内显示状态，不论模型是否已回答；仪器数据留在实验室的工作区内；按每监控小时报告模型成本。
+
+**措辞规则。** 状态为 CANNOT VERIFY 时，任何模板或模型写的理由都不得出现“看起来没问题”“一切正常”“没有异常”。有测试检查每个模板和每条模型理由。
+
+### 成功指标
+
+**北极星指标：** 每 100 次运行在告警预算内抓到的故障数，且没有一次无依据的“正常”。
+
+指标围绕两个判断，每个判断有两类错误，四类错误都是越低越好：**有没有故障**（漏报、误伤；精准率以审核人的反馈衡量），以及**证据够不够、该不该送人工审核**（漏送审、过度送审）。虚假安慰就是漏送审。
+
+| 指标 | 治理中的说法 | 定义 | 起始目标 |
+| --- | --- | --- | --- |
+| 无依据的 NORMAL（护栏） | 虚假安慰，即漏送审：本该送审的情况被自动放行 | 某项必需检查无法验证，或已有规则异常未解除时，却显示 NORMAL | 每次运行为 0；出现一次即停止当前上线阶段 |
+| 伴随实际故障的错误 NORMAL | 同上，且放过了真实问题 | 上述情况下，事后确认存在实际故障 | 0 |
+| 漏报率 | 漏报（1 − 召回率） | 可验证条件上已确认、却没有告警的故障占比 | ≤ 10% |
+| 有用率 | 精准率（以审核人的反馈衡量） | 标为有用的告警 ÷ 标为有用或错误的告警 | 对照告警预算解读 |
+| 每位用户每周的误报 | 误伤，体现为审核负担 | 被标为错误的告警 | 在约定预算内 |
+| 漏送审率 | 漏送审 | 证据不足、本该送审的情况中，没有回答“无法验证”而直接给出结论的比例 | 资格门槛中 ≤ 2/30 |
+| 过度送审率 | 过度送审，体现为审核负担 | 证据其实足够，却回答“无法验证” | 资格门槛中 ≤ 1/20 |
+| 从故障到知道的时间 | 发现与处置时效 | 故障 → 可观测 → 被识别 → 已送达 → 已确认，分段测量 | 在该故障的损害时间窗内 |
+| 模型贡献 | 相对纯规则的自动化增益 | 有模型解释时，研究员是否比只有规则时理解得更好、行动得更对 | 决定模型是否留在产品里 |
+| 采用率与留存 | 工具采用率 | 符合条件的运行中开启监控的比例；四周后仍在使用的运行负责人比例 | 从第一个合作方开始跟踪 |
+| 每监控小时成本 | 单位成本 | 模型花费 ÷ 监控小时数 | 从第一个合作方开始报告 |
+
+护栏按每次运行计，不按每次更新计：每两分钟更新一次时，如果每次更新有 1% 出错，约 44% 的两小时运行会至少出现一次。
+
+### 上线阶段、门槛与停止条件
+
+| 阶段 | 做什么 | 进入下一阶段的条件 | 停止或转向，如果 |
+| --- | --- | --- | --- |
+| 0. 发现 | 合作方日志、事故记录、访谈；不上线任何东西 | 仪表可见、分钟级的故障足够常见，且研究员最怕假“正常” | 故障很少、已被联锁抓住，或以摄像头才能看到的为主 |
+| 1. 离线 | 在合作方日志上回放 FR1–FR5、FR9、FR11 | 无依据的正常为 0；漏报率 ≤ 10%；回放中告警策略在预算内；测出模型贡献 | 模型在任何方面都不比规则强：只上线规则和可观测性，模型只写解释 |
+| 2. 模型门槛 | 候选模型按资格规范测试 | 按规定次数和协议达到资格门槛 | 没有模型通过：由系统决定，模型只解释 |
+| 3. 影子模式 | 在 2–3 个合作方运行 4–8 周，只记录不告警 | 第 1 阶段的门槛以比率和区间的形式成立 | 出现任何一次无依据或错误的正常：停下来诊断 |
+| 4. 试点 | 向运行负责人发告警，启用状态卡和反馈 | 漏报率、有用率和从故障到知道的时间保持；四周后仍开着告警 | 运行负责人把它静音：先修预算，再加功能 |
+
+v1 不做：操作仪器、摄像头监控（等第 0 阶段的数据门槛）、连接仪器本身、仪器调度、实验方案规划和闭环优化。
+
+### 模型资格（摘自资格规范）
+
+资格针对的是一个“配置”（模型、调用方式、任务说明、上限），而不只是模型：在不公开的 LiveLab Core 保留集上，用将要上线的配置、按产品协议（最多提醒一次）跑三次。每个新机制都要和一个预算、上限、任务说明都相同的对照组比较。每次模型更新，在到达合作方之前都要重跑门槛。
+
+下表左两列是门槛，右四列是写明评分规则后、在公开集上各跑一次的结果（尚未做三次运行和保留集，所以都不算正式取得资格）。
+
+| 行（固定分母） | 对应的错误 | 门槛 | Claude Opus 5.5 | Gemini 3.1 Pro | GPT-6 Astra | GLM 5.3 Flash |
+| --- | --- | --- | --- | --- | --- | --- |
+| 隐藏孪生题没有弃权（共 30） | 漏送审 | 每次运行都 ≤ 2 | 0 | 0 | 0 | 2 |
+| 可见故障没有保住（共 30） | 漏报 | 每次运行都 ≤ 2 | 0 | 0 | 0 | **5** |
+| 正常运行被判异常（共 10） | 误伤 | 0 | 0 | 0 | 0 | 0 |
+| 不必要的弃权（共 20） | 过度送审 | ≤ 1 | 本次未单列 | 本次未单列 | 本次未单列 | 本次未单列 |
+| 可确定原因点对（共 20） | — | ≥ 18 | 20 | 19 | 20 | **17** |
+| 不可确定原因说“未定”（共 20） | — | ≥ 18 | 20 | 20 | 20 | **17** |
+| 非正常题建议“继续”（共 70） | — | 0 | 0 | 0 | 0 | **3** |
+| 动作在允许范围内（非正常题，共 70） | — | 70 | 70 | 69（1 题未提交） | 70 | **67** |
+| 有效提交（共 80） | — | 全部 | 80 | **79** | 80 | 80 |
+| 完全答对（共 80）：写明规则前 → 后 | — | 只报告，不设门槛 | 65–71 → 80 | 37 → 79 | 52 → 80 | 24 → 72 |
+
+说明：Opus 5.5 写明规则前跑了三次（65、70、71）；Astra 用的是强制调用，其余为非强制调用；GLM 通过 OpenRouter 固定在单一服务商。“真实装置上的无故障运行在告警预算内”这一行，要在合作方的真实装置上才能测。[排行榜](results/core_leaderboard.md)
+
+### 主要风险
+
+| 风险 | 应对 |
+| --- | --- |
+| 研究员并不认为假“正常”是最糟的错误（未检验） | 第 0 阶段直接问；如果漏报更要紧，重调告警预算，FR4 不变 |
+| 用模拟数据校准的规则在真实仪器上误报过多（真实装置数据上无故障运行被判异常 8%–97%） | 第 1 阶段用每个合作方的正常运行重建参考带 |
+| 模型说出证据支撑不了的原因 | FR11 用故障库约束原因；在资格门槛里测量 |
+| “无法验证”的通知本身变成噪声 | 每项条件每阶段只通知一次；从第 4 阶段起关注静音率 |
+| 用户把 NORMAL 当成保证 | 状态卡始终列出验证了什么；只有每项必需条件都验证过才显示 NORMAL |
+| 持续监控的成本高于它节省的时间 | 从第一个合作方开始报告每监控小时成本 |
+
+---
 
 ## English
+
+### On one page
+
+| Item | Content |
+| --- | --- |
+| Product | An AI monitor for long lab runs: tells a researcher who has stepped away whether the run is normal, what the instruments cannot judge, and interrupts only when the evidence needs them |
+| Most dangerous failure | False reassurance (a missed escalation): reporting "all normal" without the evidence to know |
+| Core design | The system sets the official status and the model explains; without enough evidence the status is "cannot verify" and goes to a human; anomalies only the model reports also go to human review |
+| How it is measured | Four errors, lower is better: missed faults ≤ 10%, false positives within the alert budget, zero missed escalations per run, unnecessary escalations ≤ 1/20 |
+| Model admission | Each configuration runs three times on a private hold-out and must pass a gate before launch; re-tested on every model update |
+| Status | With the scoring rules stated, three frontier configurations met every row in one run on the public set; none has formally qualified; not deployed, no user validation yet |
 
 ### The user and the job
 
@@ -17,16 +190,28 @@ English first, then Chinese.
 Job: *"While I am away from a running experiment, tell me whether it is going normally, tell me
 what the installed instruments cannot judge, and interrupt me only when the evidence needs me."*
 
-### Three errors, three costs
+### Two decisions, four errors
 
-| Need | Error | Cost |
-| --- | --- | --- |
-| Not having to watch | Still having to check | Time; nobody uses the product |
-| Not missing real faults | A miss | A sample, a run, sometimes an instrument |
-| Not being falsely reassured | "Normal" when the system cannot see | Highest: it removes the reason to look |
+| Decision | Error | Meaning | Cost | Product target |
+| --- | --- | --- | --- | --- |
+| Is there a fault | **Missed fault** | A fault, but no alert | A sample, a run, sometimes an instrument | ≤ 10% |
+| | **False positive** | No fault, but flagged anomalous | Interrupts the researcher; alerts get muted; nobody uses the product | Within the alert budget (false alerts per user per week) |
+| Is the evidence enough, or should a human review it | **Missed escalation** (false reassurance) | Not enough evidence, but the AI gave a verdict | Highest: it removes the reason to look | 0 per run (guardrail) |
+| | **Unnecessary escalation** | Enough evidence, but sent to a human | Uses reviewer capacity | ≤ 1/20 |
 
 Interruptions also have a budget: an agent that stops to ask about every small risk can leave an
 experiment waiting all night.
+
+### What the evaluation found, and the design response
+
+| Finding | Data | Design response |
+| --- | --- | --- |
+| Models say "cannot verify", then give a verdict anyway | Start: 2,127 of 2,134 escalations missed (99.7%) under the original task wording; three of four models did so on all 12 such items; on real plant data three models missed 27–31 of 31 | The system computes observability; NORMAL means verified (FR2, FR4) |
+| A prompt alone trades one error for the other | Telling models what cannot be verified cut missed escalations to 0 of 14 but raised missed faults to 7–18 of 30 (Opus 5, Astra) | Anomaly rules keep running on every sensor that still reports, and the model cannot clear them (FR3, FR4) |
+| False positives are high on real data | Fault-free runs on a real distillation plant were flagged anomalous 8% to 97% of the time, by model | Rebuild reference bands from each partner's normal runs; the alert policy keeps false positives in budget (stage 1, FR6) |
+| Turning evidence into text before a hand-off loses information | On the same 100 lab photographs, passing a specialist vision model's verdict to a language model took Opus 5 from 57 to 23 and Gemini from 74 to 51 | Pass raw evidence; the model fetches what it needs (FR14) |
+| Most cause and action errors came from unstated rules | Stating the scoring rules took four configurations from 24–71 to 72–80 of 80 fully right | The qualification task states the scoring rules; the system bounds causes and next steps (FR11, FR12) |
+| After the fixes, frontier models cleared both errors | Claude Opus 5.5, Gemini 3.1 Pro and GPT-6 Astra: 0 of 30 missed escalations, 0 of 30 missed faults, 0 of 10 false positives; open-weight GLM 5.3 Flash: 2 of 30 and 5 of 30 | Each configuration passes the launch gate and is re-tested on every update (see Model qualification) |
 
 ### How it works
 
@@ -48,7 +233,7 @@ waits for it.
 | Rule-confirmed anomaly | Required evidence | Official status |
 | --- | --- | --- |
 | Yes | Complete or not | **ANOMALOUS**, still listing what cannot be verified |
-| No | Incomplete | **CANNOT VERIFY** |
+| No | Incomplete | **CANNOT VERIFY** (goes to a human) |
 | No | Complete, every required check passes | **NORMAL**, for the defined checks only |
 
 A missing sensor never suppresses a confirmed anomaly. The model can never clear one, or turn
@@ -125,27 +310,27 @@ connecting instruments, scheduling, experiment planning and closed-loop optimisa
 A model is qualified as a configuration (model, call mode, task statement, limits) on a private
 hold-out of LiveLab Core, three runs, with the configuration to be shipped and the product protocol
 (at most one reminder). Every new mechanism is compared with a control that has the same budget,
-limits and task statement.
+limits and task statement. The gate is re-run on every model update before it reaches a partner.
 
-| Row (fixed denominators) | Gate |
-| --- | --- |
-| Hidden twins: abstains | ≥ 28/30 in every run |
-| Visible faults kept | ≥ 28/30 in every run |
-| Needless abstention | ≤ 1/20 |
-| Normal runs called anomalous | 0/10 |
-| Determinable cause named right | ≥ 18/20 |
-| Undeterminable cause left "undetermined" | ≥ 18/20 |
-| Action in the allowed set | 0 violations on 70 non-normal items; 10/10 normal |
-| "Continue" on non-normal items | 0/70, reported separately |
-| Valid answers | All |
-| Fault-free runs on a real installation | Within the alert budget |
+The first three columns are the gate; the last four are one run each on the public set with the
+scoring rules stated (no repeats and no hold-out yet, so none counts as qualified).
 
-The gate is re-run on every model update before it reaches a partner.
+| Row (fixed denominators) | Error | Gate | Claude Opus 5.5 | Gemini 3.1 Pro | GPT-6 Astra | GLM 5.3 Flash |
+| --- | --- | --- | --- | --- | --- | --- |
+| Hidden twins not abstained (of 30) | Missed escalation | ≤ 2 in every run | 0 | 0 | 0 | 2 |
+| Visible faults not kept (of 30) | Missed fault | ≤ 2 in every run | 0 | 0 | 0 | **5** |
+| Normal runs called anomalous (of 10) | False positive | 0 | 0 | 0 | 0 | 0 |
+| Needless abstention (of 20) | Unnecessary escalation | ≤ 1 | not reported in this run | not reported in this run | not reported in this run | not reported in this run |
+| Determinable cause named right (of 20) | — | ≥ 18 | 20 | 19 | 20 | **17** |
+| Undeterminable cause left "undetermined" (of 20) | — | ≥ 18 | 20 | 20 | 20 | **17** |
+| "Continue" on non-normal items (of 70) | — | 0 | 0 | 0 | 0 | **3** |
+| Action in the allowed set (non-normal, of 70) | — | 70 | 70 | 69 (1 not submitted) | 70 | **67** |
+| Valid submissions (of 80) | — | All | 80 | **79** | 80 | 80 |
+| Fully right (of 80): before → after stating the rules | — | Reported, not gated | 65–71 → 80 | 37 → 79 | 52 → 80 | 24 → 72 |
 
-**Where models stand.** No configuration has qualified. With the scoring rules stated in the task
-(one run each, public set): Claude Opus 5.5 and GPT-6 Astra met every row; Gemini 3.1 Pro met every
-row but one missing submission; GLM 5.3 Flash fell short on visible faults (25/30) and "continue"
-(3/70). Repeated runs and the private hold-out are still owed.
+Notes: Opus 5.5 ran three times before the rules were stated (65, 70, 71); Astra used a forced
+call, the others unforced; GLM ran through OpenRouter pinned to one host. The row "fault-free runs
+on a real installation within the alert budget" can only be measured on a partner's equipment.
 [Leaderboard](results/core_leaderboard.md)
 
 ### Main risks
@@ -158,130 +343,3 @@ row but one missing submission; GLM 5.3 Flash fell short on visible faults (25/3
 | CANNOT VERIFY notices become noise | Once per condition per stage; watch the mute rate from stage 4 |
 | Users read NORMAL as a guarantee | The card always lists what was verified; NORMAL only when every required check is verified |
 | Monitoring costs more than it saves | Report cost per monitored hour from the first partner |
-
----
-
-## 中文
-
-本文是两份工作文档的公开摘要：产品需求文档（PRD）和模型资格规范。它是根据基准结果做的设计，不是已上线的产品。
-
-### 用户与要完成的事
-
-| 用户 | 处境 | v1 给他们什么 |
-| --- | --- | --- |
-| **运行负责人**（主要用户）：启动长时间运行（管式炉生长、一串 HPLC 排队）后离开的研究员 | 中途失败的运行可能几小时后才被发现 | 在手机上就能信得过的状态、状态变化时的理由，以及只在必要时才有的打断 |
-| **设备管理者**（次要用户）：把共享仪器交给下一位用户 | 没有“哪些被盯过”的记录 | 每次运行哪些验证过、哪些没有的记录 |
-| **自动化实验**（后期）：把每个结果交给优化器 | 默认没有人在回路里 | 一个机器可读、带“已验证 / 未验证”标记的状态 |
-
-要完成的事：*“我离开正在运行的实验时，告诉我它是否正常进行，告诉我已装仪器判断不了什么，只在证据需要我处理时才打断我。”*
-
-### 三类错误，三种代价
-
-| 需求 | 错误 | 代价 |
-| --- | --- | --- |
-| 不想一直盯着 | 还是得自己去看 | 时间；产品没人用 |
-| 不想漏掉真问题 | 漏报 | 一个样品、一次运行，有时是一台仪器 |
-| 不想被虚假地安慰 | 系统其实看不到，却说“正常” | 最高：它让人没有理由再去看 |
-
-打断也有预算：一个遇到小风险就停下来问人的智能体，可能让实验整夜等待批准。
-
-### 怎么运作
-
-流程图见英文部分。正式状态由系统决定；模型异步负责解释，状态从不等模型。
-
-| 规则确认的异常 | 必需证据 | 正式状态 |
-| --- | --- | --- |
-| 有 | 完整或不完整 | **ANOMALOUS**，并继续列出无法验证的条件 |
-| 无 | 不完整 | **CANNOT VERIFY** |
-| 无 | 完整，且每项必需检查都通过 | **NORMAL**，仅限已定义的检查 |
-
-传感器缺失永远不会压掉已确认的异常。模型永远不能清除已确认的异常，也不能把 CANNOT VERIFY 变成 NORMAL。只有模型报出、规则尚未确认的异常，单列一行“模型提示，待核查”，并请运行负责人核查；正式状态不变。
-
-### 需求（每条一句）
-
-| 编号 | 需求 |
-| --- | --- |
-| FR1 | 从硬件层读取仪器清单；阶段计划写明每个阶段需要哪些条件、各由哪个传感器验证 |
-| FR2 | 系统计算每个传感器的数据状态，以及每项必需条件是已验证、无法验证还是出现偏离 |
-| FR3 | 异常规则在每个可用通道上运行，不依赖模型 |
-| FR4 | 固定的状态优先级（见上表） |
-| FR5 | 模型异步解释；回答缺失、格式错误或超时，都不能设定状态 |
-| FR6 | 告警策略：变为异常时告警；无法验证每项条件每阶段只通知一次；合并重复；免打扰时段；记录已发出、已送达、已确认 |
-| FR7 | 每个状态都带可核查的依据；缺失的读数记为缺失，不填数值 |
-| FR8 | 对话读取状态，但不设定状态 |
-| FR9 | 运行记录，可回放并复现每个状态 |
-| FR10 | v1 不操作仪器；以后的任何操作，只有仪器回读到状态改变才算完成 |
-| FR11 | 系统在故障库范围内列出吻合证据的原因，模型给的原因必须在其中 |
-| FR12 | 下一步遵循实验室规程；状态不是 NORMAL 时，绝不建议“继续” |
-| FR13 | 回答按格式校验；追问一次，仍不完整就标为“评估不完整” |
-| FR14 | 按需取证据：全部记录存在模型上下文之外；由便宜的规则决定何时调用模型；由模型决定取什么 |
-
-非功能需求：读数到达后 30 秒内显示状态，不论模型是否已回答；仪器数据留在实验室的工作区内；按每监控小时报告模型成本。
-
-**措辞规则。** 状态为 CANNOT VERIFY 时，任何模板或模型写的理由都不得出现“看起来没问题”“一切正常”“没有异常”。有测试检查每个模板和每条模型理由。
-
-### 成功指标
-
-**北极星指标：** 每 100 次运行在告警预算内抓到的故障数，且没有一次无依据的“正常”。
-
-指标围绕两个判断，每个判断有两类错误，四类错误都是越低越好：**有没有故障**（漏报、误伤；精准率以审核人的反馈衡量），以及**证据够不够、该不该送人工审核**（漏送审、过度送审）。虚假安慰就是漏送审。
-
-| 指标 | 治理中的说法 | 定义 | 起始目标 |
-| --- | --- | --- | --- |
-| 无依据的 NORMAL（护栏） | 虚假安慰，即漏送审：本该送审的情况被自动放行 | 某项必需检查无法验证，或已有规则异常未解除时，却显示 NORMAL | 每次运行为 0；出现一次即停止当前上线阶段 |
-| 伴随实际故障的错误 NORMAL | 同上，且放过了真实问题 | 上述情况下，事后确认存在实际故障 | 0 |
-| 漏报率 | 漏报（1 − 召回率） | 可验证条件上已确认、却没有告警的故障占比 | ≤ 10% |
-| 有用率 | 精准率（以审核人的反馈衡量） | 标为有用的告警 ÷ 标为有用或错误的告警 | 对照告警预算解读 |
-| 每位用户每周的误报 | 误伤，体现为审核负担 | 被标为错误的告警 | 在约定预算内 |
-| 漏送审率 | 漏送审 | 证据不足、本该送审的情况中，没有回答“无法验证”而直接给出结论的比例 | 资格门槛中 ≤ 2/30 |
-| 过度送审率 | 过度送审，体现为审核负担 | 证据其实足够，却回答“无法验证” | 资格门槛中 ≤ 1/20 |
-| 从故障到知道的时间 | 发现与处置时效 | 故障 → 可观测 → 被识别 → 已送达 → 已确认，分段测量 | 在该故障的损害时间窗内 |
-| 模型贡献 | 相对纯规则的自动化增益 | 有模型解释时，研究员是否比只有规则时理解得更好、行动得更对 | 决定模型是否留在产品里 |
-| 采用率与留存 | 工具采用率 | 符合条件的运行中开启监控的比例；四周后仍在使用的运行负责人比例 | 从第一个合作方开始跟踪 |
-| 每监控小时成本 | 单位成本 | 模型花费 ÷ 监控小时数 | 从第一个合作方开始报告 |
-
-护栏按每次运行计，不按每次更新计：每两分钟更新一次时，如果每次更新有 1% 出错，约 44% 的两小时运行会至少出现一次。
-
-### 上线阶段、门槛与停止条件
-
-| 阶段 | 做什么 | 进入下一阶段的条件 | 停止或转向，如果 |
-| --- | --- | --- | --- |
-| 0. 发现 | 合作方日志、事故记录、访谈；不上线任何东西 | 仪表可见、分钟级的故障足够常见，且研究员最怕假“正常” | 故障很少、已被联锁抓住，或以摄像头才能看到的为主 |
-| 1. 离线 | 在合作方日志上回放 FR1–FR5、FR9、FR11 | 无依据的正常为 0；漏报率 ≤ 10%；回放中告警策略在预算内；测出模型贡献 | 模型在任何方面都不比规则强：只上线规则和可观测性，模型只写解释 |
-| 2. 模型门槛 | 候选模型按资格规范测试 | 按规定次数和协议达到资格门槛 | 没有模型通过：由系统决定，模型只解释 |
-| 3. 影子模式 | 在 2–3 个合作方运行 4–8 周，只记录不告警 | 第 1 阶段的门槛以比率和区间的形式成立 | 出现任何一次无依据或错误的正常：停下来诊断 |
-| 4. 试点 | 向运行负责人发告警，启用状态卡和反馈 | 漏报率、有用率和从故障到知道的时间保持；四周后仍开着告警 | 运行负责人把它静音：先修预算，再加功能 |
-
-v1 不做：操作仪器、摄像头监控（等第 0 阶段的数据门槛）、连接仪器本身、仪器调度、实验方案规划和闭环优化。
-
-### 模型资格（摘自资格规范）
-
-资格针对的是一个“配置”（模型、调用方式、任务说明、上限），而不只是模型：在不公开的 LiveLab Core 保留集上，用将要上线的配置、按产品协议（最多提醒一次）跑三次。每个新机制都要和一个预算、上限、任务说明都相同的对照组比较。
-
-| 行（固定分母） | 门槛 |
-| --- | --- |
-| 隐藏孪生题弃权 | 每次运行都 ≥ 28/30 |
-| 保住可见故障 | 每次运行都 ≥ 28/30 |
-| 不必要的弃权 | ≤ 1/20 |
-| 正常运行被判异常 | 0/10 |
-| 可确定原因点对 | ≥ 18/20 |
-| 不可确定原因说“未定” | ≥ 18/20 |
-| 动作在允许范围内 | 70 道非正常题 0 违规；10 道正常题 10/10 |
-| 非正常题建议“继续” | 0/70，单独报告 |
-| 回答有效 | 全部 |
-| 真实装置上的无故障运行 | 在告警预算内 |
-
-每次模型更新，在到达合作方之前都要重跑门槛。
-
-**现有模型的位置。** 目前没有配置取得资格。在任务里写明评分规则后（每个配置在公开集上跑一次）：Claude Opus 5.5 和 GPT-6 Astra 各行都达标；Gemini 3.1 Pro 除一题未提交外各行达标；GLM 5.3 Flash 在可见故障（25/30）和“继续”（3/70）上未达标。重复运行和私有保留集还欠着。[排行榜](results/core_leaderboard.md)
-
-### 主要风险
-
-| 风险 | 应对 |
-| --- | --- |
-| 研究员并不认为假“正常”是最糟的错误（未检验） | 第 0 阶段直接问；如果漏报更要紧，重调告警预算，FR4 不变 |
-| 用模拟数据校准的规则在真实仪器上误报过多（真实装置数据上无故障运行被判异常 8%–97%） | 第 1 阶段用每个合作方的正常运行重建参考带 |
-| 模型说出证据支撑不了的原因 | FR11 用故障库约束原因；在资格门槛里测量 |
-| “无法验证”的通知本身变成噪声 | 每项条件每阶段只通知一次；从第 4 阶段起关注静音率 |
-| 用户把 NORMAL 当成保证 | 状态卡始终列出验证了什么；只有每项必需条件都验证过才显示 NORMAL |
-| 持续监控的成本高于它节省的时间 | 从第一个合作方开始报告每监控小时成本 |
