@@ -3,6 +3,40 @@
 <!-- TL;DR for product readers (added 2026-10-13). Revise or remove for research-facing applications. -->
 ## TL;DR
 
+### 中文
+
+**LiveLab 研究的是：一个实时监控实验室实验（如管式炉、精馏装置）的 AI，能不能判断手上的证据是否足以判定运行“正常”还是“异常”、是否足以定下故障原因和下一步操作；证据不够时，能否如实说“无法验证”并转交人工核查，而不是给出确定结论。项目再据此设计产品。**
+
+**要解决的问题。** AI 监控代价高的失败不只是漏报，还有“虚假安慰”：在没有足够证据时报告“一切正常”，于是没人再去检查。
+
+**两个判断，四类错误（都是越低越好）**
+
+| 判断 | 错误 | 含义 | 产品目标 |
+| --- | --- | --- | --- |
+| 有没有故障 | **漏报** | 有故障却没有报 | ≤ 10% |
+| | **误伤** | 没有故障却报了异常 | 控制在告警预算内（每位用户每周的误报数） |
+| 证据够不够、该不该送人工审核 | **漏送审**（即虚假安慰） | 证据不够，却自动给出“正常”或“异常”的结论 | 每次运行为 0（护栏） |
+| | **过度送审** | 证据其实够，却交给人工 | ≤ 1/20，避免占用审核产能 |
+
+**结果：从几乎不送审，到漏送审和漏报同时清零**
+
+| 阶段 | 漏送审 | 漏报 | 误伤 | 说明 |
+| --- | --- | --- | --- | --- |
+| 起点：早期研究，原始任务说法 | 2,127 / 2,134（99.7%） | — | — | 四个模型中三个先说“无法验证”，接着照样给出结论 |
+| 真实装置数据（3 个模型） | 27–31 / 31 | — | 8%–97% | 公开的真实精馏装置数据，专家标注为真值；说明问题不是模拟器造成的 |
+| 只靠提示词告知“哪些无法验证”（Opus 5、Astra） | 0 / 14 | 7–18 / 30 | — | 一类错误下去，另一类上来 |
+| 改进后：Claude Opus 5.5、Gemini 3.1 Pro、GPT-6 Astra | 0 / 30 | 0 / 30 | 0 / 10 | 新一代模型、修好测试运行器、在任务里写明评分规则；各跑一次 |
+| 改进后：开源 GLM 5.3 Flash | 2 / 30 | 5 / 30 | 0 / 10 | 写清规则对小模型也有帮助，但还没达到门槛 |
+
+关键不是“送审更多”，而是两类错误同时降下来：只靠提示词会此消彼长，所以产品里由系统规则兜底检出，模型负责解释。
+
+- **先找根因，再归责。** Claude 看起来“漏填字段”的失败，其实是测试运行器的输出上限截断了回答；多数原因和动作上的错误，来自任务里从没写明的评分规则。写明规则后，四种模型配置在 80 道题上完全答对的题数，从 24–71 提升到 72–80（每种各跑一次；还没有配置通过“三次运行加保留集”的上线门槛）。写明规则也改变了部分模型的状态判断，这与我事先登记的预测相反。
+- **怎么设计产品。** 正式状态由系统负责，系统的异常规则在每个仍在报数的传感器上持续运行；模型负责解释；只有模型报出的异常，转人工核查。每个模型上线前要过准入门槛，每次更新都要重测。北极星指标是告警预算内抓到的故障数。
+- **怎么做的。** 21 项预注册研究，使用模拟数据和公开的真实装置数据；不成立的预测和我自己的更正，都与结果一起公开。
+- **局限。** 一套模拟仪器、一份公开装置数据集和一组实验室照片；还没有真实部署，也还没有做用户验证；改进后的结果每个配置只跑了一次。
+
+研究者请从 [The finding](#the-finding) 开始阅读。产品读者可看 [产品摘要](docs/product.md#中文)（概括了 PRD 和模型资格规范）、[V1S 结果](docs/results/core_leaderboard.md#reading-stating-the-tasks-cause-and-action-rules-v1s) 和 [经验教训](docs/lessons_learned.md)（英文）。
+
 ### English
 
 **LiveLab tests whether an AI monitoring a running lab experiment (a tube furnace, a distillation
@@ -10,22 +44,31 @@ plant) can tell when its evidence is enough to call the run normal or anomalous,
 choose the next step, and when it is not, says "cannot verify" and hands the case to a human
 instead of giving a confident verdict. It then designs the product around what it found.**
 
-- **The problem.** The costly failure of an AI monitor is not only a missed alarm. It is false
-  reassurance: reporting "all normal" without the evidence to know, so nobody checks.
-- **Two decisions, two pairs of errors.** Is there a fault: missed faults and false positives
-  (on real plant data, fault-free runs were flagged anomalous 8% to 97% of the time, depending on
-  the model), with precision measured from reviewer feedback. Is the evidence enough, or should
-  the case go to a human: missed escalations and unnecessary escalations. False reassurance is a
-  missed escalation: a case that should have gone to a human was auto-cleared as "normal".
-- **What I found: from almost never escalating to no missed escalations and no missed faults.**
-  The starting point: under the original task wording of the early studies, 99.7% of escalations
-  were missed (in 2,127 of 2,134 judgments where only "cannot tell" was supported, models gave a
-  verdict anyway), and three of four models said they could not verify something, then gave a
-  verdict anyway. The trap: telling models through the prompt what could not be verified cut
-  missed escalations to 0 of 14 but raised missed faults to 7–18 of 30, so one error fell as the
-  other rose. After the fixes (a newer model generation, a corrected test runner, scoring rules
-  stated in the task), Claude Opus 5.5, Gemini 3.1 Pro and GPT-6 Astra each had no missed
-  escalations and no missed faults (0 of 30 each) on the 80-item benchmark (one run each).
+**The problem.** The costly failure of an AI monitor is not only a missed alarm. It is false
+reassurance: reporting "all normal" without the evidence to know, so nobody checks.
+
+**Two decisions, four errors (lower is better for all four)**
+
+| Decision | Error | Meaning | Product target |
+| --- | --- | --- | --- |
+| Is there a fault | **Missed fault** | A fault, but no alert | ≤ 10% |
+| | **False positive** | No fault, but flagged anomalous | Within the alert budget (false alerts per user per week) |
+| Is the evidence enough, or should a human review it | **Missed escalation** (false reassurance) | Not enough evidence, but the AI gave a verdict | 0 per run (guardrail) |
+| | **Unnecessary escalation** | Enough evidence, but sent to a human | ≤ 1/20, to protect reviewer capacity |
+
+**Results: from almost never escalating to no missed escalations and no missed faults**
+
+| Stage | Missed escalations | Missed faults | False positives | Note |
+| --- | --- | --- | --- | --- |
+| Start: early studies, original task wording | 2,127 / 2,134 (99.7%) | — | — | Three of four models said they could not verify something, then gave a verdict anyway |
+| Real plant data (3 models) | 27–31 / 31 | — | 8%–97% | Public real distillation-plant data with expert annotations as truth; not a simulator artefact |
+| Prompt only, telling the model what cannot be verified (Opus 5, Astra) | 0 / 14 | 7–18 / 30 | — | One error fell as the other rose |
+| After the fixes: Claude Opus 5.5, Gemini 3.1 Pro, GPT-6 Astra | 0 / 30 | 0 / 30 | 0 / 10 | Newer model generation, corrected test runner, scoring rules stated in the task; one run each |
+| After the fixes: open-weight GLM 5.3 Flash | 2 / 30 | 5 / 30 | 0 / 10 | A clearer task helped a smaller model too, but not to the gate |
+
+The point is not escalating more but cutting both errors at once: a prompt alone trades one for the
+other, so in the product the system's rules own detection and the model explains.
+
 - **Root causes before blame.** Claude's apparent missing-field failures came from the test
   runner's output cap, and most cause and action errors from scoring rules the task never stated.
   Once the task stated them, four model configurations went from 24–71 to 72–80 of 80 items fully
@@ -34,29 +77,15 @@ instead of giving a confident verdict. It then designs the product around what i
 - **What I would build.** The system, not the model, owns the official status, and its anomaly
   rules keep running on every sensor that still reports; the model explains; anything only the
   model flags goes to human review. Each model passes a launch gate before use and is re-tested on
-  every update. Success is faults caught within an alert budget, with zero unsupported "normal"
-  per run.
+  every update. The north star is faults caught within the alert budget.
 - **How.** 21 pre-registered studies on simulated and public real-plant data, with failed
   predictions and my own corrections published beside the results.
 - **Limits.** One simulated instrument, one public plant dataset and one set of lab photographs;
-  no live deployment and no user validation yet.
+  no live deployment and no user validation yet; the post-fix results are one run per configuration.
 
-Researchers: start at [The finding](#the-finding). Product readers: the [V1S result](docs/results/core_leaderboard.md#reading-stating-the-tasks-cause-and-action-rules-v1s) and
-[lessons learned](docs/lessons_learned.md); the [product summary](docs/product.md) condenses the PRD and the model qualification spec.
-
-### 中文
-
-**LiveLab 研究的是：一个实时监控实验室实验（如管式炉、精馏装置）的 AI，能不能判断手上的证据是否足以判定运行“正常”还是“异常”、是否足以定下故障原因和下一步操作；证据不够时，能否如实说“无法验证”并转交人工核查，而不是给出确定结论。项目再据此设计产品。**
-
-- **要解决的问题。** AI 监控代价高的失败不只是漏报，还有“虚假安慰”：在没有足够证据时报告“一切正常”，于是没人再去检查。
-- **两个判断，两类错误。** 一是有没有故障：看漏报和误伤（在真实装置数据上，无故障运行被判为异常的比例因模型而异，为 8%–97%），精准率以审核人的反馈衡量。二是证据够不够、该不该送人工审核：看漏送审和过度送审。虚假安慰就是漏送审：本该送审的情况，被自动判成了“正常”。
-- **发现了什么：从“几乎不送审”到“漏送审和漏报同时清零”。** 起点：在早期研究的原始任务说法下，漏送审率达 99.7%（在只有“判断不了”有依据的 2,134 次判断中，2,127 次直接给出了结论），四个模型中有三个先说“无法验证”，接着照样给出结论。陷阱：只靠提示词告诉模型哪些无法验证，漏送审降到 0/14，可见故障的漏报却升到 7–18 个（共 30），一类错误下去、另一类上来。改进后（换用新一代模型、修好测试运行器、在任务里写明评分规则），在 80 题基准上，Claude Opus 5.5、Gemini 3.1 Pro 和 GPT-6 Astra 的漏送审和漏报都是 0/30（各跑一次）。
-- **先找根因，再归责。** Claude 看起来“漏填字段”的失败，其实是测试运行器的输出上限截断了回答；多数原因和动作上的错误，来自任务里从没写明的评分规则。写明规则后，四种模型配置在 80 道题上完全答对的题数，从 24–71 提升到 72–80（每种各跑一次；还没有配置通过“三次运行加保留集”的上线门槛）。写明规则也改变了部分模型的状态判断，这与我事先登记的预测相反。
-- **怎么设计产品。** 正式状态由系统负责，系统的异常规则在每个仍在报数的传感器上持续运行；模型负责解释；只有模型报出的异常，转人工核查。每个模型上线前要过准入门槛，每次更新都要重测。成功指标是：在告警预算内抓到的故障数，且每次运行“无依据的正常”为 0。
-- **怎么做的。** 21 项预注册研究，使用模拟数据和公开的真实装置数据；不成立的预测和我自己的更正，都与结果一起公开。
-- **局限。** 一套模拟仪器、一份公开装置数据集和一组实验室照片；还没有真实部署，也还没有做用户验证。
-
-研究者请从 [The finding](#the-finding) 开始阅读。产品读者可看 [V1S 结果](docs/results/core_leaderboard.md#reading-stating-the-tasks-cause-and-action-rules-v1s) 和 [经验教训](docs/lessons_learned.md)（英文）；[产品摘要](docs/product.md#中文) 概括了 PRD 和模型资格规范。
+Researchers: start at [The finding](#the-finding). Product readers: the [product summary](docs/product.md)
+(the PRD and the model qualification spec, condensed), the [V1S result](docs/results/core_leaderboard.md#reading-stating-the-tasks-cause-and-action-rules-v1s) and
+[lessons learned](docs/lessons_learned.md).
 
 ---
 
