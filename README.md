@@ -5,8 +5,10 @@
 
 ### English
 
-**LiveLab tests whether an AI monitor watching a live process knows when its evidence cannot
-support a decision, and designs the product around what it found.**
+**LiveLab tests whether an AI monitoring a running lab experiment (a tube furnace, a distillation
+plant) can tell when its evidence is enough to call the run normal or anomalous, name the cause and
+choose the next step, and when it is not, says "cannot verify" and hands the case to a human
+instead of giving a confident verdict. It then designs the product around what it found.**
 
 - **The problem.** The costly failure of an AI monitor is not only a missed alarm. It is false
   reassurance: reporting "all normal" without the evidence to know, so nobody checks.
@@ -35,7 +37,7 @@ Researchers: start at [The finding](#the-finding). Product readers: the [V1S res
 
 ### 中文
 
-**LiveLab 研究的是：一个实时监控运行过程的 AI，能不能判断自己手上的证据不足以下结论；并据此设计产品。**
+**LiveLab 研究的是：一个实时监控实验室实验（如管式炉、精馏装置）的 AI，能不能判断手上的证据是否足以判定运行“正常”还是“异常”、是否足以定下故障原因和下一步操作；证据不够时，能否如实说“无法验证”并转交人工核查，而不是给出确定结论。项目再据此设计产品。**
 
 - **要解决的问题。** AI 监控代价高的失败不只是漏报，还有“虚假安慰”：在没有足够证据时报告“一切正常”，于是没人再去检查。
 - **发现了什么。** 在原始的任务说法下，模型几乎从不说“判断不了”：在只有“判断不了”有依据的 2,134 次判断中，只有 7 次这样回答。四个模型中有三个先说“无法验证”，接着照样给出结论（这类题 12 道全部如此）。由系统告诉模型哪些无法验证后，部分模型学会了弃权，却又丢掉了剩余传感器仍能看到的故障。
