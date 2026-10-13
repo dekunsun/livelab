@@ -1,5 +1,53 @@
 # LiveLab: Multimodal Lab Observer
 
+<!-- TL;DR for product readers (added 2026-10-13). Revise or remove for research-facing applications. -->
+## TL;DR
+
+### English
+
+**LiveLab tests whether an AI monitor watching a live process knows when its evidence cannot
+support a decision, and designs the product around what it found.**
+
+- **The problem.** The costly failure of an AI monitor is not only a missed alarm. It is false
+  reassurance: reporting "all normal" without the evidence to know, so nobody checks.
+- **What I found.** Under the original task wording, models almost never said they could not
+  tell: 7 of 2,134 judgments where nothing else was supported. Three of four models said they
+  could not verify something, then gave a verdict anyway (12 of 12 such items). Telling them what
+  cannot be verified fixed abstention for some models, but made them drop faults the remaining
+  sensors still showed.
+- **Root causes before blame.** Claude's apparent missing-field failures came from the test
+  runner's output cap, and most cause and action errors from scoring rules the task never stated.
+  Once the task stated them, four model configurations went from 24–71 to 72–80 of 80 items fully
+  right (one run each; none has yet passed the three-run, held-out launch gate). Stating the rules
+  also changed some models' state answers, which I had predicted it would not.
+- **What I would build.** The system, not the model, owns the official status, and its anomaly
+  rules keep running on every sensor that still reports; the model explains; anything only the
+  model flags goes to human review. Each model passes a launch gate before use and is re-tested on
+  every update. Success is faults caught within an alert budget, with zero unsupported "normal"
+  per run.
+- **How.** 21 pre-registered studies on simulated and public real-plant data, with failed
+  predictions and my own corrections published beside the results.
+- **Limits.** One simulated instrument, one public plant dataset and one set of lab photographs;
+  no live deployment and no user validation yet.
+
+Researchers: start at [The finding](#the-finding). Product readers: the [V1S result](docs/results/core_leaderboard.md#reading-stating-the-tasks-cause-and-action-rules-v1s) and
+[lessons learned](docs/lessons_learned.md); the [product summary](docs/product.md) condenses the PRD and the model qualification spec.
+
+### 中文
+
+**LiveLab 研究的是：一个实时监控运行过程的 AI，能不能判断自己手上的证据不足以下结论；并据此设计产品。**
+
+- **要解决的问题。** AI 监控代价高的失败不只是漏报，还有“虚假安慰”：在没有足够证据时报告“一切正常”，于是没人再去检查。
+- **发现了什么。** 在原始的任务说法下，模型几乎从不说“判断不了”：在只有“判断不了”有依据的 2,134 次判断中，只有 7 次这样回答。四个模型中有三个先说“无法验证”，接着照样给出结论（这类题 12 道全部如此）。由系统告诉模型哪些无法验证后，部分模型学会了弃权，却又丢掉了剩余传感器仍能看到的故障。
+- **先找根因，再归责。** Claude 看起来“漏填字段”的失败，其实是测试运行器的输出上限截断了回答；多数原因和动作上的错误，来自任务里从没写明的评分规则。写明规则后，四种模型配置在 80 道题上完全答对的题数，从 24–71 提升到 72–80（每种各跑一次；还没有配置通过“三次运行加保留集”的上线门槛）。写明规则也改变了部分模型的状态判断，这与我事先登记的预测相反。
+- **怎么设计产品。** 正式状态由系统负责，系统的异常规则在每个仍在报数的传感器上持续运行；模型负责解释；只有模型报出的异常，转人工核查。每个模型上线前要过准入门槛，每次更新都要重测。成功指标是：在告警预算内抓到的故障数，且每次运行“无依据的正常”为 0。
+- **怎么做的。** 21 项预注册研究，使用模拟数据和公开的真实装置数据；不成立的预测和我自己的更正，都与结果一起公开。
+- **局限。** 一套模拟仪器、一份公开装置数据集和一组实验室照片；还没有真实部署，也还没有做用户验证。
+
+研究者请从 [The finding](#the-finding) 开始阅读。产品读者可看 [V1S 结果](docs/results/core_leaderboard.md#reading-stating-the-tasks-cause-and-action-rules-v1s) 和 [经验教训](docs/lessons_learned.md)（英文）；[产品摘要](docs/product.md#中文) 概括了 PRD 和模型资格规范。
+
+---
+
 A controlled benchmark for whether scientific agents can distinguish what is wrong, what the
 current sensors actually support, and what remains unknowable during a physical experiment.
 
