@@ -20,13 +20,18 @@
 
 **结果：从几乎不送审，到漏送审和漏报同时清零**
 
-| 阶段 | 漏送审 | 漏报 | 误伤 | 说明 |
-| --- | --- | --- | --- | --- |
-| 起点：早期研究，原始任务说法 | 2,127 / 2,134（99.7%） | — | — | 四个模型中三个先说“无法验证”，接着照样给出结论 |
-| 真实装置数据（3 个模型） | 27–31 / 31 | — | 8%–97% | 公开的真实精馏装置数据，专家标注为真值；说明问题不是模拟器造成的 |
-| 只靠提示词告知“哪些无法验证”（Opus 5、Astra） | 0 / 14 | 7–18 / 30 | — | 一类错误下去，另一类上来 |
-| 改进后：Claude Opus 5.5、Gemini 3.1 Pro、GPT-6 Astra | 0 / 30 | 0 / 30 | 0 / 10 | 新一代模型、修好测试运行器、在任务里写明评分规则；各跑一次 |
-| 改进后：开源 GLM 5.3 Flash | 2 / 30 | 5 / 30 | 0 / 10 | 写清规则对小模型也有帮助，但还没达到门槛 |
+| 阶段 | 漏送审 | 漏报 | 误伤 |
+| --- | --- | --- | --- |
+| 起点：早期研究，原始任务说法 | 2,127/2,134（99.7%） | — | — |
+| 真实装置数据（3 个模型） | 27–31/31 | — | 8%–97% |
+| 只靠提示词（Opus 5、Astra） | 0/14 | 7–18/30 | — |
+| 改进后：Claude Opus 5.5、Gemini 3.1 Pro、GPT-6 Astra | **0/30** | **0/30** | **0/10** |
+| 改进后：开源 GLM 5.3 Flash | 2/30 | 5/30 | 0/10 |
+
+- **起点：** 四个模型中有三个先说“无法验证”，接着照样给出结论。
+- **真实装置数据：** 公开的真实精馏装置数据，以专家标注为真值；说明问题不是模拟器造成的。
+- **只靠提示词：** 由系统告诉模型“哪些无法验证”；一类错误下去，另一类上来。
+- **改进后：** 新一代模型、修好测试运行器、在任务里写明评分规则，三者共同作用；每个配置各跑一次。GLM 说明写清规则对小模型也有帮助，但还没达到门槛。
 
 关键不是“送审更多”，而是两类错误同时降下来：只靠提示词会此消彼长，所以产品里由系统规则兜底检出，模型负责解释。
 
@@ -58,13 +63,22 @@ reassurance: reporting "all normal" without the evidence to know, so nobody chec
 
 **Results: from almost never escalating to no missed escalations and no missed faults**
 
-| Stage | Missed escalations | Missed faults | False positives | Note |
-| --- | --- | --- | --- | --- |
-| Start: early studies, original task wording | 2,127 / 2,134 (99.7%) | — | — | Three of four models said they could not verify something, then gave a verdict anyway |
-| Real plant data (3 models) | 27–31 / 31 | — | 8%–97% | Public real distillation-plant data with expert annotations as truth; not a simulator artefact |
-| Prompt only, telling the model what cannot be verified (Opus 5, Astra) | 0 / 14 | 7–18 / 30 | — | One error fell as the other rose |
-| After the fixes: Claude Opus 5.5, Gemini 3.1 Pro, GPT-6 Astra | 0 / 30 | 0 / 30 | 0 / 10 | Newer model generation, corrected test runner, scoring rules stated in the task; one run each |
-| After the fixes: open-weight GLM 5.3 Flash | 2 / 30 | 5 / 30 | 0 / 10 | A clearer task helped a smaller model too, but not to the gate |
+| Stage | Missed escalations | Missed faults | False positives |
+| --- | --- | --- | --- |
+| Start: early studies, original task wording | 2,127/2,134 (99.7%) | — | — |
+| Real plant data (3 models) | 27–31/31 | — | 8%–97% |
+| Prompt only (Opus 5, Astra) | 0/14 | 7–18/30 | — |
+| After the fixes: Claude Opus 5.5, Gemini 3.1 Pro, GPT-6 Astra | **0/30** | **0/30** | **0/10** |
+| After the fixes: open-weight GLM 5.3 Flash | 2/30 | 5/30 | 0/10 |
+
+- **Start:** three of four models said they could not verify something, then gave a verdict anyway.
+- **Real plant data:** public real distillation-plant data with expert annotations as truth; the
+  problem is not a simulator artefact.
+- **Prompt only:** the system told the model what could not be verified; one error fell as the
+  other rose.
+- **After the fixes:** a newer model generation, a corrected test runner and scoring rules stated in
+  the task, together; one run per configuration. GLM shows a clearer task helps a smaller model
+  too, but not to the gate.
 
 The point is not escalating more but cutting both errors at once: a prompt alone trades one for the
 other, so in the product the system's rules own detection and the model explains.
