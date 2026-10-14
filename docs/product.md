@@ -31,12 +31,18 @@ Chinese first, then [English](#english).
 
 ### 两个判断，四类错误
 
-| 判断 | 错误 | 含义 | 代价 | 产品目标 |
-| --- | --- | --- | --- | --- |
-| 有没有故障 | **漏报** | 有故障却没有报 | 一个样品、一次运行，有时是一台仪器 | ≤ 10% |
-| | **误伤** | 没有故障却报了异常 | 打扰研究员，告警被静音，产品没人用 | 在告警预算内（每位用户每周的误报数） |
-| 证据够不够、该不该送人工审核 | **漏送审**（即虚假安慰） | 证据不够，却自动给出“正常”或“异常”的结论 | 最高：它让人没有理由再去看 | 每次运行为 0（护栏） |
-| | **过度送审** | 证据其实够，却交给人工 | 占用审核产能 | ≤ 1/20 |
+| 判断 | 错误 | 含义 | 产品目标 |
+| --- | --- | --- | --- |
+| 有没有故障 | **漏报** | 有故障却没有报 | ≤10% |
+| | **误伤** | 没有故障却报了异常 | 在告警预算内 |
+| 该不该送人工审核 | **漏送审**（虚假安慰） | 证据不够，却自动下结论 | 每次运行为 0 |
+| | **过度送审** | 证据其实够，却交给人工 | ≤1/20 |
+
+各自的代价：
+- **漏报**：损失一个样品、一次运行，有时是一台仪器。
+- **误伤**：打扰研究员，告警被静音，产品没人用；告警预算按每位用户每周的误报数计。
+- **漏送审**：代价最高，它让人没有理由再去看；作为护栏，每次运行必须为 0。
+- **过度送审**：占用审核产能。
 
 打断也有预算：一个遇到小风险就停下来问人的智能体，可能让实验整夜等待批准。
 
@@ -136,22 +142,26 @@ v1 不做：操作仪器、摄像头监控（等第 0 阶段的数据门槛）�
 
 资格针对的是一个“配置”（模型、调用方式、任务说明、上限），而不只是模型：在不公开的 LiveLab Core 保留集上，用将要上线的配置、按产品协议（最多提醒一次）跑三次。每个新机制都要和一个预算、上限、任务说明都相同的对照组比较。每次模型更新，在到达合作方之前都要重跑门槛。
 
-下表左两列是门槛，右四列是写明评分规则后、在公开集上各跑一次的结果（尚未做三次运行和保留集，所以都不算正式取得资格）。
+下表是门槛，以及写明评分规则后、在公开集上各跑一次的结果。还没有做三次运行和保留集，所以都不算正式取得资格。
 
-| 行（固定分母） | 对应的错误 | 门槛 | Claude Opus 5.5 | Gemini 3.1 Pro | GPT-6 Astra | GLM 5.3 Flash |
-| --- | --- | --- | --- | --- | --- | --- |
-| 隐藏孪生题没有弃权（共 30） | 漏送审 | 每次运行都 ≤ 2 | 0 | 0 | 0 | 2 |
-| 可见故障没有保住（共 30） | 漏报 | 每次运行都 ≤ 2 | 0 | 0 | 0 | **5** |
-| 正常运行被判异常（共 10） | 误伤 | 0 | 0 | 0 | 0 | 0 |
-| 不必要的弃权（共 20） | 过度送审 | ≤ 1 | 本次未单列 | 本次未单列 | 本次未单列 | 本次未单列 |
-| 可确定原因点对（共 20） | — | ≥ 18 | 20 | 19 | 20 | **17** |
-| 不可确定原因说“未定”（共 20） | — | ≥ 18 | 20 | 20 | 20 | **17** |
-| 非正常题建议“继续”（共 70） | — | 0 | 0 | 0 | 0 | **3** |
-| 动作在允许范围内（非正常题，共 70） | — | 70 | 70 | 69（1 题未提交） | 70 | **67** |
-| 有效提交（共 80） | — | 全部 | 80 | **79** | 80 | 80 |
-| 完全答对（共 80）：写明规则前 → 后 | — | 只报告，不设门槛 | 65–71 → 80 | 37 → 79 | 52 → 80 | 24 → 72 |
+| 行（分母） | 门槛 | Opus 5.5 | Gemini 3.1 Pro | GPT-6 Astra | GLM 5.3 Flash |
+| --- | --- | --- | --- | --- | --- |
+| 漏送审（/30） | ≤2 | 0 | 0 | 0 | 2 |
+| 漏报（/30） | ≤2 | 0 | 0 | 0 | **5** |
+| 误伤（/10） | 0 | 0 | 0 | 0 | 0 |
+| 过度送审（/20） | ≤1 | — | — | — | — |
+| 可确定原因点对（/20） | ≥18 | 20 | 19 | 20 | **17** |
+| 不可确定原因说“未定”（/20） | ≥18 | 20 | 20 | 20 | **17** |
+| 非正常题建议“继续”（/70） | 0 | 0 | 0 | 0 | **3** |
+| 动作在允许范围内（/70） | 70 | 70 | 69¹ | 70 | **67** |
+| 有效提交（/80） | 全部 | 80 | **79**¹ | 80 | 80 |
+| 完全答对（/80），规则前→后 | 只报告 | 65–71→80 | 37→79 | 52→80 | 24→72 |
 
-说明：Opus 5.5 写明规则前跑了三次（65、70、71）；Astra 用的是强制调用，其余为非强制调用；GLM 通过 OpenRouter 固定在单一服务商。“真实装置上的无故障运行在告警预算内”这一行，要在合作方的真实装置上才能测。[排行榜](results/core_leaderboard.md)
+- **各行的含义：** 漏送审 = 隐藏孪生题（关键传感器缺失）没有弃权；漏报 = 剩余传感器看得到的故障没有保住；误伤 = 正常运行被判为异常；过度送审 = 证据足够却弃权，这次运行没有单独统计，所以记为“—”。
+- **门槛：** 漏送审和漏报要求三次运行每次都满足。
+- ¹ Gemini 3.1 Pro 有 1 题两次提醒后仍未提交。
+- **配置：** Opus 5.5 写明规则前跑了三次（65、70、71）；Astra 用强制调用，其余为非强制调用；GLM 通过 OpenRouter 固定在单一服务商。
+- “真实装置上的无故障运行在告警预算内”这一行，要在合作方的真实装置上才能测。[排行榜](results/core_leaderboard.md)
 
 ### 主要风险
 
@@ -192,12 +202,20 @@ what the installed instruments cannot judge, and interrupt me only when the evid
 
 ### Two decisions, four errors
 
-| Decision | Error | Meaning | Cost | Product target |
-| --- | --- | --- | --- | --- |
-| Is there a fault | **Missed fault** | A fault, but no alert | A sample, a run, sometimes an instrument | ≤ 10% |
-| | **False positive** | No fault, but flagged anomalous | Interrupts the researcher; alerts get muted; nobody uses the product | Within the alert budget (false alerts per user per week) |
-| Is the evidence enough, or should a human review it | **Missed escalation** (false reassurance) | Not enough evidence, but the AI gave a verdict | Highest: it removes the reason to look | 0 per run (guardrail) |
-| | **Unnecessary escalation** | Enough evidence, but sent to a human | Uses reviewer capacity | ≤ 1/20 |
+| Decision | Error | Meaning | Target |
+| --- | --- | --- | --- |
+| Is there a fault | **Missed fault** | A fault, but no alert | ≤10% |
+| | **False positive** | No fault, but flagged anomalous | Within the alert budget |
+| Should a human review it | **Missed escalation** (false reassurance) | Not enough evidence, but the AI gave a verdict | 0 per run |
+| | **Unnecessary escalation** | Enough evidence, but sent to a human | ≤1/20 |
+
+What each costs:
+- **Missed fault:** a sample, a run, sometimes an instrument.
+- **False positive:** interrupts the researcher; alerts get muted and nobody uses the product; the
+  budget is counted as false alerts per user per week.
+- **Missed escalation:** the highest cost, because it removes the reason to look; as a guardrail it
+  must be 0 per run.
+- **Unnecessary escalation:** uses reviewer capacity.
 
 Interruptions also have a budget: an agent that stops to ask about every small risk can leave an
 experiment waiting all night.
@@ -312,26 +330,32 @@ hold-out of LiveLab Core, three runs, with the configuration to be shipped and t
 (at most one reminder). Every new mechanism is compared with a control that has the same budget,
 limits and task statement. The gate is re-run on every model update before it reaches a partner.
 
-The first three columns are the gate; the last four are one run each on the public set with the
-scoring rules stated (no repeats and no hold-out yet, so none counts as qualified).
+The table shows the gate and, beside it, one run each on the public set with the scoring rules
+stated. There are no repeats and no hold-out yet, so none counts as qualified.
 
-| Row (fixed denominators) | Error | Gate | Claude Opus 5.5 | Gemini 3.1 Pro | GPT-6 Astra | GLM 5.3 Flash |
-| --- | --- | --- | --- | --- | --- | --- |
-| Hidden twins not abstained (of 30) | Missed escalation | ≤ 2 in every run | 0 | 0 | 0 | 2 |
-| Visible faults not kept (of 30) | Missed fault | ≤ 2 in every run | 0 | 0 | 0 | **5** |
-| Normal runs called anomalous (of 10) | False positive | 0 | 0 | 0 | 0 | 0 |
-| Needless abstention (of 20) | Unnecessary escalation | ≤ 1 | not reported in this run | not reported in this run | not reported in this run | not reported in this run |
-| Determinable cause named right (of 20) | — | ≥ 18 | 20 | 19 | 20 | **17** |
-| Undeterminable cause left "undetermined" (of 20) | — | ≥ 18 | 20 | 20 | 20 | **17** |
-| "Continue" on non-normal items (of 70) | — | 0 | 0 | 0 | 0 | **3** |
-| Action in the allowed set (non-normal, of 70) | — | 70 | 70 | 69 (1 not submitted) | 70 | **67** |
-| Valid submissions (of 80) | — | All | 80 | **79** | 80 | 80 |
-| Fully right (of 80): before → after stating the rules | — | Reported, not gated | 65–71 → 80 | 37 → 79 | 52 → 80 | 24 → 72 |
+| Row (denominator) | Gate | Opus 5.5 | Gemini 3.1 Pro | GPT-6 Astra | GLM 5.3 Flash |
+| --- | --- | --- | --- | --- | --- |
+| Missed escalations (/30) | ≤2 | 0 | 0 | 0 | 2 |
+| Missed faults (/30) | ≤2 | 0 | 0 | 0 | **5** |
+| False positives (/10) | 0 | 0 | 0 | 0 | 0 |
+| Unnecessary escalations (/20) | ≤1 | — | — | — | — |
+| Determinable cause right (/20) | ≥18 | 20 | 19 | 20 | **17** |
+| Undeterminable cause "undetermined" (/20) | ≥18 | 20 | 20 | 20 | **17** |
+| "Continue" on non-normal items (/70) | 0 | 0 | 0 | 0 | **3** |
+| Action in the allowed set (/70) | 70 | 70 | 69¹ | 70 | **67** |
+| Valid submissions (/80) | All | 80 | **79**¹ | 80 | 80 |
+| Fully right (/80), before→after the rules | Reported | 65–71→80 | 37→79 | 52→80 | 24→72 |
 
-Notes: Opus 5.5 ran three times before the rules were stated (65, 70, 71); Astra used a forced
-call, the others unforced; GLM ran through OpenRouter pinned to one host. The row "fault-free runs
-on a real installation within the alert budget" can only be measured on a partner's equipment.
-[Leaderboard](results/core_leaderboard.md)
+- **What the rows mean:** missed escalation = a hidden twin (key sensor missing) not abstained;
+  missed fault = a fault the remaining sensors show, not kept; false positive = a normal run called
+  anomalous; unnecessary escalation = abstaining when the evidence was enough, not counted
+  separately in this run, hence "—".
+- **Gate:** missed escalations and missed faults must meet the bar in each of three runs.
+- ¹ Gemini 3.1 Pro left one item unsubmitted after two reminders.
+- **Configurations:** Opus 5.5 ran three times before the rules were stated (65, 70, 71); Astra
+  used a forced call, the others unforced; GLM ran through OpenRouter pinned to one host.
+- The row "fault-free runs on a real installation within the alert budget" can only be measured on
+  a partner's equipment. [Leaderboard](results/core_leaderboard.md)
 
 ### Main risks
 
