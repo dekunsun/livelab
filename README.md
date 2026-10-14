@@ -1,6 +1,6 @@
 # LiveLab: Multimodal Lab Observer
 
-<!-- TL;DR for product readers (added 2026-10-13). Revise or remove for research-facing applications. -->
+<!-- TL;DR for product readers (added 2026-10-13). -->
 ## TL;DR
 
 ### 中文
@@ -37,7 +37,7 @@
 
 - **先找根因，再归责。** Claude 看起来“漏填字段”的失败，其实是测试运行器的输出上限截断了回答；多数原因和动作上的错误，来自任务里从没写明的评分规则。写明规则后，四种模型配置在 80 道题上完全答对的题数，从 24–71 提升到 72–80（每种各跑一次；还没有配置通过“三次运行加保留集”的上线门槛）。写明规则也改变了部分模型的状态判断，这与我事先登记的预测相反。
 - **怎么设计产品。** 正式状态由系统负责，系统的异常规则在每个仍在报数的传感器上持续运行；模型负责解释；只有模型报出的异常，转人工核查。每个模型上线前要过准入门槛，每次更新都要重测。北极星指标是告警预算内抓到的故障数。
-- **怎么做的。** 21 项预注册研究，使用模拟数据和公开的真实装置数据；不成立的预测和我自己的更正，都与结果一起公开。
+- **怎么做的。** 21 份预注册（其中 Kimi K3 的一份登记后未运行，由 GLM 替代），使用模拟数据和公开的真实装置数据；不成立的预测和我自己的更正，都与结果一起公开。
 - **局限。** 一套模拟仪器、一份公开装置数据集和一组实验室照片；还没有真实部署，也还没有做用户验证；改进后的结果每个配置只跑了一次。
 
 研究者请从 [The finding](#the-finding) 开始阅读。产品读者可看 [产品摘要](docs/product.md#中文)（概括了 PRD 和模型资格规范）、[V1S 结果](docs/results/core_leaderboard.md#reading-stating-the-tasks-cause-and-action-rules-v1s) 和 [经验教训](docs/lessons_learned.md)（英文）。
@@ -92,8 +92,9 @@ other, so in the product the system's rules own detection and the model explains
   rules keep running on every sensor that still reports; the model explains; anything only the
   model flags goes to human review. Each model passes a launch gate before use and is re-tested on
   every update. The north star is faults caught within the alert budget.
-- **How.** 21 pre-registered studies on simulated and public real-plant data, with failed
-  predictions and my own corrections published beside the results.
+- **How.** 21 registrations (one, Kimi K3, was withdrawn before it ran and replaced by GLM) on
+  simulated and public real-plant data, with failed predictions and my own corrections published
+  beside the results.
 - **Limits.** One simulated instrument, one public plant dataset and one set of lab photographs;
   no live deployment and no user validation yet; the post-fix results are one run per configuration.
 
@@ -138,11 +139,12 @@ Three things sharpen it:
 - **It is not a prompt problem, and not only a Gemini problem.** Under the benchmark's own wording
   every model abstains **0 of 55**. One added sentence defining when to answer `UNKNOWN` then moves
   Opus 5 to 13/14 and GPT-6 Astra to 14/14 — and Gemini Live by nothing (the claim that this held
-  at every thinking level is suspended until the Extended Thinking call path is reviewed).
+  at every thinking level is suspended until the Extended Thinking call path is reviewed; still
+  open as of 2026-10-14).
   [Cross-model results](docs/results/crossmodel_results.md)
-- **It is not an artefact of the simulator, as far as tested.** Put to 119 runs of a real
-  distillation plant with the plant's own expert annotations as truth, abstention was **0, 4 and 3
-  of 31**, and exactly the same again after correcting the instrument description (noted above).
+- **It is not an artefact of the simulator, as far as tested.** Put to 68 runs (31 anomalous, 37
+  fault-free) of a real distillation plant, from a 119-run public dataset, with the plant's own
+  expert annotations as truth, abstention was **0, 4 and 3 of 31**, and exactly the same again after correcting the instrument description (noted above).
   [Real-plant results](docs/results/realdata_results.md)
 - **It is not about missing sensors specifically.** Give the model a single unexplained reading and
   nothing to confirm it, and abstention is **0 of 6**, in both models tested.
@@ -183,21 +185,26 @@ models per event:
 - **It also over-reaches.** On the two runs where a sensor was missing but pressure had already
   caught the fault, the stated state made every model drop both: 4 of 6 reported before, 0 of 6
   after. Two items could not carry that, so [LiveLab Core](docs/results/core_leaderboard.md)
-  enlarged the control to 30 matched pairs, and the registered prediction held. Rerunning the
-  arm twice more showed Opus 5's counts swing by up to 5 items between identical runs, so its
-  numbers are ranges: **told a sensor was missing, Opus 5 kept 19–23 of the 30 faults the
-  remaining sensors showed, Astra 12–14, Gemini 12 (one run)** — in every run, a stated gap cost
-  described, visible faults. Opus 5 and Astra had reported all 30 with nothing added; the faults
+  enlarged the control to 30 matched pairs, and the registered prediction held. Rerun twice more:
+  **told a sensor was missing, Opus 5 kept 20 and 23 of the 30 faults the remaining sensors showed
+  in its two complete runs (19 of 26 in a third run that answered 73 of 80 items), Astra 12–14,
+  Gemini 12** — in every run, a stated gap cost described, visible faults. *(Corrected 2026-10-14:
+  an earlier version said Opus 5's counts "swing by up to 5 items between identical runs" and
+  reported them as ranges of 19–23. That spread came from comparing runs with different coverage.
+  On the 73 items all three runs answered, the spread is 2 or fewer, the same as Astra's.
+  [Details](docs/results/core_leaderboard.md#correction-2026-10-14-opus-5s-third-run-and-the-stability-reading).)* Opus 5 and Astra had reported all 30 with nothing added; the faults
   they dropped were described first, then withheld. Gemini's low count has a different cause: it
   caught only 17 of 30 to begin with. A registered remedy — the same sentence also naming the
   sensors still installed and reporting — moved Astra by +4 and Opus 5 by nothing:
   **wording does not close the gap; the system's own anomaly rules have to**
   ([remedy and stability](docs/results/core_leaderboard.md)). **Opus 5.5, run on its release
   day, is the first model that does both at once**: told the gap, it abstained on all 30 hidden
-  twins and kept all 30 visible faults, in each of three identical runs. Left to infer the gap itself, it too abstained on none —
+  twins and kept all 30 visible faults, in each of three identical runs under runner v1 (under
+  runner v2: all 30 visible faults in each of three runs, and 30, 30 and 28 hidden twins; the two
+  misses were called NORMAL with `continue` proposed). Left to infer the gap itself, it too abstained on none —
   so the system still has to state it. The call mode is one configuration variable that moved
   results: in a registered control under runner v1, Opus 5 kept 24–26 of 30 visible faults unforced
-  against 19–23 forced. It has not been retested under runner v2, and the gap between Opus 5 and 5.5
+  against 20 and 23 in its two complete forced runs. It has not been retested under runner v2, and the gap between Opus 5 and 5.5
   is a system-level difference between two configurations, not split into model and call mode.
   **Qualify the call mode you will ship, and leave room for the answer**: runner v1's 1,024-token
   output cap cut off long answers ([cause, action and schema](docs/results/core_leaderboard.md)). On Gemini, same-generation
@@ -209,7 +216,8 @@ models per event:
   reproduced (22) and Pro got 28; Live got 6, with its sessions complete and unprompted. The gap to
   Flash remained, so it cannot simply be attributed to runner v1's session handling. The rerun also scored cause and action for the first time, and **no
   model passes the full qualification gate**: Opus 5.5 leaves 9–10 of 20 determinable causes
-  undetermined, Pro names a blockage on all 19 undeterminable ones (9 were leaks), and every model
+  undetermined, Pro names a blockage on all 19 of the 20 undeterminable ones it answered (9 were
+  leaks), and every model
   but Opus 5.5 in its first run proposed `continue` on items whose state was not NORMAL (Live 60,
   Flash 27, Pro 20 of 70; Opus 5.5 0, 1 and 5 in three runs)
   ([Opus 5.5](docs/core_v2_opus55_preregistration.md), [Gemini](docs/core_v2_gemini_preregistration.md)).
@@ -242,7 +250,7 @@ protocol step. Every study was registered first, and the labels held up to a bli
 | On the same 100 inspections | Right |
 | --- | ---: |
 | **Gemini 3.8 Live, looking at the photograph with the check in hand** | **74** |
-| A specialist: frozen DINOv2 features, nearest neighbours among 2,474 of this lab's labelled photographs | 65 |
+| A specialist: frozen DINOv2 features, nearest neighbours over 2,474 training annotations of this lab's own photographs | 65 |
 | Claude Opus 5, looking at the photograph (23 abstentions) | 57 |
 | The specialist's verdict handed to Gemini, with no photograph | 51 |
 | The same, handed to Opus 5 | 23 |
@@ -285,7 +293,7 @@ the predictions I lost — are in the same file.
 
 | Study | What it asks | Registration | Result |
 | --- | --- | --- | --- |
-| Benchmark | Does context or imagery fix detection? Does confidence track observability? | [design](docs/design.md) | 38 replays × 3 arms, [6,728 events](docs/results/arm_comparison.md) |
+| Benchmark | Does context or imagery fix detection? Does confidence track observability? | [design](docs/design.md) | 38 replays × 3 arms, [6,612 events](docs/results/arm_comparison.md) |
 | `UNKNOWN` probe | Is it knowledge, convention, or option bias? | [registered](docs/probe_preregistration.md) | none of the three — [findings](docs/results/probe_findings.md) |
 | Cross-model | Is it this family, or frontier models? | [registered](docs/crossmodel_preregistration.md) | [both, differently](docs/results/crossmodel_results.md) |
 | Undersampling | Is observability set by the model or the sampling rate? | [registered](docs/undersampling_preregistration.md) | [by the sampling rate](docs/results/undersampling_results.md) |
@@ -295,14 +303,20 @@ the predictions I lost — are in the same file.
 | System state | If the system says a condition cannot be verified, do models abstain, and only there? | [registered](docs/system_state_preregistration.md) | [two of three do; all three over-reach on two items](docs/results/system_state_results.md) |
 | Pilot 1, PDMS stills | When the picture carries the answer, is it used together with the protocol step? | [registered](docs/pilots_preregistration.md) | [yes; a task-blind description is not a substitute](docs/results/pilot1_results.md) |
 | Specialist | Native multimodal, or a vision model trained on the lab's own photographs, alone or feeding an LLM? | [registered](docs/specialist_preregistration.md) | [Gemini beat the specialist; the hand-off was worst](docs/results/specialist_results.md) |
-| **LiveLab Core** | With a sensor missing, can a model tell "the gap hides the fault" from "the fault shows on what remains"? 30 matched pairs, packaged as a suite for any model | [registered](docs/core_preregistration.md) | [Opus 5, Astra and Gemini drop described faults once told (19–23, 12–14 and 12 of 30 kept); Opus 5.5, run on release day, is the first to keep all 30 while abstaining on all 30 hidden twins; under runner v2 no model passes the full gate; stating the scoring rules (V1S) fixed cause and action for Opus 5.5 and Pro in one run each](docs/results/core_leaderboard.md); [how to run it](docs/core.md) |
+| **LiveLab Core** | With a sensor missing, can a model tell "the gap hides the fault" from "the fault shows on what remains"? 30 matched pairs, packaged as a suite for any model | [registered](docs/core_preregistration.md) | [Opus 5, Astra and Gemini drop described faults once told (Opus 5 kept 20 and 23 of 30 in two complete runs, Astra 12–14, Gemini 12); Opus 5.5, run on release day, is the first to keep all 30 while abstaining on all 30 hidden twins; under runner v2 no model passes the full gate; stating the scoring rules (V1S) met every cause and action target for Opus 5.5 and Pro in one run each](docs/results/core_leaderboard.md); [how to run it](docs/core.md) |
+| Core: remedy wording and stability | Does naming the sensors that still work close the gap? Are single-run counts stable? | [registered](docs/core_remedy_preregistration.md) | [the remedy failed; counts stable within 2 items on the items every run answered (corrected 2026-10-14)](docs/results/core_leaderboard.md) |
+| Core: call mode | Does a forced function call change the counts? | [registered](docs/core_toolchoice_preregistration.md) | [unforced Opus 5 kept 3–5 more; one model, runner v1](docs/results/core_leaderboard.md) |
+| Core: Gemini Live, Flash and Pro, and a hand-off | Same family, different interfaces; and Flash judging from Live's narration | [registered](docs/core_gemini_preregistration.md) | [Flash 22 and Pro 27 pairs against Live 10; the hand-off 13](docs/results/core_leaderboard.md) |
+| Core under runner v2 | With every exchange recorded and the output cap raised, do the counts hold? Cause and action scored for the first time | [Opus 5.5](docs/core_v2_opus55_preregistration.md) · [Gemini](docs/core_v2_gemini_preregistration.md) · [Astra](docs/core_v2_astra_preregistration.md) | [the state holds; no model passes the cause and action gate](docs/results/core_leaderboard.md) |
+| Core V1S: the task states its scoring rules | Were the cause and action failures the model's or the task's? | [registered](docs/core_v2_rules_preregistration.md) · [GLM](docs/core_v2_glm_preregistration.md) | [mostly the task's: Opus 5.5 and Astra met every row, Pro all but one missing submission, GLM 24 → 72 of 80](docs/results/core_leaderboard.md) |
+| Single-image inspection | Does a zoom tool help a model read a lab photograph? | [registered](docs/pdms_inspect_preregistration.md) | [+1 of 40, below the registered bar](docs/results/pdms_inspect_results.md) |
 | Pilot 2, CAXTON video | Can a person see a printing failure without the log? | [registered](docs/pilots_preregistration.md) | [yes, but no clean normal control: stopped](docs/results/pilot2_results.md) |
 | Camera follow-up | Was it the photographs, or the sentence announcing them? | [registered](docs/vision_followup_preregistration.md) | [the announcement alone gives about half; content not testable on these runs](docs/results/vision_followup_results.md) |
 
 Detection and context effects, which the first study measures, are in
 [arm comparison](docs/results/arm_comparison.md): reference curves take detection from **0.50 to
-0.90** and false alerts from **0.83 to 0.00**, and curves alone do as well as curves plus
-micrographs — in-run detection comes from context, not from images.
+0.90** and false alerts from **0.83 to 0.11** (0.00 with micrographs added), and curves alone
+detect as well as curves plus micrographs — in-run detection comes from context, not from images.
 
 ### Which half of the thesis this tests
 
@@ -311,7 +325,7 @@ The project began from two claims. It has tested the second in full, and the fir
 | | Status |
 | --- | --- |
 | **Physical observability exceeds software observability**, so a lab agent needs eyes as well as telemetry | **Strong form not tested; weak form tested, and it failed.** No public dataset has faults that only a camera can see ([survey](docs/material_survey.md)), so the strong form is untested. The weak form asks whether a camera covers for a missing instrument. It was tested on 48 real-plant items, and the camera did not help: Gemini ignored it, and Opus 5 alarmed more on faulty and fault-free runs alike ([results](docs/results/vision_results.md)). **Where the picture does carry the answer**, on lab inspection stills, the models use it, and Gemini beat a specialist trained on the lab's own photographs ([above](#when-the-picture-does-carry-the-answer)). Live, camera-only failures remain untested |
-| **An agent cannot tell "I can't see it" from "nothing is wrong"** | **Tested, and this is the result above.** It holds across two families, seven framings and 97 items |
+| **An agent cannot tell "I can't see it" from "nothing is wrong"** | **Tested, and this is the result above.** It holds across three model families (four models), seven framings and 2,134 judgments |
 
 The second is the first one's precondition: an agent that does not know it is blind will not be
 fixed by giving it eyes — it will report with the same confidence, now about pixels too. That is
@@ -373,8 +387,9 @@ reference curves) and **C-full** (+ micrographs).
   (DeepMind arXiv 2608.26701; Anthropic MHS), but the curve shapes are the author's.
 - **The simulator flatters the models, and by how much is measured.** Its reference bands come
   from 100 normal runs of an identical process, which a real plant does not have. On the real
-  plant, with the instruments described correctly, the same three models reach **0.32, 0.55 and
-  1.00** detection against 0.90 here. They call a fault-free run anomalous **8%, 35% and 97%** of
+  plant, with the instruments described correctly, three models reach **0.32, 0.55 and
+  1.00** detection against Gemini 3.8 Live's 0.90 here (the only model run on the three-arm
+  benchmark). They call a fault-free run anomalous **8%, 35% and 97%** of
   the time, against 0.00 in the full arm here
   ([rerun](docs/results/realdata_v2_results.md)). Read this page's detection and false-alert
   numbers as an upper bound. The abstention result is the one that carried across.
@@ -395,7 +410,8 @@ reference curves) and **C-full** (+ micrographs).
   `scripts/check_image_label_exposure.py`). An expert review would let this project make claims
   from images; until then it makes none.
 - **One model, one run per replay.** Different seeds gave near-identical outputs (57 of 58 events),
-  so variance comes from episode variants. Other models are untested.
+  so variance comes from episode variants. Other models are untested on the three-arm benchmark
+  (they ran on the probes, the real plant and Core).
 - **Scientific-evidence judgments from images are confounded.** The prompt never defined the
   target as a *monolayer*, and the micrographs include several TMDs. These judgments are therefore
   not claimed as results.
@@ -452,11 +468,16 @@ never paste the key anywhere else.
 ./.venv/bin/python scripts/run_probes.py && ./.venv/bin/python scripts/score_probes.py
 ```
 
-To score a new model on the one failure this project is about, run [LiveLab Core](docs/core.md):
-80 frozen items, 240 calls, about US$10 at Claude Opus 5 prices, with a spend cap.
+To score a new model on the one failure this project is about, run [LiveLab Core](docs/core.md)
+with runner v2, which records every exchange and raises the output cap to 8,192 tokens (runner v1's
+1,024-token cap cut off long answers): 80 frozen items per arm, about US$5 per arm at Claude Opus
+5.5 prices, with a spend cap. V1S is the default task statement for qualification runs; a
+qualification claim needs three runs and the private hold-out.
 
 ```bash
-./.venv/bin/python scripts/run_core.py --backend opus-5 && ./.venv/bin/python scripts/score_core.py
+./.venv/bin/python scripts/run_core_v2.py --backend opus-5.5 --arm V1S --tool-choice auto --limit 3   # smoke test
+./.venv/bin/python scripts/run_core_v2.py --backend opus-5.5 --arm V1S --tool-choice auto             # 80 items, resumable
+./.venv/bin/python scripts/score_core_rules.py --model claude-opus-5-5 --runs V1S.auto
 ```
 
 On the free tier, one replay takes about a minute and roughly 0.4M cumulative prompt tokens. The
@@ -469,6 +490,13 @@ compact JSON.
 - **Images in `data/images/cvd/`:** panels cropped from CC BY 4.0 articles. Each image's source,
   figure, panel and licence are in `data/images/manifest.csv`, with per-source attribution in
   `data/images/ATTRIBUTION.md`. Reuse them under CC BY 4.0, citing the original papers.
+- **Real-plant telemetry in `data/realdata/items.json` and camera frames in `data/vision/`:**
+  derived from the batch distillation dataset (Arweiler et al.; concept DOI
+  10.5281/zenodo.17395543, version 1.1.3 record 10.5281/zenodo.22250958), CC BY 4.0; see
+  `data/realdata/ATTRIBUTION.md`.
+- **Lab inspection photographs in `data/pdms_pilot/` and printing frames in `data/pilot2/`:** from
+  the PDMS self-driving-lab anomaly dataset (Lin et al. 2025, figshare, CC BY 4.0) and CAXTON
+  (Brion and Pattinson 2022, CC BY 4.0); attribution files in those directories.
 - **Telemetry and episodes:** author-constructed simulation, covered by the MIT licence above, and
   not data from any real run.
 
@@ -485,9 +513,16 @@ compact JSON.
 - pilot 1 (PDMS stills), pilot 2 (CAXTON video, stopped at its registered condition), and the
   specialist comparison;
 - the system-state test of the project's own recommendation;
-- LiveLab Core, on four models (Opus 5.5 added on its release day), plus the registered remedy arm and a three-run stability
-  check ([leaderboard](docs/results/core_leaderboard.md)): the remedy wording failed, Astra's
-  counts are stable to ±2, and Opus 5's swing by up to 5, so its counts are reported as ranges.
+- LiveLab Core, on seven models (Gemini 3.8 Live, 3.8 Flash and 3.1 Pro; Claude Opus 5 and 5.5;
+  GPT-6 Astra; GLM 5.3 Flash), plus the registered remedy arm, a three-run stability check, the
+  call-mode control and the Live-to-Flash hand-off ([leaderboard](docs/results/core_leaderboard.md)):
+  the remedy wording failed; Astra's and Opus 5's counts are stable within 2 items on the items
+  every run answered (Opus 5's third run answered 73 of 80; corrected 2026-10-14);
+- LiveLab Core under runner v2 (Opus 5.5 three runs; Gemini Live, Flash and Pro; Astra; GLM), with
+  cause and action scored for the first time, and the V1S task statement on Opus 5.5, Pro, GLM and
+  Astra: no configuration has passed the full qualification gate (three runs plus the hold-out);
+- the single-image inspection test: Gemini 3.8 Flash with a zoom tool on the 40 PDMS flip items,
+  +1 item, below the registered bar ([results](docs/results/pdms_inspect_results.md)).
 
 **Not done:**
 

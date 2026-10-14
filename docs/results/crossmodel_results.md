@@ -22,7 +22,8 @@ benchmark reports, and it now holds across three families.
 means the installed sensors positively show that the process is executing as expected. If something
 that matters for the current stage cannot be checked with the installed sensors, report UNKNOWN."*
 — takes Opus 5 to 93% and Astra to 100%, and moves Gemini by nothing, in either model, at any
-thinking level.
+thinking level. *(The "at any thinking level" part is suspended since 2026-09-22, until the
+Extended Thinking call path is reviewed: [runner v1 limitations](../core_runner_v1_limitations.md).)*
 
 ## The guards
 

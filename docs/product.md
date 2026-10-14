@@ -17,7 +17,7 @@ Chinese first, then [English](#english).
 | 核心设计 | 系统决定正式状态，模型负责解释；证据不够就显示“无法验证”并转人工；只有模型报出的异常也转人工核查 |
 | 衡量方式 | 四类错误都越低越好：漏报 ≤ 10%、误伤在告警预算内、漏送审每次运行为 0、过度送审 ≤ 1/20 |
 | 模型准入 | 按配置在私有保留集上跑三次，过门槛才能上线；每次模型更新都重测 |
-| 现状 | 写明评分规则后，3 个前沿模型配置在公开集上一次运行各行达标；还没有配置正式取得资格；尚未部署、尚无用户验证 |
+| 现状 | 写明评分规则后，两个前沿配置（Opus 5.5、Astra）在公开集上一次运行各行达标，Gemini 3.1 Pro 差一次未提交；还没有配置正式取得资格；尚未部署、尚无用户验证 |
 
 ### 用户与要完成的事
 
@@ -53,7 +53,7 @@ Chinese first, then [English](#english).
 | 模型说“无法验证”，却照样下结论 | 起点：原始任务说法下漏送审 2,127 / 2,134（99.7%）；四个模型中三个在 12 道这类题上全部如此；真实装置数据上三个模型漏送审 27–31 / 31 | 系统计算可观测性，NORMAL 只表示已验证（FR2、FR4） |
 | 只靠提示词，两类错误此消彼长 | 告知“哪些无法验证”后漏送审 0 / 14，可见故障漏报却升到 7–18 / 30（Opus 5、Astra） | 异常规则在每个仍在报数的传感器上持续运行，模型清除不了（FR3、FR4） |
 | 真实数据上误伤很高 | 真实精馏装置的无故障运行被判异常 8%–97%，因模型而异 | 按每个合作方的正常运行重建参考带；告警策略控制误伤（第 1 阶段、FR6） |
-| 先把证据转成文字再交接会丢信息 | 同样 100 张实验室照片，先交给专用视觉模型再交给语言模型：Opus 5 从 57 降到 23，Gemini 从 74 降到 51 | 传原始证据，模型按需取回（FR14） |
+| 先把证据转成文字再交接会丢信息 | 同样 80 张实验室照片上的 100 次检查，先交给专用视觉模型再交给语言模型：Opus 5 从 57 降到 23，Gemini 从 74 降到 51 | 传原始证据，模型按需取回（FR14） |
 | 多数原因和动作错误来自没写明的规则 | 写明评分规则后，4 种配置完全答对的题数从 24–71 升到 72–80（共 80） | 资格测试的任务写明评分规则；原因和下一步由系统限定（FR11、FR12） |
 | 修好后，前沿模型两类错误同时清零 | Opus 5.5、Gemini 3.1 Pro、GPT-6 Astra 漏送审和漏报都是 0 / 30、误伤 0 / 10；开源 GLM 5.3 Flash 为 2 / 30 和 5 / 30 | 模型按配置过准入门槛，每次更新重测（见“模型资格”） |
 
@@ -124,7 +124,7 @@ flowchart LR
 | 采用率与留存 | 工具采用率 | 符合条件的运行中开启监控的比例；四周后仍在使用的运行负责人比例 | 从第一个合作方开始跟踪 |
 | 每监控小时成本 | 单位成本 | 模型花费 ÷ 监控小时数 | 从第一个合作方开始报告 |
 
-护栏按每次运行计，不按每次更新计：每两分钟更新一次时，如果每次更新有 1% 出错，约 44% 的两小时运行会至少出现一次。
+护栏按每次运行计，不按每次更新计：一次运行 58 次更新（每两分钟一次）时，如果每次更新有 1% 出错，约 44% 的运行会至少出现一次。
 
 ### 上线阶段、门槛与停止条件
 
@@ -149,7 +149,7 @@ v1 不做：操作仪器、摄像头监控（等第 0 阶段的数据门槛）�
 | 漏送审（/30） | ≤2 | 0 | 0 | 0 | 2 |
 | 漏报（/30） | ≤2 | 0 | 0 | 0 | **5** |
 | 误伤（/10） | 0 | 0 | 0 | 0 | 0 |
-| 过度送审（/20） | ≤1 | — | — | — | — |
+| 过度送审（/20） | ≤1 | 0 | 0¹ | 0 | 0 |
 | 可确定原因点对（/20） | ≥18 | 20 | 19 | 20 | **17** |
 | 不可确定原因说“未定”（/20） | ≥18 | 20 | 20 | 20 | **17** |
 | 非正常题建议“继续”（/70） | 0 | 0 | 0 | 0 | **3** |
@@ -187,7 +187,7 @@ v1 不做：操作仪器、摄像头监控（等第 0 阶段的数据门槛）�
 | Core design | The system sets the official status and the model explains; without enough evidence the status is "cannot verify" and goes to a human; anomalies only the model reports also go to human review |
 | How it is measured | Four errors, lower is better: missed faults ≤ 10%, false positives within the alert budget, zero missed escalations per run, unnecessary escalations ≤ 1/20 |
 | Model admission | Each configuration runs three times on a private hold-out and must pass a gate before launch; re-tested on every model update |
-| Status | With the scoring rules stated, three frontier configurations met every row in one run on the public set; none has formally qualified; not deployed, no user validation yet |
+| Status | With the scoring rules stated, two frontier configurations (Opus 5.5 and Astra) met every row in one run on the public set and Gemini 3.1 Pro all but one missing submission; none has formally qualified; not deployed, no user validation yet |
 
 ### The user and the job
 
@@ -227,7 +227,7 @@ experiment waiting all night.
 | Models say "cannot verify", then give a verdict anyway | Start: 2,127 of 2,134 escalations missed (99.7%) under the original task wording; three of four models did so on all 12 such items; on real plant data three models missed 27–31 of 31 | The system computes observability; NORMAL means verified (FR2, FR4) |
 | A prompt alone trades one error for the other | Telling models what cannot be verified cut missed escalations to 0 of 14 but raised missed faults to 7–18 of 30 (Opus 5, Astra) | Anomaly rules keep running on every sensor that still reports, and the model cannot clear them (FR3, FR4) |
 | False positives are high on real data | Fault-free runs on a real distillation plant were flagged anomalous 8% to 97% of the time, by model | Rebuild reference bands from each partner's normal runs; the alert policy keeps false positives in budget (stage 1, FR6) |
-| Turning evidence into text before a hand-off loses information | On the same 100 lab photographs, passing a specialist vision model's verdict to a language model took Opus 5 from 57 to 23 and Gemini from 74 to 51 | Pass raw evidence; the model fetches what it needs (FR14) |
+| Turning evidence into text before a hand-off loses information | On the same 100 inspections of 80 lab photographs, passing a specialist vision model's verdict to a language model took Opus 5 from 57 to 23 and Gemini from 74 to 51 | Pass raw evidence; the model fetches what it needs (FR14) |
 | Most cause and action errors came from unstated rules | Stating the scoring rules took four configurations from 24–71 to 72–80 of 80 fully right | The qualification task states the scoring rules; the system bounds causes and next steps (FR11, FR12) |
 | After the fixes, frontier models cleared both errors | Claude Opus 5.5, Gemini 3.1 Pro and GPT-6 Astra: 0 of 30 missed escalations, 0 of 30 missed faults, 0 of 10 false positives; open-weight GLM 5.3 Flash: 2 of 30 and 5 of 30 | Each configuration passes the launch gate and is re-tested on every update (see Model qualification) |
 
@@ -308,7 +308,7 @@ False reassurance is a missed escalation.
 | Cost per monitored hour | Unit cost | Model spend over monitored hours | Reported from the first partner |
 
 Guardrails are counted per run, not per update: at one update every two minutes, a 1% per-update
-error rate would touch about 44% of two-hour runs.
+error rate would touch about 44% of 58-update runs (one update every two minutes).
 
 ### Rollout, with gates and stop rules
 
@@ -338,7 +338,7 @@ stated. There are no repeats and no hold-out yet, so none counts as qualified.
 | Missed escalations (/30) | ≤2 | 0 | 0 | 0 | 2 |
 | Missed faults (/30) | ≤2 | 0 | 0 | 0 | **5** |
 | False positives (/10) | 0 | 0 | 0 | 0 | 0 |
-| Unnecessary escalations (/20) | ≤1 | — | — | — | — |
+| Unnecessary escalations (/20) | ≤1 | 0 | 0¹ | 0 | 0 |
 | Determinable cause right (/20) | ≥18 | 20 | 19 | 20 | **17** |
 | Undeterminable cause "undetermined" (/20) | ≥18 | 20 | 20 | 20 | **17** |
 | "Continue" on non-normal items (/70) | 0 | 0 | 0 | 0 | **3** |

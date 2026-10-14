@@ -5,8 +5,8 @@ with a wall-clock timestamp per frame in a .txt beside the video, so a decision 
 frame index exactly rather than approximately.
 
 Needs the footage fetched by scripts/fetch_zenodo_members.py. Frames are written under
-data/vision/, which is gitignored: they are CC BY 4.0 and attributed in
-data/realdata/ATTRIBUTION.md, but 20 runs of stills do not belong in a git history.
+data/vision/ and are committed (CC BY 4.0, attributed in data/realdata/ATTRIBUTION.md), so the
+camera items can be checked without refetching 20 runs of footage.
 
   ./.venv/bin/python scripts/make_vision_items.py
 """

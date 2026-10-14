@@ -559,7 +559,7 @@ The demo is built after the benchmark, on the same simulator. It is a closed loo
 - the observer screen shows the software view and the physical view side by side, the two-field
   judgment, what evidence is missing and when it arrives, and the proposed next step.
 
-It exists to show a hiring manager what an observability-aware lab workstation feels like. Nothing
+It exists to show a reader what an observability-aware lab workstation feels like. Nothing
 measured in the demo is reported as a result.
 
 ## 11. Questions

@@ -61,14 +61,19 @@ remaining sensors show does well on both.
 
 ```bash
 python3 -m venv .venv && ./.venv/bin/pip install numpy pyyaml pytest google-genai
-echo "ANTHROPIC_API_KEY=..." >> livelab/.env      # or OPENAI_API_KEY / GEMINI_API_KEY; never commit it
-./.venv/bin/python scripts/run_core.py --backend opus-5 --limit 2    # smoke test, 6 calls
-./.venv/bin/python scripts/run_core.py --backend opus-5              # 240 calls, resumable
-./.venv/bin/python scripts/score_core.py                             # rewrites the leaderboard
+echo "ANTHROPIC_API_KEY=..." >> .env      # repository root; or OPENAI_API_KEY / GEMINI_API_KEY; never commit it
+./.venv/bin/python scripts/run_core_v2.py --backend opus-5.5 --arm V1S --tool-choice auto --limit 3   # smoke test
+./.venv/bin/python scripts/run_core_v2.py --backend opus-5.5 --arm V1S --tool-choice auto             # 80 items, resumable
+./.venv/bin/python scripts/score_core_rules.py --model claude-opus-5-5 --runs V1S.auto               # fixed denominators
 ```
 
-About US$10 per model at Claude Opus 5 prices. The runner stops at a spend cap (`--cap`, default
-US$15). A new model is a new entry in `MODELS` and, for a request/response API, in `PROVIDER`
+Use runner v2 ([rules](core_runner_v2.md)): it records every exchange and raises the output cap to
+8,192 tokens. Runner v1 (`scripts/run_core.py`, 1,024-token cap, arms V0 / V1 / B1, scored by
+`scripts/score_core.py`) is kept to reproduce the v1 tables and its records are read with
+[these limits](core_runner_v1_limitations.md). V1S is the default task statement for qualification
+runs since 2026-09-24; V0 and V1 remain for the state-only comparison. About US$5 per arm at Claude
+Opus 5.5 prices (US$14.80 for three V1 runs, US$5.07 for V1S). The runner stops at a spend cap
+(`--cap`, default US$5 for v2). *(Updated 2026-10-14: this section previously showed only runner v1.)* A new model is a new entry in `MODELS` and, for a request/response API, in `PROVIDER`
 (`scripts/run_probes.py`).
 
 ## Keeping it honest

@@ -12,6 +12,7 @@ reviewed it; until then the row says `pending human review`.
 - **API**: repository API (figshare / Zenodo / GitHub), checked 2026-09-18.
 - **agent**: reported by a research agent from the article page and not yet re-checked. Re-check
   before use.
+- **Crossref 2026-10-14**: Crossref license URL for the version of record, checked 2026-10-14.
 
 Use rules:
 
@@ -44,7 +45,7 @@ Outcome classes:
 | 7 | Multilayer MoSe₂ TFT, *Sci. Rep.* 2015 | 10.1038/srep15313 | CC BY 4.0 | Crossref | Fig 1b,c → c | |
 | 8 | MoS₂/MoO₂ microflowers, *Sci. Rep.* 2022 | 10.1038/s41598-022-26185-z | CC BY 4.0 | Crossref | Fig 1c, 2, 5 → c e | Oxide-rich growth |
 | 9 | Single-crystal WS₂ monolayer, *Micromachines* 2021 | 10.3390/mi12020137 | CC BY | EPMC | Fig 1a → a | Clean positive control |
-| 10 | Submillimeter WSe₂ / MoSe₂, *Materials* 2023 | 10.3390/ma16134795 | CC BY 4.0 | agent | Fig 2 → a | Positive control |
+| 10 | Submillimeter WSe₂ / MoSe₂, *Materials* 2023 | 10.3390/ma16134795 | CC BY 4.0 | Crossref 2026-10-14 | Fig 2 → a | Positive control |
 | 11 | Barrier-assisted MoS₂, *Nanoscale Adv.* 2020 | 10.1039/d0na00524j | CC BY-NC | EPMC | Fig 2 → a c e; Fig 3 → f | Paid tier only; mostly on sapphire |
 | 12 | Processing parameters, MoSe₂, *RSC Adv.* 2022 | 10.1039/d2ra00387b | CC BY-NC 3.0 | agent | Fig 1 → a f | Paid tier only; few failures |
 | 13 | Precursor ratio and MoS₂ morphology, *Crystals* 2026 | 10.3390/cryst16080480 | CC BY | agent | Fig 3 → dendritic | |

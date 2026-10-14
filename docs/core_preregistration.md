@@ -94,7 +94,7 @@ Coverage is reported per arm and not read below 90%.
 | Outcome | Reading |
 | --- | --- |
 | Pc2 holds | The over-reach is real at thirty pairs. Principle 2 (detection never depends on the model) and the revised recommendation stand on evidence, not on two items |
-| Pc2 fails: models keep most visible faults | **The two-item result was noise.** The claim that stating a gap switches off detection is withdrawn from the README, the result pages, the portfolio page and the product plan |
+| Pc2 fails: models keep most visible faults | **The two-item result was noise.** The claim that stating a gap switches off detection is withdrawn from the README, the result pages, the project summary pages and the product plan |
 | Pc1 fails for Gemini or Opus 5 | "Perceived but ignored" does not replicate on new items for that model, and is reported as item-dependent |
 | Pc3 fails for Opus 5 or Astra | Stating the gap is not enough even for the models it worked for; the system decides |
 | Pc5 fails | V1 makes models abstain on runs where nothing is missing; the sentence itself is the problem |

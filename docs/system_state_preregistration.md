@@ -111,4 +111,6 @@ Differences under three items are not interpreted.
 
 ## Deviations log
 
-None yet.
+1. **Opus 5 ran in two parts (logged 2026-10-14; noted on the results page at the time).** It
+   stopped at 65 of 114 calls on a spend limit set on the Anthropic account, and the remaining 49
+   ran after the limit was raised, with the same script and inputs. No answer was altered.

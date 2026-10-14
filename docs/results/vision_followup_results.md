@@ -64,8 +64,9 @@ On fault-free runs, counted in items out of 29:
   comparison that could show whether content matters is on the faulty items, where the own footage
   shows a faulty run and the donor a normal one. There the difference is 2 items (+21 against +11
   points), too few to read.)*
-- **Every false alert on a fault-free run, in all four arms, cites the same reading:** `T701`, the
-  reboiler temperature (9, 20, 15 and 19 of 29 alerts respectively). The stated reasons are
+- **Every false alert on a fault-free run, in all four arms, cites the same reading:** `T701`, which
+  that study's plant description called the reboiler temperature; it is heater H701, see below
+  (9, 20, 15 and 19 of 29 alerts respectively). The stated reasons are
   telemetry. That does not prove the images played no part: reasons a model writes are not a
   record of what moved it, in either direction.
 - **Opus never noticed the photographs were missing.** In the sentence arm it was told six

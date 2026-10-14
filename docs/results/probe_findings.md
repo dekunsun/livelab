@@ -9,7 +9,7 @@ The design, predictions and reading rules were registered before any probe ran
 
 | Explanation | Registered test | Result | Reading |
 | --- | --- | --- | --- |
-| **K** knowledge | P1 detectability, balanced accuracy ≥ 80% | 81% (41/48); distinguishability 9/12 | The model mostly knows which sensors can see which faults. **K is not the main cause.** |
+| **K** knowledge | P1 detectability, balanced accuracy ≥ 80% | balanced accuracy 81% (raw 41/48 = 85%); distinguishability 9/12 | The model mostly knows which sensors can see which faults. **K is not the main cause.** |
 | **R** reporting | B1: says `cannot_verify` on ≥ half of U, conflation ≥ 40% | `cannot_verify` 12/14; of those, **12/12 then reported `NORMAL`** | **Supported.** It states that atmosphere integrity cannot be verified, then reports that execution is normal. |
 | **C** convention | B2: explicit definition raises abstention to ≥ 50% | **0/14**; N 0/15, A 4/9 | **Not supported.** The behavior survives an explicit instruction to answer UNKNOWN in exactly this situation. |
 | **O** option bias | B3: renamed/reordered enum changes abstention by ≥ 20 points | 0/14 vs 0/14 | **Not supported.** Neither position nor name matters. |

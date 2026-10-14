@@ -8,7 +8,7 @@
 > Arweiler, Justus; Jungjohann, Indra; Werner, Jennifer; Muraleedharan, Aparna; Schmid, Jochen; Leitte, Heike; Burger, Jakob; Münnemann, Kerstin; Bortz, Michael; Jirasek, Fabian; Hasse, Hans.
 > *Batch Distillation Data for Developing Machine Learning Anomaly Detection Methods*.
 > Zenodo, version 1.1.3, 2026-09-02.
-> DOI: [10.5281/zenodo.22250958](https://doi.org/10.5281/zenodo.22250958)
+> DOI: [10.5281/zenodo.22250958](https://doi.org/10.5281/zenodo.22250958) (version 1.1.3; the concept DOI for all versions, cited on the result pages, is [10.5281/zenodo.17395543](https://doi.org/10.5281/zenodo.17395543))
 > Licence: **CC BY 4.0** (https://creativecommons.org/licenses/by/4.0/)
 
 ## What was derived, and what was not
@@ -17,8 +17,11 @@
   decimals, re-serialised into this project's compact event format, plus the condition and the
   supported answer taken from the record's own expert annotations.
 - Values are the authors' measurements. Nothing was simulated, interpolated or generated.
-- The record's **audio, video, NMR and raw spectra are not used and not redistributed**. Only the
-  small tabular parts were ever downloaded.
+- The record's **audio, NMR and raw spectra are not used and not redistributed**. Frames cut from
+  the record's video for the camera studies are redistributed under `data/vision/` with
+  `data/vision/items.json` (CC BY 4.0, same source, by `scripts/make_vision_items.py`); the video
+  files themselves are not. *(Corrected 2026-10-14: this line said the video was not redistributed
+  after the frames had been committed.)*
 - The full record is **not** committed here: `data/external/` is gitignored, and
   `scripts/fetch_batch_distillation.py` fetches what is needed.
 

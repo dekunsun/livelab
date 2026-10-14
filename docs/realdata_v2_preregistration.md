@@ -70,4 +70,5 @@ backend reports no usage. **Cap: US$14.**
 
 ## Deviations log
 
-None yet.
+None recorded. The rerun completed on 2026-09-21 ([results](results/realdata_v2_results.md)).
+*(Entry written 2026-10-14; the line said "None yet" after the study had finished.)*

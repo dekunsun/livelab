@@ -1,8 +1,8 @@
 # Real-plant replication: the finding holds, and the simulator was flattering the models
 
 > **Correction (2026-09-21).** The plant description the models read in this study was wrong:
-> it called five heater temperatures column temperatures, swapped reflux and distillate, and
-> called the cooling-water flow a ratio ([deviation 5](../realdata_preregistration.md)). A
+> it called five heater temperatures column temperatures, swapped reflux and distillate,
+> called the cooling-water flow a ratio and the buffer vessel's pressure difference a column one ([deviation 5](../realdata_preregistration.md)). A
 > registered rerun under the corrected description
 > ([results](realdata_v2_results.md)) left abstention on Blind exactly unchanged (0, 4 and 3 of
 > 31). Opus 5's and Astra's false alerts did not fall (12 → 13, 37 → 36): they alert on the
@@ -76,14 +76,15 @@ verdict changed very little when a quarter to two-thirds of the instruments went
 
 ## What this costs the benchmark
 
-**On the simulator, false alerts in the full-evidence arm were 0.00. On the real plant, the same
-models call a fault-free run anomalous 22% and 32% of the time.**
+**On the simulator (Gemini 3.8 Live, the only model run on it), false alerts in the full-evidence
+arm were 0.00. On the real plant, Opus 5 and Astra call a fault-free run anomalous 22% and 32% of
+the time.**
 
 That is a criticism of this project's own testbed, and it belongs here rather than in a footnote.
 The simulator's reference bands are built from 100 normal runs of an identical process; a real
 plant's fault-free runs differ from each other in ways a calibrated band does not capture. **The
-benchmark's false-alert numbers are optimistic, and its detection numbers (0.90) are too** — on
-real data the same models reach 0.65 and 0.71.
+benchmark's false-alert numbers are optimistic, and its detection numbers (0.90, Gemini 3.8 Live)
+are too** — on real data Opus 5 and Astra reach 0.65 and 0.71.
 
 What does *not* change between the two is the abstention result, which is the finding the project
 reports.
@@ -97,5 +98,5 @@ reports.
 - **The blind condition is structural, not proven** — see the caveat above and deviations 1 and 2
   of the registration.
 - **One run per item**, 31 items per anomalous condition.
-- Token usage was not aggregated for the Live backend, so only the Opus 5 spend is measured:
-  **$3.88** for 99 items.
+- Token usage was not aggregated for the Live backend, so Gemini's spend is not measured; Opus 5
+  spent **$3.88** and Astra **$5.08** for 99 items each.

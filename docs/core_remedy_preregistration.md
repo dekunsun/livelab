@@ -94,3 +94,11 @@ at US$30 (Opus 5) and US$40 (Astra).
 2. **2026-09-22, Opus 5.5 repetitions added.** After its release-day Core run scored 30/30 on the
    V1 headline counts, its V1 arm is rerun twice more under this registration's repetition
    protocol and read under Pm4's spread rule. Logged here before the repetitions ran.
+3. **2026-10-14, Opus 5's third V1 run is incomplete, and the stability reading is corrected.**
+   `results/core/claude-opus-5/V1.rep2` holds 73 of 80 records; `core_leak_lp_02` to `_05` (four
+   visible and three hidden twins) were never answered and this was not logged at the time. The
+   leaderboard printed that run over the first run's denominator, and the "spread of 4–5" read
+   from it compared runs with different coverage. On the 73 items all three runs answered the
+   spread is ≤ 2. Pm4 is therefore not evaluable for Opus 5 as registered, rather than failed;
+   the scorer now prints each run's own denominator; the seven items are not rerun (the 1.0
+   experiments are frozen). Details: [leaderboard correction](results/core_leaderboard.md#correction-2026-10-14-opus-5s-third-run-and-the-stability-reading).

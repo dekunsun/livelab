@@ -5,8 +5,9 @@ environment that a skeptical reader is willing to believe. Every episode therefo
 that states where each piece of evidence came from, what the ground truth is, and what was
 constructed.
 
-The episode YAML in `scenarios/` is the source of truth. The human-readable cards are generated
-from it, so the two cannot drift apart.
+The episode YAML in `scenarios/` is the source of truth and is the card: the fields below are read
+from it directly, so nothing can drift from it. *(Corrected 2026-10-14: an earlier version said
+human-readable cards were generated from it; none are.)*
 
 ## Fields
 

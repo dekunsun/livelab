@@ -1,9 +1,9 @@
 """Choose pilot 1's items from the PDMS annotations, without looking at any image.
 
 Registered design: docs/pilots_preregistration.md. Reads annotation.json only. Writes the chosen
-items, and the fields a model is allowed to see, to data/pdms_pilot/items.json (gitignored with
-the rest of data/) and a copy of the ids to results/pilot1/items.json, which is committed so the
-selection can be checked against the registration.
+items, and the fields a model is allowed to see, to data/pdms_pilot/items.json, and a copy of the
+ids to results/pilot1/items.json. Both are committed (the photographs too, CC BY 4.0, see
+data/pdms_pilot/ATTRIBUTION.md) so the selection can be checked against the registration.
 
   ./.venv/bin/python scripts/make_pdms_items.py
 """

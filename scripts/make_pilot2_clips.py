@@ -2,8 +2,8 @@
 
 Registered design: docs/pilots_preregistration.md. Clip choice reads only print_log_full.csv; no
 image is looked at to choose. The key that maps each shuffled clip back to its print and frames
-is written to data/pilot2/key.json, which is gitignored, and is committed only after the review,
-so the reviewer cannot see where a clip came from. This script and its seed are committed before
+is written to data/pilot2/key.json, which was kept out of the repository until the review was
+finished and committed on 2026-10-14, so the reviewer could not see where a clip came from. This script and its seed are committed before
 the review, and they fix the selection.
 
   ./.venv/bin/python scripts/make_pilot2_clips.py

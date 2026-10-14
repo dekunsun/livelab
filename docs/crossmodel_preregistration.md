@@ -189,3 +189,7 @@ model that reasons at length bills those tokens as output.
 3. **Results, for the record:** all four models answer 0 of 55 U items under B0. Pr1, Pr2 and Pr4
    are met; **Pr3 is not** — Astra carries "cannot verify" into its verdict on 10 of 12 items,
    where the other three carry it on 0 of 12. [Results](results/crossmodel_results.md).
+4. **The within-family control `gemini-3.8-flash-live` was never run (logged 2026-10-14).** The
+   registration lists it as the control that would separate family from capability; no run was
+   made and no entry recorded it at the time. The family question was taken up instead by
+   [LiveLab Core's Gemini registration](core_gemini_preregistration.md) (Live, Flash and Pro).

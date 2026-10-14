@@ -245,7 +245,7 @@ def fig_realdata():
                bbox_to_anchor=(0.5, 0.05))
     fig.suptitle("On a real distillation plant: correcting the instrument description moved the "
                  "verdicts, not the abstention", fontsize=11)
-    fig.text(0.01, 0.005, "119 runs of a real batch distillation column (Zenodo 17395543, CC BY) \u00b7 "
+    fig.text(0.01, 0.005, "68 runs (31 anomalous, 37 fault-free) from a 119-run dataset of a real batch distillation column (Zenodo 17395543, CC BY) \u00b7 "
              "truth from the plant's expert annotations \u00b7 31/31/37 items per condition \u00b7 "
              "one run per item per legend \u00b7 number above a bar = answers matching the supported one",
              fontsize=7, color="#666")
