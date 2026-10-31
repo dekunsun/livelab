@@ -18,22 +18,24 @@
 | 证据够不够、该不该送人工审核 | **漏送审**（即虚假安慰） | 证据不够，却自动给出“正常”或“异常”的结论 | 每次运行为 0（护栏） |
 | | **过度送审** | 证据其实够，却交给人工 | ≤ 1/20，避免占用审核产能 |
 
+**测了哪些模型。** 七个模型、四家：Gemini 3.8 Live、3.8 Flash、3.1 Pro；Claude Opus 5、Opus 5.5；GPT-6 Astra；开源 GLM 5.3 Flash。下表每行注明该阶段用的是哪些。
+
 **结果：从几乎不送审，到漏送审和漏报同时清零**
 
 | 阶段 | 漏送审 | 漏报 | 误伤 |
 | --- | --- | --- | --- |
-| 起点：早期研究，原始任务说法 | 2,127/2,134（99.7%） | — | — |
-| 真实装置数据（3 个模型） | 27–31/31 | — | 8%–97% |
-| 只靠提示词（Opus 5、Astra） | 0/14 | 7–18/30 | — |
-| 改进后：Claude Opus 5.5、Gemini 3.1 Pro、GPT-6 Astra | **0/30** | **0/30** | **0/10** |
-| 改进后：开源 GLM 5.3 Flash | 2/30 | 5/30 | 0/10 |
+| 起点：早期研究，原始任务说法（Gemini 3.8 Live 为主，另含 Opus 5、Astra） | 2,127/2,134（99.7%） | — | — |
+| 真实装置数据（Gemini 3.8 Live、Opus 5、Astra） | 27–31/31 | — | 8%–97% |
+| 补救提示词：由系统告诉模型哪些传感器无法验证（Opus 5、Astra） | 0/14 | 7–18/30 | — |
+| 改进后（写明评分规则等三项）：Claude Opus 5.5、Gemini 3.1 Pro、GPT-6 Astra | **0/30** | **0/30** | **0/10** |
+| 改进后（同上）：开源 GLM 5.3 Flash | 2/30 | 5/30 | 0/10 |
 
 - **起点：** 四个模型中有三个先说“无法验证”，接着照样给出结论。
 - **真实装置数据：** 公开的真实精馏装置数据，以专家标注为真值；说明问题不是模拟器造成的。
-- **只靠提示词：** 由系统告诉模型“哪些无法验证”；一类错误下去，另一类上来。
-- **改进后：** 新一代模型、修好测试运行器、在任务里写明评分规则，三者共同作用；每个配置各跑一次。GLM 说明写清规则对小模型也有帮助，但还没达到门槛。
+- **补救提示词：** 只加一句话，由系统告诉模型“哪些无法验证”；漏送审清零，但漏报上来了，一类错误下去，另一类上来。
+- **改进后：** 三项共同作用：在任务里写明评分规则（故障库、允许的动作）、新一代模型、修好测试运行器；每个配置各跑一次。GLM 说明写清规则对小模型也有帮助，但还没达到门槛。
 
-关键不是“送审更多”，而是两类错误同时降下来：只靠提示词会此消彼长，所以产品里由系统规则兜底检出，模型负责解释。
+关键不是“送审更多”，而是两类错误同时降下来：补救提示词会此消彼长，所以产品里由系统规则兜底检出，模型负责解释。
 
 - **先找根因，再归责。** Claude 看起来“漏填字段”的失败，其实是测试运行器的输出上限截断了回答；多数原因和动作上的错误，来自任务里从没写明的评分规则。写明规则后，四种模型配置在 80 道题上完全答对的题数，从 24–71 提升到 72–80（每种各跑一次；还没有配置通过“三次运行加保留集”的上线门槛）。写明规则也改变了部分模型的状态判断，这与我事先登记的预测相反。
 - **怎么设计产品。** 正式状态由系统负责，系统的异常规则在每个仍在报数的传感器上持续运行；模型负责解释；只有模型报出的异常，转人工核查。每个模型上线前要过准入门槛，每次更新都要重测。北极星指标是告警预算内抓到的故障数。
@@ -61,26 +63,30 @@ reassurance: reporting "all normal" without the evidence to know, so nobody chec
 | Is the evidence enough, or should a human review it | **Missed escalation** (false reassurance) | Not enough evidence, but the AI gave a verdict | 0 per run (guardrail) |
 | | **Unnecessary escalation** | Enough evidence, but sent to a human | ≤ 1/20, to protect reviewer capacity |
 
+**Models tested.** Seven models from four vendors: Gemini 3.8 Live, 3.8 Flash and 3.1 Pro; Claude
+Opus 5 and Opus 5.5; GPT-6 Astra; open-weight GLM 5.3 Flash. Each row below names the models it
+covers.
+
 **Results: from almost never escalating to no missed escalations and no missed faults**
 
 | Stage | Missed escalations | Missed faults | False positives |
 | --- | --- | --- | --- |
-| Start: early studies, original task wording | 2,127/2,134 (99.7%) | — | — |
-| Real plant data (3 models) | 27–31/31 | — | 8%–97% |
-| Prompt only (Opus 5, Astra) | 0/14 | 7–18/30 | — |
-| After the fixes: Claude Opus 5.5, Gemini 3.1 Pro, GPT-6 Astra | **0/30** | **0/30** | **0/10** |
-| After the fixes: open-weight GLM 5.3 Flash | 2/30 | 5/30 | 0/10 |
+| Start: early studies, original task wording (mostly Gemini 3.8 Live; also Opus 5, Astra) | 2,127/2,134 (99.7%) | — | — |
+| Real plant data (Gemini 3.8 Live, Opus 5, Astra) | 27–31/31 | — | 8%–97% |
+| Remedy prompt: the system tells the model which sensors cannot be verified (Opus 5, Astra) | 0/14 | 7–18/30 | — |
+| After the fixes (scoring rules stated, and two more): Claude Opus 5.5, Gemini 3.1 Pro, GPT-6 Astra | **0/30** | **0/30** | **0/10** |
+| After the fixes (same): open-weight GLM 5.3 Flash | 2/30 | 5/30 | 0/10 |
 
 - **Start:** three of four models said they could not verify something, then gave a verdict anyway.
 - **Real plant data:** public real distillation-plant data with expert annotations as truth; the
   problem is not a simulator artefact.
-- **Prompt only:** the system told the model what could not be verified; one error fell as the
-  other rose.
-- **After the fixes:** a newer model generation, a corrected test runner and scoring rules stated in
-  the task, together; one run per configuration. GLM shows a clearer task helps a smaller model
+- **Remedy prompt:** one added sentence, the system telling the model what could not be verified;
+  missed escalations went to zero, but missed faults rose: one error fell as the other rose.
+- **After the fixes:** three things together: scoring rules stated in the task (the fault library,
+  the allowed actions), a newer model generation and a corrected test runner; one run per configuration. GLM shows a clearer task helps a smaller model
   too, but not to the gate.
 
-The point is not escalating more but cutting both errors at once: a prompt alone trades one for the
+The point is not escalating more but cutting both errors at once: a remedy prompt alone trades one for the
 other, so in the product the system's rules own detection and the model explains.
 
 - **Root causes before blame.** Claude's apparent missing-field failures came from the test
