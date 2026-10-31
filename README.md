@@ -7,9 +7,11 @@
 
 **LiveLab 研究的是：一个实时监控实验室实验（如管式炉、精馏装置）的 AI，能不能判断手上的证据是否足以判定运行“正常”还是“异常”、是否足以定下故障原因和下一步操作；证据不够时，能否如实说“无法验证”并转交人工核查，而不是给出确定结论。项目再据此设计产品。**
 
-**要解决的问题。** AI 监控代价高的失败不只是漏报，还有“虚假安慰”：在没有足够证据时报告“一切正常”，于是没人再去检查。
+**要解决的问题。** AI 监控代价高的失败不只是漏报，还有“虚假安慰”：在没有足够证据时报告“一切正常”，于是没人再去检查。LiveLab 分三步：定义什么算好并量出来；把业务问题变成模型能执行的智能体系统；选模型、报结果。
 
-**两个判断，四类错误（都是越低越好）**
+**结果一句话。** 写明评分规则后，Claude Opus 5.5、Gemini 3.1 Pro、GPT-6 Astra 在公开集上漏送审 0/30、漏报 0/30、误伤 0/10（各跑一次）；还没有配置通过“三次运行加保留集”的上线门槛；尚未部署，也没有用户验证。
+
+**1. 评测：什么算好，什么错误可以接受**
 
 | 判断 | 错误 | 含义 | 产品目标 |
 | --- | --- | --- | --- |
@@ -18,9 +20,26 @@
 | 证据够不够、该不该送人工审核 | **漏送审**（即虚假安慰） | 证据不够，却自动给出“正常”或“异常”的结论 | 每次运行为 0（护栏） |
 | | **过度送审** | 证据其实够，却交给人工 | ≤ 1/20，避免占用审核产能 |
 
-**测了哪些模型。** 七个模型、四家：Gemini 3.8 Live、3.8 Flash、3.1 Pro；Claude Opus 5、Opus 5.5；GPT-6 Astra；开源 GLM 5.3 Flash。下表每行注明该阶段用的是哪些。
+- **护栏是漏送审：** 它让人没有理由再去看，所以每次运行必须为 0。
+- **误伤和过度送审有预算，不是为零：** 研究员的注意力和审核产能有限，一个遇到小风险就停下来问人的助手会让实验整夜等批准。
+- **怎么量：孪生题。** 同一个模拟炉故障复制两份，一份去掉无关的传感器，一份去掉唯一能看见故障的传感器；第二份的正确答案是“无法验证”。80 道题，答案由规则算出；同样的行为再在公开的真实精馏装置数据（专家标注）和实验室照片上验证。21 份预注册，每份都在第一次计分调用之前。
 
-**结果：从几乎不送审，到漏送审和漏报同时清零**
+**2. 智能体系统：把业务问题变成模型能执行的系统**
+
+- **分工。** 系统根据已装仪器算清什么能验证、什么不能，持有正式状态，NORMAL 只表示已验证；异常规则在每个仍在报数的传感器上持续运行，模型清除不了。模型负责解释、分流、按需取证。
+- **路由。** 由便宜的规则决定什么时候调模型，由模型决定取什么；回答缺失、格式错误或超时，都不能设定状态。
+- **单智能体带工具，不是多智能体。** 完整记录留在上下文之外；LiveLab 2.0 里智能体拿到趋势图和一个取窗口的工具（最多 4 次调用、有原始读数预算），要找出异常从什么时候开始。
+- **多轮与交接。** 回答按格式校验，追问一次，仍不完整就标为“评估不完整”；交接传原始证据，不传摘要：同样 80 张照片先交给视觉模型再交给语言模型，Opus 5 从 57 降到 23，Gemini 从 74 降到 51。
+- **边界。** 原因限在故障库内；状态不是 NORMAL 时绝不建议“继续”；只有模型报出的异常转人工核查。
+- **为什么是分工，不是一条提示词。** 补救提示词会此消彼长：告知“哪些无法验证”后漏送审 0/14，可见故障的漏报却升到 7–18/30（Opus 5、Astra）。
+
+**3. 模型选型与结果**
+
+测了七个模型、四家：Gemini 3.8 Live、3.8 Flash、3.1 Pro；Claude Opus 5、Opus 5.5；GPT-6 Astra；开源 GLM 5.3 Flash。两条选型规矩：同一模型内每次只改一件事；跨模型只读方向，因为调用方式和推理设置不同。
+
+怪模型之前先查测量和题目。Claude 看起来“漏填字段”的失败，其实是测试运行器的输出上限截断了回答；多数原因和动作上的错误，来自任务里从没写明的评分规则。写明规则后，四种模型配置在 80 道题上完全答对的题数从 24–71 提升到 72–80（每种各跑一次）。写明规则也改变了部分模型的状态判断，这与我事先登记的预测相反。
+
+**结果：从几乎不送审，到漏送审和漏报同时清零**（每行注明该阶段用的模型）
 
 | 阶段 | 漏送审 | 漏报 | 误伤 |
 | --- | --- | --- | --- |
@@ -31,14 +50,12 @@
 | 改进后（同上）：开源 GLM 5.3 Flash | 2/30 | 5/30 | 0/10 |
 
 - **起点：** 四个模型中有三个先说“无法验证”，接着照样给出结论。
-- **真实装置数据：** 公开的真实精馏装置数据，以专家标注为真值；说明问题不是模拟器造成的。
-- **补救提示词：** 只加一句话，由系统告诉模型“哪些无法验证”；漏送审清零，但漏报上来了，一类错误下去，另一类上来。
+- **真实装置数据：** 公开的真实精馏装置数据，以专家标注为真值；说明问题不是模拟器造成的。误伤 8%–97% 因模型而异：一个前沿模型把 37 次无故障运行里的 36 次判成异常，物理上说得通，但它不知道这套装置的“正常”长什么样。
+- **补救提示词：** 只加一句话，由系统告诉模型“哪些无法验证”；漏送审清零，但漏报上来了。
 - **改进后：** 三项共同作用：在任务里写明评分规则（故障库、允许的动作）、新一代模型、修好测试运行器；每个配置各跑一次。GLM 说明写清规则对小模型也有帮助，但还没达到门槛。
 
-关键不是“送审更多”，而是两类错误同时降下来：补救提示词会此消彼长，所以产品里由系统规则兜底检出，模型负责解释。
+模型上线前要按配置在私有保留集上跑三次、过准入门槛，每次更新都要重测；北极星指标是告警预算内抓到的故障数。
 
-- **先找根因，再归责。** Claude 看起来“漏填字段”的失败，其实是测试运行器的输出上限截断了回答；多数原因和动作上的错误，来自任务里从没写明的评分规则。写明规则后，四种模型配置在 80 道题上完全答对的题数，从 24–71 提升到 72–80（每种各跑一次；还没有配置通过“三次运行加保留集”的上线门槛）。写明规则也改变了部分模型的状态判断，这与我事先登记的预测相反。
-- **怎么设计产品。** 正式状态由系统负责，系统的异常规则在每个仍在报数的传感器上持续运行；模型负责解释；只有模型报出的异常，转人工核查。每个模型上线前要过准入门槛，每次更新都要重测。北极星指标是告警预算内抓到的故障数。
 - **怎么做的。** 21 份预注册（其中 Kimi K3 的一份登记后未运行，由 GLM 替代），使用模拟数据和公开的真实装置数据；不成立的预测和我自己的更正，都与结果一起公开。
 - **局限。** 一套模拟仪器、一份公开装置数据集和一组实验室照片；还没有真实部署，也还没有做用户验证；改进后的结果每个配置只跑了一次。
 
@@ -52,9 +69,16 @@ choose the next step, and when it is not, says "cannot verify" and hands the cas
 instead of giving a confident verdict. It then designs the product around what it found.**
 
 **The problem.** The costly failure of an AI monitor is not only a missed alarm. It is false
-reassurance: reporting "all normal" without the evidence to know, so nobody checks.
+reassurance: reporting "all normal" without the evidence to know, so nobody checks. LiveLab takes
+three steps: define what good means and measure it; turn the business problem into an agent system
+a model can execute; choose models and report what they scored.
 
-**Two decisions, four errors (lower is better for all four)**
+**The result in one line.** With the scoring rules stated, Claude Opus 5.5, Gemini 3.1 Pro and
+GPT-6 Astra scored 0 of 30 missed escalations, 0 of 30 missed faults and 0 of 10 false positives on
+the public set (one run each); no configuration has yet passed the three-run, held-out launch gate;
+not deployed, no user validation yet.
+
+**1. The evaluation: what counts as good, and which errors are acceptable**
 
 | Decision | Error | Meaning | Product target |
 | --- | --- | --- | --- |
@@ -63,11 +87,51 @@ reassurance: reporting "all normal" without the evidence to know, so nobody chec
 | Is the evidence enough, or should a human review it | **Missed escalation** (false reassurance) | Not enough evidence, but the AI gave a verdict | 0 per run (guardrail) |
 | | **Unnecessary escalation** | Enough evidence, but sent to a human | ≤ 1/20, to protect reviewer capacity |
 
-**Models tested.** Seven models from four vendors: Gemini 3.8 Live, 3.8 Flash and 3.1 Pro; Claude
-Opus 5 and Opus 5.5; GPT-6 Astra; open-weight GLM 5.3 Flash. Each row below names the models it
-covers.
+- **The guardrail is the missed escalation:** it removes the reason to look, so it must be 0 per run.
+- **False positives and unnecessary escalations have budgets, not zeros:** researcher attention and
+  reviewer capacity are limited, and an assistant that stops to ask about every small risk leaves an
+  experiment waiting all night.
+- **How it is measured: twin items.** One simulated furnace fault, copied twice; one copy drops an
+  irrelevant sensor, the other the only sensor that could see the fault, and the right answer to the
+  second is "cannot verify". 80 items with a rule-computed answer key; the same behaviour then
+  checked on public real distillation-plant data (expert-annotated) and on lab photographs. 21
+  pre-registrations, each before the first scored call.
 
-**Results: from almost never escalating to no missed escalations and no missed faults**
+**2. The agent system: turning the business problem into something a model can execute**
+
+- **The split.** The system computes, from the installed instruments, what can be verified and what
+  cannot, and owns the official status; NORMAL means verified. Anomaly rules keep running on every
+  sensor that still reports, and the model cannot clear them. The model explains, triages and
+  fetches evidence on demand.
+- **Routing.** Cheap rules decide when the model is called; the model decides what to fetch. A
+  missing, malformed or late answer never sets the status.
+- **One agent with tools, not a crew.** The whole record stays outside the context; in LiveLab 2.0
+  the agent gets a trend plot and a window tool (at most 4 calls, with a budget of raw readings) and
+  has to find when the anomaly began.
+- **Multi-turn and hand-offs.** Answers are format-checked, one follow-up, otherwise marked
+  incomplete; hand-offs carry raw evidence, never a summary: on the same 80 photographs, passing a
+  vision model's verdict to a language model took Opus 5 from 57 to 23 and Gemini from 74 to 51.
+- **Bounds.** Causes are limited to the fault library; "continue" is never suggested unless the
+  status is NORMAL; anything only the model flags goes to human review.
+- **Why a split and not a prompt.** A remedy prompt trades one error for the other: telling the
+  model what could not be verified cut missed escalations to 0 of 14 and raised missed faults to
+  7–18 of 30 (Opus 5, Astra).
+
+**3. Model choice and results**
+
+Seven models from four vendors were tested: Gemini 3.8 Live, 3.8 Flash and 3.1 Pro; Claude Opus 5
+and Opus 5.5; GPT-6 Astra; open-weight GLM 5.3 Flash. Two selection rules: within a model, change
+one thing at a time; across models, read direction only, because call modes and reasoning settings
+differ.
+
+Root causes before blame. Claude's apparent missing-field failures came from the test runner's
+output cap, and most cause and action errors from scoring rules the task never stated. Once the task
+stated them, four model configurations went from 24–71 to 72–80 of 80 items fully right (one run
+each). Stating the rules also changed some models' state answers, which I had predicted it would
+not.
+
+**Results: from almost never escalating to no missed escalations and no missed faults** (each row
+names the models it covers)
 
 | Stage | Missed escalations | Missed faults | False positives |
 | --- | --- | --- | --- |
@@ -79,25 +143,19 @@ covers.
 
 - **Start:** three of four models said they could not verify something, then gave a verdict anyway.
 - **Real plant data:** public real distillation-plant data with expert annotations as truth; the
-  problem is not a simulator artefact.
+  problem is not a simulator artefact. False positives of 8%–97% vary by model: one frontier model
+  flagged 36 of 37 fault-free runs with physically coherent reasoning, because it did not know what
+  this plant's normal looks like.
 - **Remedy prompt:** one added sentence, the system telling the model what could not be verified;
-  missed escalations went to zero, but missed faults rose: one error fell as the other rose.
+  missed escalations went to zero, but missed faults rose.
 - **After the fixes:** three things together: scoring rules stated in the task (the fault library,
-  the allowed actions), a newer model generation and a corrected test runner; one run per configuration. GLM shows a clearer task helps a smaller model
-  too, but not to the gate.
+  the allowed actions), a newer model generation and a corrected test runner; one run per
+  configuration. GLM shows a clearer task helps a smaller model too, but not to the gate.
 
-The point is not escalating more but cutting both errors at once: a remedy prompt alone trades one for the
-other, so in the product the system's rules own detection and the model explains.
+Before use, each configuration runs three times on a private hold-out and must pass the launch
+gate, and is re-tested on every model update; the north star is faults caught within the alert
+budget.
 
-- **Root causes before blame.** Claude's apparent missing-field failures came from the test
-  runner's output cap, and most cause and action errors from scoring rules the task never stated.
-  Once the task stated them, four model configurations went from 24–71 to 72–80 of 80 items fully
-  right (one run each; none has yet passed the three-run, held-out launch gate). Stating the rules
-  also changed some models' state answers, which I had predicted it would not.
-- **What I would build.** The system, not the model, owns the official status, and its anomaly
-  rules keep running on every sensor that still reports; the model explains; anything only the
-  model flags goes to human review. Each model passes a launch gate before use and is re-tested on
-  every update. The north star is faults caught within the alert budget.
 - **How.** 21 registrations (one, Kimi K3, was withdrawn before it ran and replaced by GLM) on
   simulated and public real-plant data, with failed predictions and my own corrections published
   beside the results.

@@ -13,10 +13,9 @@ Chinese first, then [English](#english).
 | 项 | 内容 |
 | --- | --- |
 | 产品 | 实验室长时间运行的 AI 监控：告诉离开的研究员运行是否正常、仪器判断不了什么，只在证据需要时打断 |
-| 最危险的失败 | 虚假安慰（漏送审）：证据不够，却自动报告“一切正常” |
-| 核心设计 | 系统决定正式状态，模型负责解释；证据不够就显示“无法验证”并转人工；只有模型报出的异常也转人工核查 |
-| 衡量方式 | 四类错误都越低越好：漏报 ≤ 10%、误伤在告警预算内、漏送审每次运行为 0、过度送审 ≤ 1/20 |
-| 模型准入 | 按配置在私有保留集上跑三次，过门槛才能上线；每次模型更新都重测 |
+| 1. 评测：什么算好 | 两个判断、四类错误，都越低越好：漏报 ≤ 10%、误伤在告警预算内、过度送审 ≤ 1/20；护栏是漏送审（虚假安慰：证据不够却自动报告“一切正常”），每次运行为 0。用孪生题量它，再在真实装置数据和照片上验证 |
+| 2. 智能体系统 | 系统算可观测性、持有正式状态，规则在每个仍在报数的传感器上持续运行；模型负责解释、分流、按需取证。路由：便宜的规则决定何时调模型，模型决定取什么。单智能体带工具；多轮按格式校验、追问一次；交接传原始证据不传摘要；原因限在故障库内；只有模型报出的异常转人工核查 |
+| 3. 模型选型 | 七个模型、四家；同一模型内每次只改一件事，跨模型只读方向；按配置在私有保留集上跑三次，过门槛才能上线；每次模型更新都重测 |
 | 现状 | 写明评分规则后，两个前沿配置（Opus 5.5、Astra）在公开集上一次运行各行达标，Gemini 3.1 Pro 差一次未提交；还没有配置正式取得资格；尚未部署、尚无用户验证 |
 
 ### 用户与要完成的事
@@ -41,7 +40,7 @@ Chinese first, then [English](#english).
 各自的代价：
 - **漏报**：损失一个样品、一次运行，有时是一台仪器。
 - **误伤**：打扰研究员，告警被静音，产品没人用；告警预算按每位用户每周的误报数计。
-- **漏送审**：代价最高，它让人没有理由再去看；作为护栏，每次运行必须为 0。
+- **漏送审**：它让人没有理由再去看；作为护栏，每次运行必须为 0。
 - **过度送审**：占用审核产能。
 
 打断也有预算：一个遇到小风险就停下来问人的智能体，可能让实验整夜等待批准。
@@ -183,10 +182,9 @@ v1 不做：操作仪器、摄像头监控（等第 0 阶段的数据门槛）�
 | Item | Content |
 | --- | --- |
 | Product | An AI monitor for long lab runs: tells a researcher who has stepped away whether the run is normal, what the instruments cannot judge, and interrupts only when the evidence needs them |
-| Most dangerous failure | False reassurance (a missed escalation): reporting "all normal" without the evidence to know |
-| Core design | The system sets the official status and the model explains; without enough evidence the status is "cannot verify" and goes to a human; anomalies only the model reports also go to human review |
-| How it is measured | Four errors, lower is better: missed faults ≤ 10%, false positives within the alert budget, zero missed escalations per run, unnecessary escalations ≤ 1/20 |
-| Model admission | Each configuration runs three times on a private hold-out and must pass a gate before launch; re-tested on every model update |
+| 1. The evaluation: what counts as good | Two decisions, four errors, lower is better: missed faults ≤ 10%, false positives within the alert budget, unnecessary escalations ≤ 1/20; the guardrail is the missed escalation (false reassurance: "all normal" without the evidence to know), 0 per run. Measured with twin items, then checked on real plant data and photographs |
+| 2. The agent system | The system computes observability and owns the official status; rules keep running on every sensor that still reports; the model explains, triages and fetches evidence on demand. Routing: cheap rules decide when the model is called, the model decides what to fetch. One agent with tools; multi-turn answers are format-checked with one follow-up; hand-offs carry raw evidence, never a summary; causes are bounded by the fault library; anything only the model flags goes to human review |
+| 3. Model choice | Seven models from four vendors; within a model change one thing at a time, across models read direction only; each configuration runs three times on a private hold-out and must pass a gate before launch; re-tested on every model update |
 | Status | With the scoring rules stated, two frontier configurations (Opus 5.5 and Astra) met every row in one run on the public set and Gemini 3.1 Pro all but one missing submission; none has formally qualified; not deployed, no user validation yet |
 
 ### The user and the job
@@ -213,8 +211,7 @@ What each costs:
 - **Missed fault:** a sample, a run, sometimes an instrument.
 - **False positive:** interrupts the researcher; alerts get muted and nobody uses the product; the
   budget is counted as false alerts per user per week.
-- **Missed escalation:** the highest cost, because it removes the reason to look; as a guardrail it
-  must be 0 per run.
+- **Missed escalation:** it removes the reason to look; as a guardrail it must be 0 per run.
 - **Unnecessary escalation:** uses reviewer capacity.
 
 Interruptions also have a budget: an agent that stops to ask about every small risk can leave an
