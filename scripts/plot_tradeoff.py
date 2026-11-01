@@ -8,6 +8,7 @@ Every point is scored from the saved records with the judge of scripts/score_cor
 Runs with missing records (Opus 5's third forced V1 run answered 73 of 80) are left out, as in the corrected
 readings. V0, V1 and the remedy wording V1R are runner v1; V1S is runner v2; GLM ran only under runner v2.
 
+  (add a third argument "poster" for the poster size: smaller canvas, larger relative text, 300 dpi)
   ./.venv/bin/python scripts/plot_tradeoff.py docs/figures/tradeoff.png
   ./.venv/bin/python scripts/plot_tradeoff.py docs/figures/tradeoff_zh.png zh
 """
@@ -99,8 +100,10 @@ def main(out, lang="en"):
     t = TEXT[lang]
     plt.rcParams.update({"font.family": t["font"], "font.size": 10, "axes.unicode_minus": False})
     items = load_items()
-    fig, axes = plt.subplots(2, 4, figsize=(14, 7.6), dpi=150, facecolor=SURFACE)
-    fig.subplots_adjust(left=0.06, right=0.985, top=0.86, bottom=0.09, wspace=0.28, hspace=0.42)
+    k = 0.74 if POSTER else 1.0
+    fig, axes = plt.subplots(2, 4, figsize=(14 * k, 7.6 * k), dpi=300 if POSTER else 150, facecolor=SURFACE)
+    fig.subplots_adjust(left=0.06, right=0.985, top=0.95 if POSTER else 0.86, bottom=0.09, wspace=0.36 if POSTER else 0.28,
+                        hspace=0.42)
     data = {}
     for ax, (name, stages) in zip(axes.flat, MODELS):
         pts = {s: [point(f, items) for f in fs] for s, fs in stages.items()}
@@ -170,14 +173,18 @@ def main(out, lang="en"):
                               color=REMEDY, label=t["stage"]["V1R"]))
     key.legend(handles=handles, loc="upper left", bbox_to_anchor=(-0.02, 0.9), frameon=False, fontsize=8.6,
                handletextpad=0.3, borderaxespad=0)
-    key.text(0.0, 0.5, "\n".join(t["key"]), fontsize=8.3, color=INK, va="top", linespacing=1.4,
-             transform=key.transAxes)
-    fig.suptitle(t["title"], x=0.06, ha="left", fontsize=13.5, fontweight="bold", color=INK, y=0.965)
+    if not POSTER:
+        key.text(0.0, 0.5, "\n".join(t["key"]), fontsize=8.3, color=INK, va="top", linespacing=1.4,
+                 transform=key.transAxes)
+    if not POSTER:
+        fig.suptitle(t["title"], x=0.06, ha="left", fontsize=13.5, fontweight="bold", color=INK, y=0.965)
     fig.savefig(out, facecolor=SURFACE)
     print(f"wrote {out}")
     for name, pts in data.items():
         print(name, {s: v for s, v in pts.items()})
 
+
+POSTER = "poster" in sys.argv[3:]
 
 if __name__ == "__main__":
     main(sys.argv[1] if len(sys.argv) > 1 else "docs/figures/tradeoff.png", sys.argv[2] if len(sys.argv) > 2 else "en")
