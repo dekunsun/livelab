@@ -165,3 +165,18 @@ files. It also opened the Lin et al. PDMS dataset and the KIT perovskite in-situ
   Splits must keep each image, and near-duplicates, on one side, and the answer-bearing fields
   must never reach the prompt.
 
+
+## Re-search, 2026-11-01
+
+Same question, same rule (real imagery only, CC BY / CC0 / MIT to commit). Nothing new is usable.
+
+| Source | What it is | Real footage? | Released / licence | Usable? |
+| --- | --- | --- | --- | --- |
+| [LabRobFail](https://arxiv.org/abs/2607.23704) (arXiv, Jul 2026) | 20,000+ robot failure trajectories, 5 categories, 11 types | **No**, simulator (LabRobFail-Sim on LabUtopia) | Code and data at github.com/Su-ISE-2001/SciRobo; licence not stated | No: simulated |
+| [LabShield](https://arxiv.org/abs/2603.11987) (arXiv, Mar 2026) | 164 lab tasks on a real robot, four-view RGB-D, 1,439 VQA pairs; hazards incl. broken glassware, unsealed reagents | **Yes** | "will be released soon"; no URL, no licence | Not yet; recheck |
+| [LabHazVision](https://arxiv.org/abs/2602.00414) (arXiv, 2026) | 1,207 lab hazard scenes | **No**, text-to-image generated (21 real web images) | Not released | No: generated |
+| [Liquid transfer videos](https://www.frontiersin.org/journals/molecular-biosciences/articles/10.3389/fmolb.2023.1147514/full) (Frontiers 2023) | 19 clips: clogged tip 3, bottom-out 11, normal 5 | Yes | Still private; access by request to the authors | Only by request; licence unknown |
+| [Wet-lab mistake videos](https://www.biorxiv.org/content/10.1101/2025.10.05.680425v1) (bioRxiv, Oct 2025) | 28 egocentric experiments, 70 deliberate mistakes | Yes | Not verified: the page returned HTTP 429 twice | Unknown |
+| [Lin et al. PDMS](https://doi.org/10.6084/m9.figshare.29234663.v2) | Already used in 1.0 | Yes | CC BY 4.0 | Already in use |
+
+The strong claim (camera-visible, telemetry-invisible failures) stays untested. LabShield is the one to watch.
