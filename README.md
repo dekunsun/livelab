@@ -8,7 +8,7 @@ Dekun Sun · University of Pennsylvania · [ai4s.fyi](https://ai4s.fyi)
 
 Work in progress · 2026 · MIT
 
-[**Preprint**](docs/preprint/preprint.pdf) · [**Results**](docs/results/core_leaderboard.md) · [Evaluation settings](docs/eval_settings.md) · [Registrations](#how-it-was-tested) · [Product summary](docs/product.md) · [Lessons learned](docs/lessons_learned.md) · [LiveLab 2.0](https://github.com/dekunsun/livelab2)
+[**Preprint**](https://dekunsun.github.io/livelab/docs/preprint/preprint.html) ([PDF](docs/preprint/preprint.pdf)) · [**Results**](https://dekunsun.github.io/livelab/docs/leaderboard.html) · [Evaluation settings](docs/eval_settings.md) · [Registrations](#4-how-it-was-tested) · [Product summary](docs/product.md) · [Lessons learned](docs/lessons_learned.md) · [LiveLab 2.0](https://github.com/dekunsun/livelab2) · [中文摘要](#中文版-tldr)
 
 <img src="docs/figures/hero.png" width="760" alt="Missed escalations and missed faults, of 30, for four models across three task statements">
 
@@ -18,68 +18,9 @@ Work in progress · 2026 · MIT
 
 ---
 
-<!-- TL;DR for product readers (added 2026-10-13). -->
-## TL;DR
+## 1. TL;DR
 
-### 中文
-
-**LiveLab 研究的是：一个实时监控实验室实验（如管式炉、精馏装置）的 AI，能不能判断手上的证据是否足以判定运行“正常”还是“异常”、是否足以定下故障原因和下一步操作；证据不够时，能否如实说“无法验证”并转交人工核查，而不是给出确定结论。项目再据此设计产品。**
-
-**要解决的问题。** AI 监控代价高的失败不只是漏报，还有“虚假安慰”：在没有足够证据时报告“一切正常”，于是没人再去检查。LiveLab 分三步：定义什么算好并量出来；把业务问题变成模型能执行的智能体系统；选模型、报结果。
-
-**结果一句话。** 写明评分规则后，Claude Opus 5.5、Gemini 3.1 Pro、GPT-6 Astra 在公开集上漏送审 0/30、漏报 0/30、误伤 0/10（各跑一次）。下一步是三次运行加保留集的上线验证，以及合作实验室的真实日志和用户访谈。
-
-**1. 评测：什么算好，什么错误可以接受**
-
-| 判断 | 错误 | 含义 | 产品目标 |
-| --- | --- | --- | --- |
-| 有没有故障 | **漏报** | 有故障却没有报 | ≤ 10% |
-| | **误伤** | 没有故障却报了异常 | 控制在告警预算内（每位用户每周的误报数） |
-| 证据够不够、该不该送人工审核 | **漏送审**（即虚假安慰） | 证据不够，却自动给出“正常”或“异常”的结论 | 每次运行为 0（护栏） |
-| | **过度送审** | 证据其实够，却交给人工 | ≤ 1/20，避免占用审核产能 |
-
-- **护栏是漏送审：** 它让人没有理由再去看，所以每次运行必须为 0。
-- **误伤和过度送审有预算，不是为零：** 研究员的注意力和审核产能有限，一个遇到小风险就停下来问人的助手会让实验整夜等批准。
-- **怎么量：孪生题。** 同一个模拟炉故障复制两份，一份去掉无关的传感器，一份去掉唯一能看见故障的传感器；第二份的正确答案是“无法验证”。80 道题，答案由规则算出；同样的行为再在公开的真实精馏装置数据（专家标注）和实验室照片上验证。21 份预注册，每份都在第一次计分调用之前。
-
-**2. 智能体系统：把业务问题变成模型能执行的系统**
-
-- **分工。** 系统根据已装仪器算清什么能验证、什么不能，持有正式状态，NORMAL 只表示已验证；异常规则在每个仍在报数的传感器上持续运行，模型清除不了。模型负责解释、分流、按需取证。
-- **路由。** 由便宜的规则决定什么时候调模型，由模型决定取什么；回答缺失、格式错误或超时，都不能设定状态。
-- **单智能体带工具，不是多智能体。** 完整记录留在上下文之外；LiveLab 2.0 里智能体拿到趋势图和一个取窗口的工具（最多 4 次调用、有原始读数预算），要找出异常从什么时候开始。
-- **多轮与交接。** 回答按格式校验，追问一次，仍不完整就标为“评估不完整”；交接传原始证据，不传摘要：同样 80 张照片先交给视觉模型再交给语言模型，Opus 5 从 57 降到 23，Gemini 从 74 降到 51。
-- **边界。** 原因限在故障库内；状态不是 NORMAL 时绝不建议“继续”；只有模型报出的异常转人工核查。
-- **为什么是分工，不是一条提示词。** 补救提示词会此消彼长：告知“哪些无法验证”后漏送审 0/14，可见故障的漏报却升到 7–18/30（Opus 5、Astra）。
-
-**3. 模型选型与结果**
-
-测了七个模型、四家：Gemini 3.8 Live、3.8 Flash、3.1 Pro；Claude Opus 5、Opus 5.5；GPT-6 Astra；开源 GLM 5.3 Flash。两条选型规矩：同一模型内每次只改一件事；跨模型只读方向，因为调用方式和推理设置不同。
-
-怪模型之前先查测量和题目。Claude 看起来“漏填字段”的失败，其实是测试运行器的输出上限截断了回答；多数原因和动作上的错误，来自任务里从没写明的评分规则。写明规则后，四种模型配置在 80 道题上完全答对的题数从 24–71 提升到 72–80（每种各跑一次）。写明规则也改变了部分模型的状态判断，这与我事先登记的预测相反。
-
-**结果：从几乎不送审，到漏送审和漏报同时清零**（每行注明该阶段用的模型）
-
-| 阶段 | 漏送审 | 漏报 | 误伤 |
-| --- | --- | --- | --- |
-| 起点：早期研究，原始任务说法（Gemini 3.8 Live 为主，另含 Opus 5、Astra） | 2,127/2,134（99.7%） | — | — |
-| 真实装置数据（Gemini 3.8 Live、Opus 5、Astra） | 27–31/31 | — | 8%–97% |
-| 补救提示词：由系统告诉模型哪些传感器无法验证（Opus 5、Astra） | 0/14 | 7–18/30 | — |
-| 改进后（写明评分规则等三项）：Claude Opus 5.5、Gemini 3.1 Pro、GPT-6 Astra | **0/30** | **0/30** | **0/10** |
-| 改进后（同上）：开源 GLM 5.3 Flash | 2/30 | 5/30 | 0/10 |
-
-- **起点：** 四个模型中有三个先说“无法验证”，接着照样给出结论。
-- **真实装置数据：** 公开的真实精馏装置数据，以专家标注为真值；说明问题不是模拟器造成的。误伤 8%–97% 因模型而异：一个前沿模型把 37 次无故障运行里的 36 次判成异常，物理上说得通，但它不知道这套装置的“正常”长什么样。
-- **补救提示词：** 只加一句话，由系统告诉模型“哪些无法验证”；漏送审清零，但漏报上来了。
-- **改进后：** 三项共同作用：在任务里写明评分规则（故障库、允许的动作）、新一代模型、修好测试运行器；每个配置各跑一次。GLM 说明写清规则对小模型也有帮助，但还没达到门槛。
-
-模型上线前要按配置在私有保留集上跑三次、过准入门槛，每次更新都要重测；北极星指标是告警预算内抓到的故障数。
-
-- **怎么做的。** 21 份预注册（其中 Kimi K3 的一份登记后未运行，由 GLM 替代），使用模拟数据和公开的真实装置数据；不成立的预测和我自己的更正，都与结果一起公开。
-- **局限。** 一套模拟仪器、一份公开装置数据集和一组实验室照片；还没有真实部署，也还没有做用户验证；改进后的结果每个配置只跑了一次。
-
-研究者请从 [The finding](#the-finding) 开始阅读。产品读者可看 [产品摘要](docs/product.md#中文)（概括了 PRD 和模型资格规范）、[V1S 结果](docs/results/core_leaderboard.md#reading-stating-the-tasks-cause-and-action-rules-v1s) 和 [经验教训](docs/lessons_learned.md)（英文）。
-
-### English
+中文读者：[中文摘要在页面末尾，点开即可展开](#中文版-tldr)。
 
 **LiveLab tests whether an AI monitoring a running lab experiment (a tube furnace, a distillation
 plant) can tell when its evidence is enough to call the run normal or anomalous, name the cause and
@@ -180,9 +121,9 @@ budget.
 - **Limits.** One simulated instrument, one public plant dataset and one set of lab photographs;
   no live deployment and no user validation yet; the post-fix results are one run per configuration.
 
-Preprint draft (work in progress): [HTML](docs/preprint/preprint.html) · [PDF](docs/preprint/preprint.pdf).
+Preprint draft (work in progress): [web](https://dekunsun.github.io/livelab/docs/preprint/preprint.html) · [PDF](docs/preprint/preprint.pdf).
 
-Researchers: start at [The finding](#the-finding). Product readers: the [product summary](docs/product.md#english)
+Researchers: start at [The finding](#2-the-finding). Product readers: the [product summary](docs/product.md)
 (the PRD and the model qualification spec, condensed), the [V1S result](docs/results/core_leaderboard.md#reading-stating-the-tasks-cause-and-action-rules-v1s) and
 [lessons learned](docs/lessons_learned.md).
 
@@ -195,7 +136,7 @@ current sensors actually support, and what remains unknowable during a physical 
 > current experiment is going wrong, distinguish physical failure from scientific evidence, and
 > know when the available sensors are insufficient to tell.
 
-## The finding
+## 2. The finding
 
 **Asked to watch an experiment under this benchmark's contract, models almost never say they
 cannot tell: 7 abstentions out of 2,134 judgments where nothing else was supported.**
@@ -321,7 +262,7 @@ what can**, so that a finding the evidence supports is never dropped because ano
 picture is dark. For a model that ignores the state, as Gemini did, the system has to decide
 rather than inform.
 
-## When the picture does carry the answer
+## 3. When the picture does carry the answer
 
 Everything above uses pictures that add nothing the instruments lack. The second phase asks what
 happens when they do. It uses a self-driving lab's inspection photographs, where the answer is
@@ -370,7 +311,7 @@ registered stop condition that data leaves the fault-judgement line. Results:
 [pilot 1](docs/results/pilot1_results.md) · [specialist](docs/results/specialist_results.md) ·
 [pilot 2](docs/results/pilot2_results.md).
 
-## How it was tested
+## 4. How it was tested
 
 Every study below was **registered before it ran**, and each registration's deviations — including
 the predictions I lost — are in the same file.
@@ -408,7 +349,7 @@ The project began from two claims. It has tested the second in full, and the fir
 
 | | Status |
 | --- | --- |
-| **Physical observability exceeds software observability**, so a lab agent needs eyes as well as telemetry | **Strong form not tested; weak form tested, and it failed.** No public dataset has faults that only a camera can see ([survey](docs/material_survey.md)), so the strong form is untested. The weak form asks whether a camera covers for a missing instrument. It was tested on 48 real-plant items, and the camera did not help: Gemini ignored it, and Opus 5 alarmed more on faulty and fault-free runs alike ([results](docs/results/vision_results.md)). **Where the picture does carry the answer**, on lab inspection stills, the models use it, and Gemini beat a specialist trained on the lab's own photographs ([above](#when-the-picture-does-carry-the-answer)). Live, camera-only failures remain untested |
+| **Physical observability exceeds software observability**, so a lab agent needs eyes as well as telemetry | **Strong form not tested; weak form tested, and it failed.** No public dataset has faults that only a camera can see ([survey](docs/material_survey.md)), so the strong form is untested. The weak form asks whether a camera covers for a missing instrument. It was tested on 48 real-plant items, and the camera did not help: Gemini ignored it, and Opus 5 alarmed more on faulty and fault-free runs alike ([results](docs/results/vision_results.md)). **Where the picture does carry the answer**, on lab inspection stills, the models use it, and Gemini beat a specialist trained on the lab's own photographs ([above](#3-when-the-picture-does-carry-the-answer)). Live, camera-only failures remain untested |
 | **An agent cannot tell "I can't see it" from "nothing is wrong"** | **Tested, and this is the result above.** It holds across three model families (four models), seven framings and 2,134 judgments |
 
 The second is the first one's precondition: an agent that does not know it is blind will not be
@@ -431,7 +372,7 @@ Full tables: [arm comparison](docs/results/arm_comparison.md) ·
 [probe results](docs/results/probe_results.md) · [probe findings](docs/results/probe_findings.md) ·
 [mock scorecard](docs/results/mock_scorecard.md).
 
-## What the benchmark asks
+## 5. What the benchmark asks
 
 After every observation event the agent calls `report_assessment()` and answers four questions:
 
@@ -445,7 +386,7 @@ Execution and scientific evidence are kept separate. A run that executed normall
 is a **negative result**, not a malfunction. A result from a run with anomalous execution is
 **inconclusive**. It is not evidence about the recipe.
 
-## How it works
+## 6. How it works
 
 | Stage | What it does | Where |
 | --- | --- | --- |
@@ -461,7 +402,7 @@ reference curves) and **C-full** (+ micrographs).
 
 ![The sensor-removal cascade: the supported answer depends on which sensors exist](docs/figures/cascade_lpcvd.png)
 
-## What this project cannot show
+## 7. What this project cannot show
 
 - **Not real-time failure detection in a real lab.** It is multimodal failure assessment in
   simulated live lab episodes.
@@ -516,7 +457,7 @@ reference curves) and **C-full** (+ micrographs).
     withdrawn ([why](docs/results/frame_token_cost.md)).
   - **Use:** at 5 s, where every transient was resolvable, the models detected 8 and 6 of 12.
 
-## How the wording was frozen
+## 8. How the wording was frozen
 
 This benchmark changed its prompt wording three times after seeing results. Each change is recorded
 with its reason in [docs/design.md §3.1](docs/design.md), and every version's logs are kept in
@@ -533,7 +474,7 @@ What went wrong along the way, and what it taught (evaluation design, contract a
 pre-registration, porting the harness between models, cost structure):
 [docs/lessons_learned.md](docs/lessons_learned.md).
 
-## Running it
+## 9. Running it
 
 ```bash
 python3 -m venv .venv && ./.venv/bin/pip install numpy pyyaml pytest matplotlib pillow google-genai
@@ -568,7 +509,7 @@ On the free tier, one replay takes about a minute and roughly 0.4M cumulative pr
 Live API counts the whole accumulated context on every turn, so events are 120 s apart and sent as
 compact JSON.
 
-## Licensing
+## 10. Licensing
 
 - **Code and documentation:** MIT (see `LICENSE`).
 - **Images in `data/images/cvd/`:** panels cropped from CC BY 4.0 articles. Each image's source,
@@ -584,7 +525,7 @@ compact JSON.
 - **Telemetry and episodes:** author-constructed simulation, covered by the MIT licence above, and
   not data from any real run.
 
-## Status
+## 11. Status
 
 **Done**, each registered before it ran:
 
@@ -616,3 +557,66 @@ compact JSON.
 - a fine-tuned specialist, as opposed to nearest neighbours on frozen features;
 - a fair streaming-against-per-frame cost comparison. The earlier one is withdrawn;
 - the Active Live demo.
+
+## 中文版 TL;DR
+
+<details>
+<summary>点开展开中文摘要</summary>
+
+**LiveLab 研究的是：一个实时监控实验室实验（如管式炉、精馏装置）的 AI，能不能判断手上的证据是否足以判定运行“正常”还是“异常”、是否足以定下故障原因和下一步操作；证据不够时，能否如实说“无法验证”并转交人工核查，而不是给出确定结论。项目再据此设计产品。**
+
+**要解决的问题。** AI 监控代价高的失败不只是漏报，还有“虚假安慰”：在没有足够证据时报告“一切正常”，于是没人再去检查。LiveLab 分三步：定义什么算好并量出来；把业务问题变成模型能执行的智能体系统；选模型、报结果。
+
+**结果一句话。** 写明评分规则后，Claude Opus 5.5、Gemini 3.1 Pro、GPT-6 Astra 在公开集上漏送审 0/30、漏报 0/30、误伤 0/10（各跑一次）。下一步是三次运行加保留集的上线验证，以及合作实验室的真实日志和用户访谈。
+
+**1. 评测：什么算好，什么错误可以接受**
+
+| 判断 | 错误 | 含义 | 产品目标 |
+| --- | --- | --- | --- |
+| 有没有故障 | **漏报** | 有故障却没有报 | ≤ 10% |
+| | **误伤** | 没有故障却报了异常 | 控制在告警预算内（每位用户每周的误报数） |
+| 证据够不够、该不该送人工审核 | **漏送审**（即虚假安慰） | 证据不够，却自动给出“正常”或“异常”的结论 | 每次运行为 0（护栏） |
+| | **过度送审** | 证据其实够，却交给人工 | ≤ 1/20，避免占用审核产能 |
+
+- **护栏是漏送审：** 它让人没有理由再去看，所以每次运行必须为 0。
+- **误伤和过度送审有预算，不是为零：** 研究员的注意力和审核产能有限，一个遇到小风险就停下来问人的助手会让实验整夜等批准。
+- **怎么量：孪生题。** 同一个模拟炉故障复制两份，一份去掉无关的传感器，一份去掉唯一能看见故障的传感器；第二份的正确答案是“无法验证”。80 道题，答案由规则算出；同样的行为再在公开的真实精馏装置数据（专家标注）和实验室照片上验证。21 份预注册，每份都在第一次计分调用之前。
+
+**2. 智能体系统：把业务问题变成模型能执行的系统**
+
+- **分工。** 系统根据已装仪器算清什么能验证、什么不能，持有正式状态，NORMAL 只表示已验证；异常规则在每个仍在报数的传感器上持续运行，模型清除不了。模型负责解释、分流、按需取证。
+- **路由。** 由便宜的规则决定什么时候调模型，由模型决定取什么；回答缺失、格式错误或超时，都不能设定状态。
+- **单智能体带工具，不是多智能体。** 完整记录留在上下文之外；LiveLab 2.0 里智能体拿到趋势图和一个取窗口的工具（最多 4 次调用、有原始读数预算），要找出异常从什么时候开始。
+- **多轮与交接。** 回答按格式校验，追问一次，仍不完整就标为“评估不完整”；交接传原始证据，不传摘要：同样 80 张照片先交给视觉模型再交给语言模型，Opus 5 从 57 降到 23，Gemini 从 74 降到 51。
+- **边界。** 原因限在故障库内；状态不是 NORMAL 时绝不建议“继续”；只有模型报出的异常转人工核查。
+- **为什么是分工，不是一条提示词。** 补救提示词会此消彼长：告知“哪些无法验证”后漏送审 0/14，可见故障的漏报却升到 7–18/30（Opus 5、Astra）。
+
+**3. 模型选型与结果**
+
+测了七个模型、四家：Gemini 3.8 Live、3.8 Flash、3.1 Pro；Claude Opus 5、Opus 5.5；GPT-6 Astra；开源 GLM 5.3 Flash。两条选型规矩：同一模型内每次只改一件事；跨模型只读方向，因为调用方式和推理设置不同。
+
+怪模型之前先查测量和题目。Claude 看起来“漏填字段”的失败，其实是测试运行器的输出上限截断了回答；多数原因和动作上的错误，来自任务里从没写明的评分规则。写明规则后，四种模型配置在 80 道题上完全答对的题数从 24–71 提升到 72–80（每种各跑一次）。写明规则也改变了部分模型的状态判断，这与我事先登记的预测相反。
+
+**结果：从几乎不送审，到漏送审和漏报同时清零**（每行注明该阶段用的模型）
+
+| 阶段 | 漏送审 | 漏报 | 误伤 |
+| --- | --- | --- | --- |
+| 起点：早期研究，原始任务说法（Gemini 3.8 Live 为主，另含 Opus 5、Astra） | 2,127/2,134（99.7%） | — | — |
+| 真实装置数据（Gemini 3.8 Live、Opus 5、Astra） | 27–31/31 | — | 8%–97% |
+| 补救提示词：由系统告诉模型哪些传感器无法验证（Opus 5、Astra） | 0/14 | 7–18/30 | — |
+| 改进后（写明评分规则等三项）：Claude Opus 5.5、Gemini 3.1 Pro、GPT-6 Astra | **0/30** | **0/30** | **0/10** |
+| 改进后（同上）：开源 GLM 5.3 Flash | 2/30 | 5/30 | 0/10 |
+
+- **起点：** 四个模型中有三个先说“无法验证”，接着照样给出结论。
+- **真实装置数据：** 公开的真实精馏装置数据，以专家标注为真值；说明问题不是模拟器造成的。误伤 8%–97% 因模型而异：一个前沿模型把 37 次无故障运行里的 36 次判成异常，物理上说得通，但它不知道这套装置的“正常”长什么样。
+- **补救提示词：** 只加一句话，由系统告诉模型“哪些无法验证”；漏送审清零，但漏报上来了。
+- **改进后：** 三项共同作用：在任务里写明评分规则（故障库、允许的动作）、新一代模型、修好测试运行器；每个配置各跑一次。GLM 说明写清规则对小模型也有帮助，但还没达到门槛。
+
+模型上线前要按配置在私有保留集上跑三次、过准入门槛，每次更新都要重测；北极星指标是告警预算内抓到的故障数。
+
+- **怎么做的。** 21 份预注册（其中 Kimi K3 的一份登记后未运行，由 GLM 替代），使用模拟数据和公开的真实装置数据；不成立的预测和我自己的更正，都与结果一起公开。
+- **局限。** 一套模拟仪器、一份公开装置数据集和一组实验室照片；还没有真实部署，也还没有做用户验证；改进后的结果每个配置只跑了一次。
+
+研究者请从 [The finding](#2-the-finding) 开始阅读。产品读者可看 [产品摘要](docs/product.md#中文版)（概括了 PRD 和模型资格规范）、[V1S 结果](docs/results/core_leaderboard.md#reading-stating-the-tasks-cause-and-action-rules-v1s) 和 [经验教训](docs/lessons_learned.md)（英文）。
+
+</details>

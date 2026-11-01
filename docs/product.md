@@ -1,12 +1,202 @@
 # LiveLab Monitor: product summary
 
-本文是两份工作文档的公开摘要：产品需求文档（PRD）和模型资格规范。它是根据基准结果做的设计，不是已上线的产品。先中文，后英文。
-
 A public summary of two working documents, the product requirements (PRD) and the model
 qualification spec. It is a design built from the benchmark's results, not a deployed product.
-Chinese first, then [English](#english).
 
-## 中文
+中文读者：[中文版在页面末尾，点开即可展开](#中文版)。
+
+## On one page
+
+| Item | Content |
+| --- | --- |
+| Product | An AI monitor for long lab runs: tells a researcher who has stepped away whether the run is normal, what the instruments cannot judge, and interrupts only when the evidence needs them |
+| 1. The evaluation: what counts as good | Two decisions, four errors, lower is better: missed faults ≤ 10%, false positives within the alert budget, unnecessary escalations ≤ 1/20; the guardrail is the missed escalation (false reassurance: "all normal" without the evidence to know), 0 per run. Measured with twin items, then checked on real plant data and photographs |
+| 2. The agent system | The system computes observability and owns the official status; rules keep running on every sensor that still reports; the model explains, triages and fetches evidence on demand. Routing: cheap rules decide when the model is called, the model decides what to fetch. One agent with tools; multi-turn answers are format-checked with one follow-up; hand-offs carry raw evidence, never a summary; causes are bounded by the fault library; anything only the model flags goes to human review |
+| 3. Model choice | Seven models from four vendors; within a model change one thing at a time, across models read direction only; each configuration runs three times on a private hold-out and must pass a gate before launch; re-tested on every model update |
+| Status | With the scoring rules stated, two frontier configurations (Opus 5.5 and Astra) met every row in one run on the public set and Gemini 3.1 Pro all but one missing submission; none has formally qualified; not deployed, no user validation yet |
+
+## The user and the job
+
+| User | Situation | What v1 gives them |
+| --- | --- | --- |
+| **Run owner** (primary): a researcher who starts a long run (a furnace growth, an HPLC queue) and leaves | A run that fails midway may be found hours later | A status they can trust on a phone, the reason when it changes, and interruptions only when needed |
+| **Facility manager** (secondary): hands shared instruments to the next user | No record of what was watched | A record of what was verified in each run and what was not |
+| **Automated lab** (later): passes each result to an optimiser | No human in the loop | A machine-readable status marked verified or unverified |
+
+Job: *"While I am away from a running experiment, tell me whether it is going normally, tell me
+what the installed instruments cannot judge, and interrupt me only when the evidence needs me."*
+
+## Two decisions, four errors
+
+| Decision | Error | Meaning | Target |
+| --- | --- | --- | --- |
+| Is there a fault | **Missed fault** | A fault, but no alert | ≤10% |
+| | **False positive** | No fault, but flagged anomalous | Within the alert budget |
+| Should a human review it | **Missed escalation** (false reassurance) | Not enough evidence, but the AI gave a verdict | 0 per run |
+| | **Unnecessary escalation** | Enough evidence, but sent to a human | ≤1/20 |
+
+What each costs:
+- **Missed fault:** a sample, a run, sometimes an instrument.
+- **False positive:** interrupts the researcher; alerts get muted and nobody uses the product; the
+  budget is counted as false alerts per user per week.
+- **Missed escalation:** it removes the reason to look; as a guardrail it must be 0 per run.
+- **Unnecessary escalation:** uses reviewer capacity.
+
+Interruptions also have a budget: an agent that stops to ask about every small risk can leave an
+experiment waiting all night.
+
+## What the evaluation found, and the design response
+
+| Finding | Data | Design response |
+| --- | --- | --- |
+| Models say "cannot verify", then give a verdict anyway | Start: 2,127 of 2,134 escalations missed (99.7%) under the original task wording; three of four models did so on all 12 such items; on real plant data three models missed 27–31 of 31 | The system computes observability; NORMAL means verified (FR2, FR4) |
+| A prompt alone trades one error for the other | Telling models what cannot be verified cut missed escalations to 0 of 14 but raised missed faults to 7–18 of 30 (Opus 5, Astra) | Anomaly rules keep running on every sensor that still reports, and the model cannot clear them (FR3, FR4) |
+| False positives are high on real data | Fault-free runs on a real distillation plant were flagged anomalous 8% to 97% of the time, by model | Rebuild reference bands from each partner's normal runs; the alert policy keeps false positives in budget (stage 1, FR6) |
+| Turning evidence into text before a hand-off loses information | On the same 100 inspections of 80 lab photographs, passing a specialist vision model's verdict to a language model took Opus 5 from 57 to 23 and Gemini from 74 to 51 | Pass raw evidence; the model fetches what it needs (FR14) |
+| Most cause and action errors came from unstated rules | Stating the scoring rules took four configurations from 24–71 to 72–80 of 80 fully right | The qualification task states the scoring rules; the system bounds causes and next steps (FR11, FR12) |
+| After the fixes, frontier models cleared both errors | Claude Opus 5.5, Gemini 3.1 Pro and GPT-6 Astra: 0 of 30 missed escalations, 0 of 30 missed faults, 0 of 10 false positives; open-weight GLM 5.3 Flash: 2 of 30 and 5 of 30 | Each configuration passes the launch gate and is re-tested on every update (see Model qualification) |
+
+## How it works
+
+```mermaid
+flowchart LR
+  A[Readings] --> B[Data state per sensor<br/>valid, stale, dropped, not installed]
+  B --> C[Observability<br/>which checks this stage can verify]
+  C --> D[Anomaly rules<br/>on every channel that reports]
+  D --> E[Official status<br/>fixed precedence]
+  E --> F[Status card and alerts]
+  E -. event .-> G[Model explains<br/>cause within the fault library,<br/>next step within the protocol]
+  G -. explanation or model flag .-> F
+  A --> H[(Run record)]
+```
+
+The system owns the official status. The model explains, asynchronously, and the status never
+waits for it.
+
+| Rule-confirmed anomaly | Required evidence | Official status |
+| --- | --- | --- |
+| Yes | Complete or not | **ANOMALOUS**, still listing what cannot be verified |
+| No | Incomplete | **CANNOT VERIFY** (goes to a human) |
+| No | Complete, every required check passes | **NORMAL**, for the defined checks only |
+
+A missing sensor never suppresses a confirmed anomaly. The model can never clear one, or turn
+CANNOT VERIFY into NORMAL. An anomaly only the model reports is shown as "model flag, pending
+review", and the run owner is asked to check; the official status does not change.
+
+## Requirements in one line each
+
+| # | Requirement |
+| --- | --- |
+| FR1 | Instrument list from the hardware layer; a stage plan says which conditions each stage needs and which sensor verifies each |
+| FR2 | The system computes each sensor's data state and whether each required condition is verified, cannot be verified, or deviates |
+| FR3 | Anomaly rules run on every available channel, without the model |
+| FR4 | Fixed state precedence (table above) |
+| FR5 | The model explains asynchronously; a missing, malformed or late answer never sets the status |
+| FR6 | Alert policy: alert on ANOMALOUS; CANNOT VERIFY once per condition per stage; deduplicate; quiet hours; track sent, delivered, acknowledged |
+| FR7 | Every status carries checkable evidence; a missing reading is recorded as missing, never filled in |
+| FR8 | Chat reads the status but never sets it |
+| FR9 | A run record that can replay and reproduce every status |
+| FR10 | v1 never operates an instrument; any later action counts only when the instrument reads back the change |
+| FR11 | The system lists the causes in the fault library that fit the evidence; the model's cause must be among them |
+| FR12 | Next steps follow the lab's protocol; "continue" is never suggested unless the status is NORMAL |
+| FR13 | Answers are format-checked; one follow-up, otherwise shown as incomplete |
+| FR14 | Evidence on demand: store everything outside the model's context; cheap rules decide when to call the model; the model decides what to fetch |
+
+Non-functional: status within 30 s of a reading whatever the model does; instrument data stays in
+the lab's workspace; model cost reported per monitored hour.
+
+**Wording rule.** When the status is CANNOT VERIFY, no template or model text may say "looks
+fine", "all normal" or "no anomaly". A test checks every template and every model-written reason.
+
+## Success metrics
+
+**North star:** faults caught per 100 runs, within an alert budget, with zero unsupported
+"normal".
+
+The metrics follow two decisions, each with two errors, and lower is better for all four: **is
+there a fault** (missed faults, false positives; precision from reviewer feedback) and **is the
+evidence enough, or should the case go to a human** (missed escalations, unnecessary escalations).
+False reassurance is a missed escalation.
+
+| Metric | Governance term | Definition | Starting target |
+| --- | --- | --- | --- |
+| Unsupported NORMAL (guardrail) | False reassurance, a missed escalation: a case that should have gone to a human was auto-cleared | NORMAL shown while a required check cannot be verified or a rule anomaly is open | 0 per run; one occurrence stops the rollout stage |
+| False NORMAL with a real fault | The same, letting a real problem through | The above, with a fault confirmed afterwards | 0 |
+| Miss rate | Missed faults (1 − recall) | Confirmed faults on verifiable conditions with no alert | ≤ 10% |
+| Usefulness rate | Precision, as judged by the people reviewing | Alerts marked useful ÷ alerts marked useful or wrong | Read against the alert budget |
+| False alerts per user per week | False positives (wrongful enforcement), as reviewer load | Alerts marked wrong | Within the agreed budget |
+| Missed escalation | Missed escalation | Cases with insufficient evidence where the model gave a verdict instead of "cannot verify" | ≤ 2/30 in the qualification gate |
+| Unnecessary escalation | Unnecessary escalation, as reviewer load | "Cannot verify" where the evidence was enough | ≤ 1/20 in the qualification gate |
+| Time from fault to known | Time to detection and action | Fault → observable → detected → delivered → acknowledged, each measured | Within each fault's damage window |
+| Model contribution | Automation lift over rules alone | Do researchers understand and act better with the model's text than with rules alone? | Decides whether the model stays |
+| Adoption and retention | Tool adoption | Share of eligible runs monitored; owners still using it after four weeks | Tracked from the first partner |
+| Cost per monitored hour | Unit cost | Model spend over monitored hours | Reported from the first partner |
+
+Guardrails are counted per run, not per update: at one update every two minutes, a 1% per-update
+error rate would touch about 44% of 58-update runs (one update every two minutes).
+
+## Rollout, with gates and stop rules
+
+| Stage | What happens | Gate to move on | Stop or pivot if |
+| --- | --- | --- | --- |
+| 0. Discovery | Partner logs, incidents, interviews; nothing ships | Instrument-visible, minute-scale faults are common, and researchers fear false "normal" | Faults are rare, already caught by interlocks, or mostly camera-only |
+| 1. Offline | Replay FR1–FR5, FR9, FR11 on partner logs | Zero unsupported NORMAL; miss rate ≤ 10%; alert policy within budget; model contribution measured | The model beats rules nowhere: ship rules and observability, the model only explains |
+| 2. Model gate | A candidate passes the qualification spec | The spec's gate, at the required runs and protocol | No model passes: the system decides, the model explains |
+| 3. Shadow | 4–8 weeks at 2–3 partners, recording only | Stage 1 gates hold as rates with intervals | Any unsupported or false NORMAL: stop and diagnose |
+| 4. Pilot | Alerts to run owners, status card, feedback | Miss rate, usefulness and time to know hold; alerts still on after four weeks | Owners mute it: fix the budget before adding features |
+
+Out of scope for v1: operating instruments, camera monitoring (pending stage 0's data gate),
+connecting instruments, scheduling, experiment planning and closed-loop optimisation.
+
+## Model qualification (from the qualification spec)
+
+A model is qualified as a configuration (model, call mode, task statement, limits) on a private
+hold-out of LiveLab Core, three runs, with the configuration to be shipped and the product protocol
+(at most one reminder). Every new mechanism is compared with a control that has the same budget,
+limits and task statement. The gate is re-run on every model update before it reaches a partner.
+
+The table shows the gate and, beside it, one run each on the public set with the scoring rules
+stated. There are no repeats and no hold-out yet, so none counts as qualified.
+
+| Row (denominator) | Gate | Opus 5.5 | Gemini 3.1 Pro | GPT-6 Astra | GLM 5.3 Flash |
+| --- | --- | --- | --- | --- | --- |
+| Missed escalations (/30) | ≤2 | 0 | 0 | 0 | 2 |
+| Missed faults (/30) | ≤2 | 0 | 0 | 0 | **5** |
+| False positives (/10) | 0 | 0 | 0 | 0 | 0 |
+| Unnecessary escalations (/20) | ≤1 | 0 | 0¹ | 0 | 0 |
+| Determinable cause right (/20) | ≥18 | 20 | 19 | 20 | **17** |
+| Undeterminable cause "undetermined" (/20) | ≥18 | 20 | 20 | 20 | **17** |
+| "Continue" on non-normal items (/70) | 0 | 0 | 0 | 0 | **3** |
+| Action in the allowed set (/70) | 70 | 70 | 69¹ | 70 | **67** |
+| Valid submissions (/80) | All | 80 | **79**¹ | 80 | 80 |
+| Fully right (/80), before→after the rules | Reported | 65–71→80 | 37→79 | 52→80 | 24→72 |
+
+- **What the rows mean:** missed escalation = a hidden twin (key sensor missing) not abstained;
+  missed fault = a fault the remaining sensors show, not kept; false positive = a normal run called
+  anomalous; unnecessary escalation = abstaining when the evidence was enough, not counted
+  separately in this run, hence "—".
+- **Gate:** missed escalations and missed faults must meet the bar in each of three runs.
+- ¹ Gemini 3.1 Pro left one item unsubmitted after two reminders.
+- **Configurations:** Opus 5.5 ran three times before the rules were stated (65, 70, 71); Astra
+  used a forced call, the others unforced; GLM ran through OpenRouter pinned to one host.
+- The row "fault-free runs on a real installation within the alert budget" can only be measured on
+  a partner's equipment. [Leaderboard](results/core_leaderboard.md)
+
+## Main risks
+
+| Risk | Response |
+| --- | --- |
+| Researchers do not rank false "normal" as the worst error (untested) | Ask directly in stage 0; if misses matter more, retune the alert budget, keep FR4 |
+| Rules calibrated on simulation false-alert on real instruments (8% to 97% of fault-free runs on real plant data) | Rebuild reference bands from each partner's normal runs in stage 1 |
+| The model names causes the evidence cannot support | FR11 bounds causes to the fault library; measured in the gate |
+| CANNOT VERIFY notices become noise | Once per condition per stage; watch the mute rate from stage 4 |
+| Users read NORMAL as a guarantee | The card always lists what was verified; NORMAL only when every required check is verified |
+| Monitoring costs more than it saves | Report cost per monitored hour from the first partner |
+
+## 中文版
+
+<details>
+<summary>点开展开中文版（本文是两份工作文档的公开摘要：产品需求文档和模型资格规范）</summary>
 
 ### 一页看完
 
@@ -175,192 +365,4 @@ v1 不做：操作仪器、摄像头监控（等第 0 阶段的数据门槛）�
 
 ---
 
-## English
-
-### On one page
-
-| Item | Content |
-| --- | --- |
-| Product | An AI monitor for long lab runs: tells a researcher who has stepped away whether the run is normal, what the instruments cannot judge, and interrupts only when the evidence needs them |
-| 1. The evaluation: what counts as good | Two decisions, four errors, lower is better: missed faults ≤ 10%, false positives within the alert budget, unnecessary escalations ≤ 1/20; the guardrail is the missed escalation (false reassurance: "all normal" without the evidence to know), 0 per run. Measured with twin items, then checked on real plant data and photographs |
-| 2. The agent system | The system computes observability and owns the official status; rules keep running on every sensor that still reports; the model explains, triages and fetches evidence on demand. Routing: cheap rules decide when the model is called, the model decides what to fetch. One agent with tools; multi-turn answers are format-checked with one follow-up; hand-offs carry raw evidence, never a summary; causes are bounded by the fault library; anything only the model flags goes to human review |
-| 3. Model choice | Seven models from four vendors; within a model change one thing at a time, across models read direction only; each configuration runs three times on a private hold-out and must pass a gate before launch; re-tested on every model update |
-| Status | With the scoring rules stated, two frontier configurations (Opus 5.5 and Astra) met every row in one run on the public set and Gemini 3.1 Pro all but one missing submission; none has formally qualified; not deployed, no user validation yet |
-
-### The user and the job
-
-| User | Situation | What v1 gives them |
-| --- | --- | --- |
-| **Run owner** (primary): a researcher who starts a long run (a furnace growth, an HPLC queue) and leaves | A run that fails midway may be found hours later | A status they can trust on a phone, the reason when it changes, and interruptions only when needed |
-| **Facility manager** (secondary): hands shared instruments to the next user | No record of what was watched | A record of what was verified in each run and what was not |
-| **Automated lab** (later): passes each result to an optimiser | No human in the loop | A machine-readable status marked verified or unverified |
-
-Job: *"While I am away from a running experiment, tell me whether it is going normally, tell me
-what the installed instruments cannot judge, and interrupt me only when the evidence needs me."*
-
-### Two decisions, four errors
-
-| Decision | Error | Meaning | Target |
-| --- | --- | --- | --- |
-| Is there a fault | **Missed fault** | A fault, but no alert | ≤10% |
-| | **False positive** | No fault, but flagged anomalous | Within the alert budget |
-| Should a human review it | **Missed escalation** (false reassurance) | Not enough evidence, but the AI gave a verdict | 0 per run |
-| | **Unnecessary escalation** | Enough evidence, but sent to a human | ≤1/20 |
-
-What each costs:
-- **Missed fault:** a sample, a run, sometimes an instrument.
-- **False positive:** interrupts the researcher; alerts get muted and nobody uses the product; the
-  budget is counted as false alerts per user per week.
-- **Missed escalation:** it removes the reason to look; as a guardrail it must be 0 per run.
-- **Unnecessary escalation:** uses reviewer capacity.
-
-Interruptions also have a budget: an agent that stops to ask about every small risk can leave an
-experiment waiting all night.
-
-### What the evaluation found, and the design response
-
-| Finding | Data | Design response |
-| --- | --- | --- |
-| Models say "cannot verify", then give a verdict anyway | Start: 2,127 of 2,134 escalations missed (99.7%) under the original task wording; three of four models did so on all 12 such items; on real plant data three models missed 27–31 of 31 | The system computes observability; NORMAL means verified (FR2, FR4) |
-| A prompt alone trades one error for the other | Telling models what cannot be verified cut missed escalations to 0 of 14 but raised missed faults to 7–18 of 30 (Opus 5, Astra) | Anomaly rules keep running on every sensor that still reports, and the model cannot clear them (FR3, FR4) |
-| False positives are high on real data | Fault-free runs on a real distillation plant were flagged anomalous 8% to 97% of the time, by model | Rebuild reference bands from each partner's normal runs; the alert policy keeps false positives in budget (stage 1, FR6) |
-| Turning evidence into text before a hand-off loses information | On the same 100 inspections of 80 lab photographs, passing a specialist vision model's verdict to a language model took Opus 5 from 57 to 23 and Gemini from 74 to 51 | Pass raw evidence; the model fetches what it needs (FR14) |
-| Most cause and action errors came from unstated rules | Stating the scoring rules took four configurations from 24–71 to 72–80 of 80 fully right | The qualification task states the scoring rules; the system bounds causes and next steps (FR11, FR12) |
-| After the fixes, frontier models cleared both errors | Claude Opus 5.5, Gemini 3.1 Pro and GPT-6 Astra: 0 of 30 missed escalations, 0 of 30 missed faults, 0 of 10 false positives; open-weight GLM 5.3 Flash: 2 of 30 and 5 of 30 | Each configuration passes the launch gate and is re-tested on every update (see Model qualification) |
-
-### How it works
-
-```mermaid
-flowchart LR
-  A[Readings] --> B[Data state per sensor<br/>valid, stale, dropped, not installed]
-  B --> C[Observability<br/>which checks this stage can verify]
-  C --> D[Anomaly rules<br/>on every channel that reports]
-  D --> E[Official status<br/>fixed precedence]
-  E --> F[Status card and alerts]
-  E -. event .-> G[Model explains<br/>cause within the fault library,<br/>next step within the protocol]
-  G -. explanation or model flag .-> F
-  A --> H[(Run record)]
-```
-
-The system owns the official status. The model explains, asynchronously, and the status never
-waits for it.
-
-| Rule-confirmed anomaly | Required evidence | Official status |
-| --- | --- | --- |
-| Yes | Complete or not | **ANOMALOUS**, still listing what cannot be verified |
-| No | Incomplete | **CANNOT VERIFY** (goes to a human) |
-| No | Complete, every required check passes | **NORMAL**, for the defined checks only |
-
-A missing sensor never suppresses a confirmed anomaly. The model can never clear one, or turn
-CANNOT VERIFY into NORMAL. An anomaly only the model reports is shown as "model flag, pending
-review", and the run owner is asked to check; the official status does not change.
-
-### Requirements in one line each
-
-| # | Requirement |
-| --- | --- |
-| FR1 | Instrument list from the hardware layer; a stage plan says which conditions each stage needs and which sensor verifies each |
-| FR2 | The system computes each sensor's data state and whether each required condition is verified, cannot be verified, or deviates |
-| FR3 | Anomaly rules run on every available channel, without the model |
-| FR4 | Fixed state precedence (table above) |
-| FR5 | The model explains asynchronously; a missing, malformed or late answer never sets the status |
-| FR6 | Alert policy: alert on ANOMALOUS; CANNOT VERIFY once per condition per stage; deduplicate; quiet hours; track sent, delivered, acknowledged |
-| FR7 | Every status carries checkable evidence; a missing reading is recorded as missing, never filled in |
-| FR8 | Chat reads the status but never sets it |
-| FR9 | A run record that can replay and reproduce every status |
-| FR10 | v1 never operates an instrument; any later action counts only when the instrument reads back the change |
-| FR11 | The system lists the causes in the fault library that fit the evidence; the model's cause must be among them |
-| FR12 | Next steps follow the lab's protocol; "continue" is never suggested unless the status is NORMAL |
-| FR13 | Answers are format-checked; one follow-up, otherwise shown as incomplete |
-| FR14 | Evidence on demand: store everything outside the model's context; cheap rules decide when to call the model; the model decides what to fetch |
-
-Non-functional: status within 30 s of a reading whatever the model does; instrument data stays in
-the lab's workspace; model cost reported per monitored hour.
-
-**Wording rule.** When the status is CANNOT VERIFY, no template or model text may say "looks
-fine", "all normal" or "no anomaly". A test checks every template and every model-written reason.
-
-### Success metrics
-
-**North star:** faults caught per 100 runs, within an alert budget, with zero unsupported
-"normal".
-
-The metrics follow two decisions, each with two errors, and lower is better for all four: **is
-there a fault** (missed faults, false positives; precision from reviewer feedback) and **is the
-evidence enough, or should the case go to a human** (missed escalations, unnecessary escalations).
-False reassurance is a missed escalation.
-
-| Metric | Governance term | Definition | Starting target |
-| --- | --- | --- | --- |
-| Unsupported NORMAL (guardrail) | False reassurance, a missed escalation: a case that should have gone to a human was auto-cleared | NORMAL shown while a required check cannot be verified or a rule anomaly is open | 0 per run; one occurrence stops the rollout stage |
-| False NORMAL with a real fault | The same, letting a real problem through | The above, with a fault confirmed afterwards | 0 |
-| Miss rate | Missed faults (1 − recall) | Confirmed faults on verifiable conditions with no alert | ≤ 10% |
-| Usefulness rate | Precision, as judged by the people reviewing | Alerts marked useful ÷ alerts marked useful or wrong | Read against the alert budget |
-| False alerts per user per week | False positives (wrongful enforcement), as reviewer load | Alerts marked wrong | Within the agreed budget |
-| Missed escalation | Missed escalation | Cases with insufficient evidence where the model gave a verdict instead of "cannot verify" | ≤ 2/30 in the qualification gate |
-| Unnecessary escalation | Unnecessary escalation, as reviewer load | "Cannot verify" where the evidence was enough | ≤ 1/20 in the qualification gate |
-| Time from fault to known | Time to detection and action | Fault → observable → detected → delivered → acknowledged, each measured | Within each fault's damage window |
-| Model contribution | Automation lift over rules alone | Do researchers understand and act better with the model's text than with rules alone? | Decides whether the model stays |
-| Adoption and retention | Tool adoption | Share of eligible runs monitored; owners still using it after four weeks | Tracked from the first partner |
-| Cost per monitored hour | Unit cost | Model spend over monitored hours | Reported from the first partner |
-
-Guardrails are counted per run, not per update: at one update every two minutes, a 1% per-update
-error rate would touch about 44% of 58-update runs (one update every two minutes).
-
-### Rollout, with gates and stop rules
-
-| Stage | What happens | Gate to move on | Stop or pivot if |
-| --- | --- | --- | --- |
-| 0. Discovery | Partner logs, incidents, interviews; nothing ships | Instrument-visible, minute-scale faults are common, and researchers fear false "normal" | Faults are rare, already caught by interlocks, or mostly camera-only |
-| 1. Offline | Replay FR1–FR5, FR9, FR11 on partner logs | Zero unsupported NORMAL; miss rate ≤ 10%; alert policy within budget; model contribution measured | The model beats rules nowhere: ship rules and observability, the model only explains |
-| 2. Model gate | A candidate passes the qualification spec | The spec's gate, at the required runs and protocol | No model passes: the system decides, the model explains |
-| 3. Shadow | 4–8 weeks at 2–3 partners, recording only | Stage 1 gates hold as rates with intervals | Any unsupported or false NORMAL: stop and diagnose |
-| 4. Pilot | Alerts to run owners, status card, feedback | Miss rate, usefulness and time to know hold; alerts still on after four weeks | Owners mute it: fix the budget before adding features |
-
-Out of scope for v1: operating instruments, camera monitoring (pending stage 0's data gate),
-connecting instruments, scheduling, experiment planning and closed-loop optimisation.
-
-### Model qualification (from the qualification spec)
-
-A model is qualified as a configuration (model, call mode, task statement, limits) on a private
-hold-out of LiveLab Core, three runs, with the configuration to be shipped and the product protocol
-(at most one reminder). Every new mechanism is compared with a control that has the same budget,
-limits and task statement. The gate is re-run on every model update before it reaches a partner.
-
-The table shows the gate and, beside it, one run each on the public set with the scoring rules
-stated. There are no repeats and no hold-out yet, so none counts as qualified.
-
-| Row (denominator) | Gate | Opus 5.5 | Gemini 3.1 Pro | GPT-6 Astra | GLM 5.3 Flash |
-| --- | --- | --- | --- | --- | --- |
-| Missed escalations (/30) | ≤2 | 0 | 0 | 0 | 2 |
-| Missed faults (/30) | ≤2 | 0 | 0 | 0 | **5** |
-| False positives (/10) | 0 | 0 | 0 | 0 | 0 |
-| Unnecessary escalations (/20) | ≤1 | 0 | 0¹ | 0 | 0 |
-| Determinable cause right (/20) | ≥18 | 20 | 19 | 20 | **17** |
-| Undeterminable cause "undetermined" (/20) | ≥18 | 20 | 20 | 20 | **17** |
-| "Continue" on non-normal items (/70) | 0 | 0 | 0 | 0 | **3** |
-| Action in the allowed set (/70) | 70 | 70 | 69¹ | 70 | **67** |
-| Valid submissions (/80) | All | 80 | **79**¹ | 80 | 80 |
-| Fully right (/80), before→after the rules | Reported | 65–71→80 | 37→79 | 52→80 | 24→72 |
-
-- **What the rows mean:** missed escalation = a hidden twin (key sensor missing) not abstained;
-  missed fault = a fault the remaining sensors show, not kept; false positive = a normal run called
-  anomalous; unnecessary escalation = abstaining when the evidence was enough, not counted
-  separately in this run, hence "—".
-- **Gate:** missed escalations and missed faults must meet the bar in each of three runs.
-- ¹ Gemini 3.1 Pro left one item unsubmitted after two reminders.
-- **Configurations:** Opus 5.5 ran three times before the rules were stated (65, 70, 71); Astra
-  used a forced call, the others unforced; GLM ran through OpenRouter pinned to one host.
-- The row "fault-free runs on a real installation within the alert budget" can only be measured on
-  a partner's equipment. [Leaderboard](results/core_leaderboard.md)
-
-### Main risks
-
-| Risk | Response |
-| --- | --- |
-| Researchers do not rank false "normal" as the worst error (untested) | Ask directly in stage 0; if misses matter more, retune the alert budget, keep FR4 |
-| Rules calibrated on simulation false-alert on real instruments (8% to 97% of fault-free runs on real plant data) | Rebuild reference bands from each partner's normal runs in stage 1 |
-| The model names causes the evidence cannot support | FR11 bounds causes to the fault library; measured in the gate |
-| CANNOT VERIFY notices become noise | Once per condition per stage; watch the mute rate from stage 4 |
-| Users read NORMAL as a guarantee | The card always lists what was verified; NORMAL only when every required check is verified |
-| Monitoring costs more than it saves | Report cost per monitored hour from the first partner |
+</details>
