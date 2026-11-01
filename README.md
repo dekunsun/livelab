@@ -20,7 +20,7 @@ Work in progress · 2026 · MIT
 
 ## 1. TL;DR
 
-中文读者：[中文摘要在页面末尾，点开即可展开](#中文版-tldr)。
+[中文版](#中文版-tldr)
 
 **LiveLab tests whether an AI monitoring a running lab experiment (a tube furnace, a distillation
 plant) can tell when its evidence is enough to call the run normal or anomalous, name the cause and

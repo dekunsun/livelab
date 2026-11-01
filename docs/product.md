@@ -3,7 +3,7 @@
 A public summary of two working documents, the product requirements (PRD) and the model
 qualification spec. It is a design built from the benchmark's results, not a deployed product.
 
-中文读者：[中文版在页面末尾，点开即可展开](#中文版)。
+[中文版](#中文版)
 
 ## On one page
 
