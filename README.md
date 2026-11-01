@@ -9,7 +9,7 @@
 
 **要解决的问题。** AI 监控代价高的失败不只是漏报，还有“虚假安慰”：在没有足够证据时报告“一切正常”，于是没人再去检查。LiveLab 分三步：定义什么算好并量出来；把业务问题变成模型能执行的智能体系统；选模型、报结果。
 
-**结果一句话。** 写明评分规则后，Claude Opus 5.5、Gemini 3.1 Pro、GPT-6 Astra 在公开集上漏送审 0/30、漏报 0/30、误伤 0/10（各跑一次）；还没有配置通过“三次运行加保留集”的上线门槛；尚未部署，也没有用户验证。
+**结果一句话。** 写明评分规则后，Claude Opus 5.5、Gemini 3.1 Pro、GPT-6 Astra 在公开集上漏送审 0/30、漏报 0/30、误伤 0/10（各跑一次）。下一步是三次运行加保留集的上线验证，以及合作实验室的真实日志和用户访谈。
 
 **1. 评测：什么算好，什么错误可以接受**
 
@@ -75,8 +75,8 @@ a model can execute; choose models and report what they scored.
 
 **The result in one line.** With the scoring rules stated, Claude Opus 5.5, Gemini 3.1 Pro and
 GPT-6 Astra scored 0 of 30 missed escalations, 0 of 30 missed faults and 0 of 10 false positives on
-the public set (one run each); no configuration has yet passed the three-run, held-out launch gate;
-not deployed, no user validation yet.
+the public set (one run each). Next: the three-run, held-out launch gate, and a partner lab's logs
+and user interviews.
 
 **1. The evaluation: what counts as good, and which errors are acceptable**
 
