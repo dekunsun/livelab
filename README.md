@@ -1,4 +1,22 @@
-# LiveLab: Multimodal Lab Observer
+<div align="center">
+
+# LiveLab
+
+### Can an AI watching a lab run tell when its evidence cannot support a verdict?
+
+Dekun Sun · University of Pennsylvania · [ai4s.fyi](https://ai4s.fyi)
+
+Work in progress · 2026 · MIT
+
+[**Preprint**](docs/preprint/preprint.pdf) · [**Results**](docs/results/core_leaderboard.md) · [Evaluation settings](docs/eval_settings.md) · [Registrations](#how-it-was-tested) · [Product summary](docs/product.md) · [Lessons learned](docs/lessons_learned.md) · [LiveLab 2.0](https://github.com/dekunsun/livelab2)
+
+<img src="docs/figures/hero.png" width="760" alt="Missed escalations and missed faults, of 30, for four models across three task statements">
+
+<sub>LiveLab Core, the four models run with the scoring rules stated. With nothing stated (V0), every model gives a verdict on all 30 items where only "cannot verify" is right. Stating the gap (V1) removes that error and, for two models, makes them drop faults the remaining sensors show. Stating the scoring rules (V1S) brings both errors inside the gate (green band) for three models, one run each. Generated from the run records by <code>scripts/plot_hero.py</code>.</sub>
+
+</div>
+
+---
 
 <!-- TL;DR for product readers (added 2026-10-13). -->
 ## TL;DR
