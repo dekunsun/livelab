@@ -83,7 +83,10 @@
     figure img { width: 82%; margin: 0 auto; }
     figure.wide img { width: 100%; }
     figcaption { font-size: 8.4pt; }
-    table { font-size: 8.4pt; }
+    table { font-size: 7.9pt; min-width: 0; table-layout: auto; }
+    .tablewrap { overflow: visible; }
+    td.n, th.n { white-space: normal; }
+    th, td { padding: .25rem .3rem; }
     caption, .refs li { font-size: 8.4pt; }
     h2 { break-after: avoid; }
     h3 { break-after: avoid; }
@@ -98,11 +101,11 @@
   <h1>LiveLab: When the Evidence Cannot Support a Verdict.<br>Evaluating Scientific Agents for Reliable Laboratory Monitoring</h1>
   <p class="authors">Dekun Sun</p>
   <p class="affil">University of Pennsylvania · <a href="https://ai4s.fyi">ai4s.fyi</a></p>
-  <p class="date">November 2026 · preprint draft, work in progress · <a href="https://github.com/dekunsun/livelab">github.com/dekunsun/livelab</a></p>
+  <p class="date">November 2026 · preprint draft, work in progress · <a href="https://github.com/dekunsun/livelab">github.com/dekunsun/livelab</a> · <a href="preprint.pdf">PDF</a></p>
 </header>
 
 <h2>Abstract</h2>
-<p class="abstract">An AI system watching a running experiment can fail by missing a fault, and it can also fail by reporting that all is normal when the installed instruments could not have shown otherwise. We call the second failure <i>false reassurance</i>, and LiveLab is a pre-registered benchmark built to measure it. Its core device is the <i>twin item</i>: the same simulated furnace fault rendered twice, once without a sensor that does not matter and once without the only sensor that could see the fault, so that the right answer to the second twin is "cannot verify". The answer key is computed from the delivered evidence by fixed rules. Across seven models from four vendors, 21 registrations, simulated runs, a public real distillation plant and laboratory photographs, three findings stand. First, under the original task wording models almost never abstained: 7 abstentions in 2,134 judgments where only abstention was supported, including 0, 4 and 3 of 31 on the real plant; asked separately, three of four models said a condition could not be verified and then gave a verdict anyway. Second, telling a model what it cannot verify fixed abstention and cost visible faults: Opus 5 kept 20 and 23 of 30 faults that the remaining sensors showed. Third, much of what first looked like model failure came from the measurement and the task: a 1,024-token output cap truncated 128 answers, and once the task stated the rules it was scored by, four configurations went from 24–71 to 72–80 of 80 items fully right. With the rules stated, Claude Opus 5.5, Gemini 3.1 Pro and GPT-6 Astra each missed no escalation (0 of 30) and no fault (0 of 30) and raised no false alert (0 of 10) in one run each. On real fault-free runs, false alerts ranged from 3 to 36 of 37 by model. We argue for a design in which the system computes what the instruments can settle and owns the official state, and the model explains. No configuration has yet passed the three-run, held-out qualification gate, and nothing has been deployed.</p>
+<p class="abstract">An AI system watching a running experiment can fail by missing a fault, and it can also fail by reporting that all is normal when the installed instruments could not have shown otherwise. We call the second failure <i>false reassurance</i>, and LiveLab is a pre-registered benchmark built to measure it. Its core device is the <i>twin item</i>: the same simulated furnace fault rendered twice, once without a sensor that does not matter and once without the only sensor that could see the fault, so that the right answer to the second twin is "cannot verify". The answer key is computed from the delivered evidence by fixed rules. Across seven models from four vendors, 21 registrations, simulated runs, a public real distillation plant and laboratory photographs, three findings stand. First, under the original task wording models almost never abstained: 7 abstentions in 2,134 judgments where only abstention was supported, including 0, 4 and 3 of 31 on the real plant; asked separately, three of four models said a condition could not be verified and then gave a verdict anyway. Second, telling a model what it cannot verify fixed abstention and cost visible faults: Opus 5 kept 20 and 23 of 30 faults that the remaining sensors showed. Third, much of what first looked like model failure came from the measurement and the task: a 1,024-token output cap truncated 128 answers, and once the task stated the rules it was scored by, four configurations went from 24–71 to 72–80 of 80 items fully right. With the rules stated, Claude Opus 5.5, Gemini 3.1 Pro and GPT-6 Astra each missed no escalation (0 of 30) and no fault (0 of 30) and raised no false alert (0 of 10) in one run each. On real fault-free runs, false alerts ranged from 3 to 36 of 37 by model. A follow-up on the same plant data, LiveLab 2.0, found that an agent given a trend plot chose which raw windows to fetch as well as an oracle, but whether that beats a fixed recent window was not shown. We argue for a design in which the system computes what the instruments can settle and owns the official state, and the model explains. No configuration has yet passed the three-run, held-out qualification gate, and nothing has been deployed.</p>
 
 
 <figure class="wide">
@@ -261,6 +264,14 @@
 <p class="note" style="text-align:left"><i>Note.</i> Runner v2: output cap 8,192 tokens; temperature left at each provider's default; up to two reminders for a missing submission, and a missing submission scored as wrong. Calls unforced except Astra (forced). Spend: Opus 5.5 V1S US$5.07; Pro V1S US$2.45; Astra V1 and V1S together US$18.64; GLM V1 and V1S together US$0.45, through OpenRouter pinned to one host.</p>
 <p>In the error terms of Table 1, the three frontier configurations under V1S had 0 of 30 missed escalations, 0 of 30 missed faults and 0 of 10 false alerts in one run each; GLM 5.3 Flash had 2, 5 and 0. These are candidate results on the public set, not qualifications.</p>
 
+<h3>5.6 LiveLab 2.0: where in time to look</h3>
+<p>A follow-up study, registered and run separately (<a href="https://github.com/dekunsun/livelab2">github.com/dekunsun/livelab2</a>), asks the next question a monitor faces once an anomaly is visible: when did it begin, and how much of the record must the agent fetch to say so? The items are 25 public anomaly episodes of the same distillation plant, with the expert annotation of first visibility as truth. The agent sees the current readings and a 600 s coarse plot, and may fetch raw 1 Hz data under a budget of 1,800 readings per channel. Arm D chooses its own windows with at most four calls; arm E is handed the most recent 1,800 s; arm B is handed a window that contains the onset; F2 is a classical "last sustained normal" detector calibrated on fault-free runs. An onset counts as found within ±120 s of the annotation; the ask time t₂ is late in the anomaly, so the onset is usually outside the recent window.</p>
+<figure>
+  <img src="../figures/livelab2_arms_hits.png" alt="Onsets located within 120 s per arm at t2 for Claude Opus 5.5 and Gemini 3.1 Pro">
+  <figcaption><b>Figure 8 | Where should the agent look?</b> Onsets located within ±120 s of the expert annotation, 25 episodes, asked late in the anomaly, budget 1,800 raw readings per channel. Dark: Claude Opus 5.5; light: Gemini 3.1 Pro. Classical detector 8; fixed recent window 14 and 10; agent chooses its windows 17 and 10; oracle window 17 and 15. Counts read from the result records by <code>scripts/plot_arms_hits.py</code> in the LiveLab 2.0 repository.</figcaption>
+</figure>
+<p>Two things held. Given the coarse plot, Opus 5.5 choosing its own windows located the onset on 17 of 25 items, the same as the oracle window, using about half the raw data, and beat the classical detector on 10 items against 1. And the 1.0 pattern repeated: when the fetched data did not reach the onset, both models named an exact second rather than "before what I saw" (Opus 36 to 7, Gemini 10 to 1), and given 37 false alerts injected into fault-free runs, Opus reported an onset for 25 and Gemini for 19. The primary prediction, that choosing beats a fixed recent window, was not shown: over three runs D scored 17 each time and E 14, 15 and 13, a stable gap of about 3 items that sits inside the registered no-interpretation band, and all of it comes from the 15 episodes LiveLab 1.0 had used, with none on the 10 unused episodes. For Gemini 3.1 Pro the agent fell 5 items short of its oracle, so "choosing as well as an oracle" is one model's behaviour. Under the frozen item rules every qualifying public episode is already used, and the continuous-plant sets of NoBOOM lack a first-visibility label, so the question cannot be settled on available data. Spend: US$91.91.</p>
+
 <h2>6 Design implications</h2>
 <p>The results argue for a division of labour rather than for a better prompt or a better model.</p>
 <ul>
@@ -271,7 +282,7 @@
   <li><b>Normal comes from the plant.</b> Reference bands are rebuilt from each partner's own fault-free runs; the real-plant false alerts (§5.3) are the cost of not doing so.</li>
   <li><b>Qualify the configuration, not the model.</b> Call mode, output cap and task statement each moved results. A configuration qualifies on three runs and the private hold-out, with the task stating its scoring rules, and is retested on every model update.</li>
 </ul>
-<p>A follow-up, LiveLab 2.0, asks whether an agent can go back into the record and find when an anomaly first became visible, under a budget of raw readings (<a href="https://github.com/dekunsun/livelab2">github.com/dekunsun/livelab2</a>). With a trend plot, Opus 5.5 choosing its own windows located the onset within 120 s on 17 of 25 items at a late ask time, the same as an oracle window, using about half the raw data, against 8 for a classical baseline. Whether this beats a fixed recent window, its primary prediction, was not shown: 17 against 13 to 15 over three runs, inside the registered band of 3 items.</p>
+<p>LiveLab 2.0 (§5.6) adds the evidence-fetching half of this design: with a trend plot to point it, the model can choose which raw windows to fetch as well as an oracle, but it still names an exact onset when the fetched data does not reach it, so the system, not the model, must say what the fetched evidence covers.</p>
 
 <h2>7 Limitations</h2>
 <ul>
@@ -281,6 +292,7 @@
   <li><b>Cross-model comparisons are directional.</b> Call modes, reasoning settings and run counts differ by vendor. Within a model, one change at a time.</li>
   <li><b>Camera-only failures are untested.</b> No public, licensed dataset of laboratory failures visible to a camera and absent from telemetry was found (searches on 2026-09-20 and 2026-11-01). The project uses real imagery only.</li>
   <li><b>Rule-computed truth is bounded by the fault library.</b> Faults outside it are not tested.</li>
+  <li><b>LiveLab 2.0 is one model's result on one dataset.</b> Its primary prediction is unresolved, and no further qualifying episodes exist under its item rules.</li>
 </ul>
 
 <h2>8 Conclusion</h2>

@@ -8,7 +8,7 @@ Dekun Sun · University of Pennsylvania · [ai4s.fyi](https://ai4s.fyi)
 
 Work in progress · 2026 · MIT
 
-[**Preprint**](https://dekunsun.github.io/livelab/docs/preprint/preprint.html) ([PDF](docs/preprint/preprint.pdf)) · [**Results**](https://dekunsun.github.io/livelab/docs/leaderboard.html) · [Evaluation settings](docs/eval_settings.md) · [Registrations](#4-how-it-was-tested) · [Product summary](docs/product.md) · [Lessons learned](docs/lessons_learned.md) · [LiveLab 2.0](https://github.com/dekunsun/livelab2) · [中文摘要](#中文版-tldr)
+[**Preprint**](https://dekunsun.github.io/livelab/docs/preprint/preprint.html) · [**Results**](https://dekunsun.github.io/livelab/docs/leaderboard.html) · [Evaluation settings](docs/eval_settings.md) · [Registrations](#4-how-it-was-tested) · [Product summary](docs/product.md) · [Lessons learned](docs/lessons_learned.md) · [LiveLab 2.0](https://github.com/dekunsun/livelab2) · [中文摘要](#中文版-tldr)
 
 <img src="docs/figures/hero.png" width="760" alt="Missed escalations and missed faults, of 30, for four models across three task statements">
 
@@ -121,7 +121,7 @@ budget.
 - **Limits.** One simulated instrument, one public plant dataset and one set of lab photographs;
   no live deployment and no user validation yet; the post-fix results are one run per configuration.
 
-Preprint draft (work in progress): [web](https://dekunsun.github.io/livelab/docs/preprint/preprint.html) · [PDF](docs/preprint/preprint.pdf).
+Preprint draft (work in progress): [web](https://dekunsun.github.io/livelab/docs/preprint/preprint.html) · [PDF](https://dekunsun.github.io/livelab/docs/preprint/preprint.pdf).
 
 Researchers: start at [The finding](#2-the-finding). Product readers: the [product summary](docs/product.md)
 (the PRD and the model qualification spec, condensed), the [V1S result](docs/results/core_leaderboard.md#reading-stating-the-tasks-cause-and-action-rules-v1s) and
