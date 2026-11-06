@@ -5,9 +5,9 @@ AIASci 2026 workshop at AIAS+, San Francisco, 7 November 2026. Portrait, 24 × 3
 - `poster.html`: the source. Edit this, never the PDF.
 - `poster.pdf`: printed from the source with headless Chrome. Print at 100 %, no scaling, matte paper.
 - `preview.png`: a half-scale screenshot of the same page, for a quick look.
-- `fig/`: the figures the poster uses. The result figures (`tradeoff_poster.png`, `realdata_ci_poster.png`,
+- `fig/`: the figures the poster uses. The result figures (`hero_poster.png`, `realdata_ci_poster.png`,
   `cascade_lpcvd.png`) are generated from the run records by the scripts in `scripts/`
-  (`plot_tradeoff.py ... poster`, `plot_realdata_ci.py ... poster`, `plot_cascade.py`);
+  (`plot_hero.py ... en poster`, `plot_realdata_ci.py ... poster`, `plot_cascade.py`);
   `arms_hits.png` comes from the LiveLab 2.0 repository. The quoted run record in Q1 is the same one as
   Figure 4a of the preprint. Logos: University of Pennsylvania, reversed version for the dark band (used under
   its brand guidelines) and ai4s.fyi. QR codes point to this repository (under the logo), ai4s.fyi and x.com/gloria_sun.
@@ -21,4 +21,6 @@ cd poster
 "$CHROME" --headless=new --disable-gpu --hide-scrollbars --virtual-time-budget=15000 --window-size=2304,3456 --force-device-scale-factor=0.5 --screenshot=preview.png "file://$PWD/poster.html"
 ```
 
-The PDF must come out as one page; a second page means a column overflowed.
+Layout: three rows, each with its own column split, so both panels in a row end on the same line. Type uses three sizes only (title, headings, body). The three diagrams are inline SVG drawn at their rendered width, so their labels match the body size.
+
+The PDF must come out as one page; a second page means a row overflowed.
