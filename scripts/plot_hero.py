@@ -60,7 +60,7 @@ def main(out, lang="en"):
                 esc[s] = 30 - statistics.median(p[0] for p in pts)
                 fault[s] = 30 - statistics.median(p[1] for p in pts)
         series[name] = (esc, fault)
-    fig, axes = plt.subplots(1, 2, figsize=(11, 5.4 if POSTER else 4.3), dpi=300 if POSTER else 200, facecolor=SURFACE)
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.9 if POSTER else 4.3), dpi=300 if POSTER else 200, facecolor=SURFACE)
     fig.subplots_adjust(left=0.07 if POSTER else 0.05, right=0.74 if POSTER else 0.84, top=0.8 if POSTER else 0.82, bottom=0.2, wspace=0.95 if POSTER else 0.5)
     offsets = dict(zip(KEEP, [-0.6, -0.2, 0.2, 0.6]))
     for ax, key, title, sub in ((axes[0], 0, t["esc"], t["esc_sub"]), (axes[1], 1, t["fault"], t["fault_sub"])):
