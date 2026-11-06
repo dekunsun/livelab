@@ -5,12 +5,11 @@ AIASci 2026 workshop at AIAS+, San Francisco, 7 November 2026. Portrait, 24 × 3
 - `poster.html`: the source. Edit this, never the PDF.
 - `poster.pdf`: printed from the source with headless Chrome. Print at 100 %, no scaling, matte paper.
 - `preview.png`: a half-scale screenshot of the same page, for a quick look.
-- `fig/`: the figures the poster uses. The result figures (`hero_poster.png`, `realdata_ci_poster.png`,
-  `cascade_lpcvd.png`) are generated from the run records by the scripts in `scripts/`
-  (`plot_hero.py ... en poster`, `plot_realdata_ci.py ... poster`, `plot_cascade.py`);
-  `arms_hits.png` comes from the LiveLab 2.0 repository. The quoted run record in Q1 is the same one as
-  Figure 4a of the preprint. Logos: University of Pennsylvania, reversed version for the dark band (used under
-  its brand guidelines) and ai4s.fyi. QR codes point to this repository (under the logo), ai4s.fyi and x.com/gloria_sun.
+- `fig/`: the images the poster uses. `hero_poster.png` is generated from the run records by
+  `scripts/plot_hero.py ... en poster`; `cascade_lpcvd.png` by `scripts/plot_cascade.py`. The real-plant bars, the
+  four-errors diagram, the Opus 5.5 record and the framework diagram are inline SVG in `poster.html`; the bar values
+  come from `scripts/plot_realdata_ci.counts()` (corrected rerun). Logo: University of Pennsylvania, reversed version
+  for the dark band (used under its brand guidelines). QR codes point to this repository and ai4s.fyi.
 
 Rebuild after editing the source:
 
