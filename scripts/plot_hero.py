@@ -6,6 +6,7 @@ the same function as scripts/plot_tradeoff.py; repeated runs enter at their medi
 
   ./.venv/bin/python scripts/plot_hero.py docs/figures/hero.png
   ./.venv/bin/python scripts/plot_hero.py docs/figures/hero_zh.png zh
+  ./.venv/bin/python scripts/plot_hero.py poster/fig/hero_poster.png en poster   # larger type for print
 """
 import statistics
 import sys
@@ -26,6 +27,8 @@ SHORT = {"GPT-6 Astra": "GPT-6 Astra", "Gemini 3.1 Pro": "Gemini 3.1 Pro", "Clau
 COLOR = {"GPT-6 Astra": "#1baf7a", "Gemini 3.1 Pro": "#2a78d6", "Claude Opus 5.5": "#eb6834",
          "GLM 5.3 Flash (open weights)": "#eda100"}           # reference palette slots, validated
 STAGES = ["V0", "V1", "V1S"]
+POSTER = "poster" in sys.argv[3:]
+F = 1.7 if POSTER else 1.0                                   # type and stroke scale for the poster
 INK, MUTED, GRID, SURFACE, GATE = "#1f2328", "#5b6470", "#e6e8eb", "#ffffff", "#e5f4e4"
 TEXT = {
     "en": {"esc": "Missed escalations (of 30)", "fault": "Missed faults (of 30)",
@@ -40,8 +43,11 @@ TEXT = {
 
 
 def main(out, lang="en"):
-    t = TEXT[lang]
-    plt.rcParams.update({"font.family": t["font"], "font.size": 10, "axes.unicode_minus": False})
+    t = dict(TEXT[lang])
+    if POSTER and lang == "en":                                # shorter labels at poster type size
+        t["stages"] = ["V0\nnothing", "V1\ngap", "V1S\nrules"]
+        t["esc_sub"], t["fault_sub"] = "ruled instead of abstaining", "a visible fault not reported"
+    plt.rcParams.update({"font.family": t["font"], "font.size": 10 * F, "axes.unicode_minus": False})
     items = load_items()
     series = {}
     for name, stages in MODELS:
@@ -54,41 +60,41 @@ def main(out, lang="en"):
                 esc[s] = 30 - statistics.median(p[0] for p in pts)
                 fault[s] = 30 - statistics.median(p[1] for p in pts)
         series[name] = (esc, fault)
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.3), dpi=200, facecolor=SURFACE)
-    fig.subplots_adjust(left=0.05, right=0.84, top=0.82, bottom=0.2, wspace=0.5)
+    fig, axes = plt.subplots(1, 2, figsize=(11, 5.4 if POSTER else 4.3), dpi=300 if POSTER else 200, facecolor=SURFACE)
+    fig.subplots_adjust(left=0.07 if POSTER else 0.05, right=0.74 if POSTER else 0.84, top=0.8 if POSTER else 0.82, bottom=0.2, wspace=0.95 if POSTER else 0.5)
     offsets = dict(zip(KEEP, [-0.6, -0.2, 0.2, 0.6]))
     for ax, key, title, sub in ((axes[0], 0, t["esc"], t["esc_sub"]), (axes[1], 1, t["fault"], t["fault_sub"])):
         ax.set_facecolor(SURFACE)
         ax.axhspan(-1, 2.5, color=GATE, zorder=0)
-        ax.text(-0.2, 3.0, t["gate"], ha="left", va="bottom", fontsize=8, color="#3d7a3c")
+        ax.text(-0.2, 3.0, t["gate"], ha="left", va="bottom", fontsize=8 * F, color="#3d7a3c")
         ax.set_xlim(-0.25, 2.15)
         ax.set_ylim(-1, 31.5)
         ax.set_xticks(range(3))
-        ax.set_xticklabels(t["stages"], fontsize=9, color=INK)
+        ax.set_xticklabels(t["stages"], fontsize=9 * F, color=INK)
         ax.set_yticks([0, 10, 20, 30])
-        ax.grid(axis="y", color=GRID, lw=0.8)
+        ax.grid(axis="y", color=GRID, lw=0.8 * F)
         ax.set_axisbelow(True)
         for side in ("top", "right"):
             ax.spines[side].set_visible(False)
         for side in ("left", "bottom"):
             ax.spines[side].set_color(GRID)
         ax.tick_params(colors=MUTED, length=0)
-        ax.set_title(title, loc="left", fontsize=11.5, fontweight="bold", color=INK, pad=18)
-        ax.text(0, 1.02, sub, transform=ax.transAxes, fontsize=8.6, color=MUTED, va="bottom")
+        ax.set_title(title, loc="left", fontsize=11.5 * F, fontweight="bold", color=INK, pad=18 * F)
+        ax.text(0, 1.02, sub, transform=ax.transAxes, fontsize=8.6 * F, color=MUTED, va="bottom")
         ends = []
         for name in KEEP:
             vals = series[name][key]
             xs = [STAGES.index(s) for s in STAGES if s in vals]
             ys = [vals[s] + offsets[name] for s in STAGES if s in vals]
-            ax.plot(xs, ys, color=COLOR[name], lw=2, marker="o", markersize=6.5, markeredgecolor=SURFACE,
-                    markeredgewidth=1.2, zorder=3)
+            ax.plot(xs, ys, color=COLOR[name], lw=2 * F, marker="o", markersize=6.5 * F, markeredgecolor=SURFACE,
+                    markeredgewidth=1.2 * F, zorder=3)
             ends.append([ys[-1], name, vals["V1S"]])
         ends.sort(key=lambda e: e[0])                     # spread end labels so they never overlap
         for i in range(1, len(ends)):
-            ends[i][0] = max(ends[i][0], ends[i - 1][0] + 2.4)
+            ends[i][0] = max(ends[i][0], ends[i - 1][0] + 2.4 * (1.6 if POSTER else 1))
         for y, name, v in ends:
-            ax.plot([2.2, 2.32], [y, y], color=COLOR[name], lw=2.6, clip_on=False, solid_capstyle="butt")
-            ax.text(2.37, y, f"{SHORT[name]}  {v:g}", va="center", fontsize=8.6, color=INK, clip_on=False)
+            ax.plot([2.2, 2.32], [y, y], color=COLOR[name], lw=2.6 * F, clip_on=False, solid_capstyle="butt")
+            ax.text(2.37, y, f"{SHORT[name]}  {v:g}", va="center", fontsize=8.6 * F, color=INK, clip_on=False)
     fig.savefig(out, facecolor=SURFACE)
     print(f"wrote {out}")
     for k, v in series.items():
