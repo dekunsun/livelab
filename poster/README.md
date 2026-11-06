@@ -10,7 +10,7 @@ AIASci 2026 workshop at AIAS+, San Francisco, 7 November 2026. Portrait, 36 × 4
   (`plot_tradeoff.py ... poster`, `plot_realdata_ci.py ... poster`, `plot_cascade.py`);
   `arms_hits.png` comes from the LiveLab 2.0 repository. The quoted run record in Q1 is the same one as
   Figure 4a of the preprint. Logos: University of Pennsylvania, reversed version for the dark band (used under
-  its brand guidelines) and ai4s.fyi. QR codes point to this repository, the preprint page, ai4s.fyi and x.com/gloria_sun.
+  its brand guidelines) and ai4s.fyi. QR codes point to this repository (under the logo), ai4s.fyi and x.com/gloria_sun.
 
 Rebuild after editing the source:
 
