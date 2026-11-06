@@ -23,7 +23,7 @@ from matplotlib.patches import Patch  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 OUT = ROOT / "poster/fig"
-WIDTH = {"rules": 902, "realplant": 958, "cascade": 671, "arms": 524}   # CSS px on the poster
+WIDTH = {"rules": 902, "realplant": 874, "cascade": 671, "arms": 524}   # CSS px on the poster
 PT = 19.5                                                              # 26 px at 96 per inch
 INK, SOFT, GRID, NAVY = "#15201c", "#4d5a55", "#e3e6ea", "#011F5B"
 plt.rcParams.update({"font.family": "Helvetica Neue", "font.size": PT, "axes.titlesize": PT, "axes.labelsize": PT,
@@ -82,7 +82,7 @@ def realplant():
     from scripts.plot_realdata_ci import COLOR, MODELS, counts, wilson
     short = {"gemini-3.8-live": "Gemini 3.8 Live", "claude-opus-5": "Opus 5", "gpt-6-astra": "Astra"}
     s = counts()
-    fig, ax = figure("realplant", 5.1)
+    fig, ax = figure("realplant", 4.6)
     fig.subplots_adjust(left=0.10, right=0.985, top=0.86, bottom=0.17)
     ax.scatter([0], [31], marker="*", s=260, color=INK, zorder=5)
     ax.text(1.0, 31.3, "ideal", color=INK, va="center")
@@ -153,7 +153,7 @@ def arms():
         return sum(json.load(open(p))["metrics"]["exact"]["120"] == "hit" for p in d.glob("*.json")) if d.exists() else None
     arms_ = [("F2_t2", True, "Classical"), ("E_K1800_t2", False, "Fixed"), ("D_K1800_t2", False, "Agent"), ("B_K1800_t2", False, "Oracle")]
     models = [("opus-5.5", "Opus 5.5", NAVY), ("gemini-3.1-pro", "3.1 Pro", "#8a98b8")]
-    fig, ax = figure("arms", 3.5)
+    fig, ax = figure("arms", 3.0)
     fig.subplots_adjust(left=0.08, right=0.99, top=0.80, bottom=0.14)
     w = 0.38
     for i, (cell, classical, _) in enumerate(arms_):
