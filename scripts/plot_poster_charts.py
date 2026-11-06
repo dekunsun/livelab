@@ -82,7 +82,7 @@ def realplant():
     from scripts.plot_realdata_ci import COLOR, MODELS, counts, wilson
     short = {"gemini-3.8-live": "Gemini 3.8 Live", "claude-opus-5": "Opus 5", "gpt-6-astra": "Astra"}
     s = counts()
-    fig, ax = figure("realplant", 4.2)
+    fig, ax = figure("realplant", 5.1)
     fig.subplots_adjust(left=0.10, right=0.985, top=0.86, bottom=0.17)
     ax.scatter([0], [31], marker="*", s=260, color=INK, zorder=5)
     ax.text(1.0, 31.3, "ideal", color=INK, va="center")
@@ -123,7 +123,7 @@ def cascade():
     ep = load(ROOT / "scenarios/pilot/cvd_seal_leak_lpcvd.yaml")
     times = event_times(PROTOCOLS[ep["protocol"]], 120) / 60
     conds = list(ep["sensor_conditions"])
-    fig, ax = figure("cascade", 3.9)
+    fig, ax = figure("cascade", 5.0)
     fig.subplots_adjust(left=0.30, right=0.90, top=0.87, bottom=0.42)
     for i, c in enumerate(conds):
         for r in render(ep, c)[1]:
