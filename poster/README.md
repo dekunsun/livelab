@@ -1,6 +1,6 @@
 # Poster
 
-AIASci 2026 workshop at AIAS+, San Francisco, 7 November 2026. Portrait, 36 × 48 in, one page.
+AIASci 2026 workshop at AIAS+, San Francisco, 7 November 2026. Portrait, 24 × 36 in, one page.
 
 - `poster.html`: the source. Edit this, never the PDF.
 - `poster.pdf`: printed from the source with headless Chrome. Print at 100 %, no scaling, matte paper.
@@ -18,7 +18,7 @@ Rebuild after editing the source:
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 cd poster
 "$CHROME" --headless=new --disable-gpu --no-pdf-header-footer --virtual-time-budget=15000 --print-to-pdf=poster.pdf "file://$PWD/poster.html"
-"$CHROME" --headless=new --disable-gpu --hide-scrollbars --virtual-time-budget=15000 --window-size=3456,4608 --force-device-scale-factor=0.5 --screenshot=preview.png "file://$PWD/poster.html"
+"$CHROME" --headless=new --disable-gpu --hide-scrollbars --virtual-time-budget=15000 --window-size=2304,3456 --force-device-scale-factor=0.5 --screenshot=preview.png "file://$PWD/poster.html"
 ```
 
 The PDF must come out as one page; a second page means a column overflowed.
